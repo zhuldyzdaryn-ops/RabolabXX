@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лаб. работа №7: Закон Гука</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --bg: #f4f6f7;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Скрываем общий скролл, скроллим блоки */
+        }
+
+        /* --- HEADER (Title, Theory) --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; }
+        
+        .lang-switch {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .lang-switch:hover { background: rgba(255,255,255,0.4); }
+
+        .theory-block { font-size: 0.9rem; line-height: 1.4; display: flex; gap: 20px; }
+        .theory-text { flex: 2; }
+        .theory-text div { margin-bottom: 3px; }
+        .goal-text { flex: 1; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 15px; }
+
+        /* --- MAIN LAYOUT --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden; /* Чтобы журнал был прижат */
+        }
+
+        /* --- LEFT PANEL (Controls) --- */
+        .sidebar {
+            width: 320px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+
+        .control-group { border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .control-group:last-child { border-bottom: none; }
+        
+        h3 { margin-top: 0; font-size: 1.1rem; color: var(--accent); }
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
+        
+        .btn {
+            width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 4px;
+            cursor: pointer; font-weight: bold; color: white; transition: 0.2s;
+        }
+        .btn-add { background: var(--accent); } .btn-add:hover { background: #3498db; }
+        .btn-rem { background: #e74c3c; } .btn-rem:hover { background: #c0392b; }
+        .btn-rec { background: #27ae60; } .btn-rec:hover { background: #2ecc71; }
+        .btn-res { background: #7f8c8d; } .btn-res:hover { background: #95a5a6; }
+
+        .weights-container {
+            display: flex; gap: 5px; justify-content: center; margin: 10px 0;
+            min-height: 40px; align-items: center;
+        }
+        .weight-icon {
+            width: 30px; height: 30px; background: #34495e; color: white;
+            border-radius: 4px; display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: bold;
+        }
+
+        .instruction-list { font-size: 0.85rem; padding-left: 20px; color: #555; }
+        .instruction-list li { margin-bottom: 5px; }
+
+        /* --- CENTER (Simulation) --- */
+        .simulation-area {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #ffffff, #eef2f3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        svg { width: 100%; height: 100%; cursor: crosshair; }
+
+        /* SVG Styles */
+        .spring { fill: none; stroke: #555; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+        .weight-svg { fill: #34495e; stroke: #2c3e50; }
+        .text-svg { fill: #fff; font-size: 12px; text-anchor: middle; font-family: sans-serif; }
+        .ruler-bg { fill: #fcf3cf; stroke: #f1c40f; }
+        .ruler-tick { stroke: #333; stroke-width: 1; }
+        .ruler-text { font-size: 10px; fill: #333; text-anchor: start; }
+        .pointer-line { stroke: #e74c3c; stroke-width: 1; stroke-dasharray: 4; }
+
+        /* --- BOTTOM (Journal) --- */
+        .journal-panel {
+            height: 200px; /* Фиксированная высота */
+            background: white;
+            border-top: 2px solid var(--accent);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .journal-header {
+            padding: 10px 20px; background: #ecf0f1; font-weight: bold;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .table-wrapper {
+            flex: 1;
+            overflow-y: auto; /* Прокрутка только здесь */
+            padding: 0;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 10; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <h1 id="title-main">Лабораторная работа №7: Закон Гука</h1>
+        <button class="lang-switch" onclick="toggleLang()">RU / KZ</button>
+    </div>
+    <div class="theory-block">
+        <div class="theory-text">
+            <div id="theory-goal"><strong>Цель работы:</strong> Определить жёсткость пружины на основании закона Гука.</div>
+            <div id="theory-equip"><strong>Приборы:</strong> Штатив, пружина, набор грузов (1Н каждый), линейка.</div>
+            <div id="theory-form"><strong>Формула:</strong> F = k &middot; &Delta;l &rArr; k = F / &Delta;l</div>
+        </div>
+        <div class="goal-text" id="theory-hints">
+            <strong>Указания:</strong><br>
+            Измеряйте длину пружины l при разном количестве грузов. Рассчитайте удлинение &Delta;l = l - l<sub>0</sub> и жёсткость k.
+        </div>
+    </div>
+</header>
+
+<div class="main-container">
+    <aside class="sidebar">
+        <div class="control-group">
+            <h3 id="sb-setup">Настройки установки</h3>
+            <label id="lbl-spring">Пружина:</label>
+            <select id="spring-select" onchange="changeSpring()" class="btn" style="margin-top:0; background:white; color:#333; border:1px solid #ccc;">
+                <option value="40" id="opt-1">Пружина №1 (Мягкая)</option>
+                <option value="70" id="opt-2">Пружина №2 (Средняя)</option>
+                <option value="120" id="opt-3">Пружина №3 (Жёсткая)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <h3 id="sb-weights">Грузы (по 1 Н)</h3>
+            <div class="weights-container" id="weights-visual">
+                <span id="no-weights-text" style="color:#aaa; font-style:italic;">Нет грузов</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-add" id="btn-add" onclick="addWeight()">+ Добавить</button>
+                <button class="btn btn-rem" id="btn-rem" onclick="removeWeight()">- Убрать</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3 id="sb-data">Управление данными</h3>
+            <button class="btn btn-rec" id="btn-rec" onclick="recordData()">ЗАПИСАТЬ В ЖУРНАЛ</button>
+            <button class="btn btn-res" id="btn-res" onclick="resetExperiment()">СБРОСИТЬ ОПЫТ</button>
+        </div>
+
+        <div class="control-group">
+            <h3 id="sb-inst">Пошаговая инструкция</h3>
+            <ol class="instruction-list">
+                <li id="inst-1">Измерьте длину пружины без груза (l<sub>0</sub>). Запишите (нажмите "Записать").</li>
+                <li id="inst-2">Добавьте 1 груз (1 Н). Измерьте длину l<sub>1</sub>. Запишите.</li>
+                <li id="inst-3">Добавьте 2, 3 и 4 груза, записывая данные каждый раз.</li>
+                <li id="inst-4">Проанализируйте столбец k в журнале. Найдите среднее.</li>
+            </ol>
+        </div>
+    </aside>
+
+    <section class="simulation-area">
+        <svg id="sim-svg" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#e74c3c" />
+                </marker>
+            </defs>
+
+            <rect x="50" y="20" width="20" height="560" fill="#7f8c8d" />
+            <rect x="30" y="560" width="100" height="20" fill="#7f8c8d" />
+            <rect x="50" y="20" width="150" height="10" fill="#7f8c8d" />
+            
+            <g id="ruler" transform="translate(100, 50)">
+                <rect x="0" y="0" width="40" height="500" class="ruler-bg"/>
+                </g>
+
+            <g id="spring-system" transform="translate(150, 30)">
+                <path id="spring-path" d="M0,0 L0,20" class="spring" />
+                
+                <g id="hook-group">
+                    <line x1="0" y1="0" x2="0" y2="20" stroke="#555" stroke-width="2"/>
+                    <circle cx="0" cy="20" r="3" fill="#555"/>
+                    
+                    <g id="weights-svg-group" transform="translate(-15, 20)"></g>
+                    
+                    <line x1="0" y1="0" x2="-60" y2="0" class="pointer-line" />
+                    <text x="-70" y="4" fill="#e74c3c" font-size="12" font-weight="bold">L</text>
+                </g>
+            </g>
+            
+            <text id="svg-force-label" x="300" y="50" font-size="16" fill="#2c3e50" font-weight="bold">Сила тяжести:</text>
+            <text x="300" y="75" font-size="24" fill="#e74c3c" font-weight="bold" id="force-display">0 Н</text>
+
+            <text id="svg-len-label" x="300" y="120" font-size="16" fill="#2c3e50" font-weight="bold">Длина L:</text>
+            <text x="300" y="145" font-size="24" fill="#2980b9" font-weight="bold" id="length-display">0.10 м</text>
+
+        </svg>
+    </section>
+</div>
+
+<footer class="journal-panel">
+    <div class="journal-header">
+        <span id="journal-title">Журнал измерений</span>
+        <button id="btn-clear-table" class="btn btn-rem" style="width: auto; padding: 5px 15px; margin: 0; font-size: 0.8rem;" onclick="clearTable()">Очистить таблицу</button>
+    </div>
+    <div class="table-wrapper">
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th id="th-1">№ опыта</th>
+                    <th id="th-2">Сила F (Н)</th>
+                    <th id="th-3">Нач. длина l₀ (м)</th>
+                    <th id="th-4">Длина l (м)</th>
+                    <th id="th-5">Удлинение Δl (м)</th>
+                    <th id="th-6">Жёсткость k (Н/м)</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+</footer>
+
+<script>
+    // === DICTIONARY FOR TRANSLATION ===
+    const dict = {
+        ru: {
+            pageTitle: "Лаб. работа №7: Закон Гука",
+            titleMain: "Лабораторная работа №7: Закон Гука",
+            goal: "<strong>Цель работы:</strong> Определить жёсткость пружины на основании закона Гука.",
+            equip: "<strong>Приборы:</strong> Штатив, пружина, набор грузов (1Н каждый), линейка.",
+            form: "<strong>Формула:</strong> F = k &middot; &Delta;l &rArr; k = F / &Delta;l",
+            hints: "<strong>Указания:</strong><br>Измеряйте длину пружины l при разном количестве грузов. Рассчитайте удлинение &Delta;l = l - l<sub>0</sub> и жёсткость k.",
+            sbSetup: "Настройки установки",
+            lblSpring: "Пружина:",
+            opt1: "Пружина №1 (Мягкая)",
+            opt2: "Пружина №2 (Средняя)",
+            opt3: "Пружина №3 (Жёсткая)",
+            sbWeights: "Грузы (по 1 Н)",
+            noWeights: "Нет грузов",
+            btnAdd: "+ Добавить",
+            btnRem: "- Убрать",
+            sbData: "Управление данными",
+            btnRec: "ЗАПИСАТЬ В ЖУРНАЛ",
+            btnRes: "СБРОСИТЬ ОПЫТ",
+            sbInst: "Пошаговая инструкция",
+            inst1: "Измерьте длину пружины без груза (l<sub>0</sub>). Запишите (нажмите \"Записать\").",
+            inst2: "Добавьте 1 груз (1 Н). Измерьте длину l<sub>1</sub>. Запишите.",
+            inst3: "Добавьте 2, 3 и 4 груза, записывая данные каждый раз.",
+            inst4: "Проанализируйте столбец k в журнале. Найдите среднее.",
+            svgForce: "Сила тяжести:",
+            svgLen: "Длина L:",
+            journalTitle: "Журнал измерений",
+            btnClear: "Очистить таблицу",
+            th1: "№ опыта", th2: "Сила F (Н)", th3: "Нач. длина l₀ (м)", th4: "Длина l (м)", th5: "Удлинение Δl (м)", th6: "Жёсткость k (Н/м)",
+            unitN: "Н", unitM: "м"
+        },
+        kz: {
+            pageTitle: "Зертхана №7: Гук заңы",
+            titleMain: "Зертханалық жұмыс №7: Гук заңы",
+            goal: "<strong>Жұмыс мақсаты:</strong> Гук заңы негізінде серіппенің қатаңдығын анықтау.",
+            equip: "<strong>Құрал-жабдықтар:</strong> Тұрғы, серіппе, жүктер жиынтығы (әрқайсысы 1Н), сызғыш.",
+            form: "<strong>Формула:</strong> F = k &middot; &Delta;l &rArr; k = F / &Delta;l",
+            hints: "<strong>Нұсқаулар:</strong><br>Әртүрлі жүк саны кезінде серіппенің ұзындығын l өлшеңіз. Ұзаруды &Delta;l = l - l<sub>0</sub> және қатаңдықты k есептеңіз.",
+            sbSetup: "Қондырғы баптаулары",
+            lblSpring: "Серіппе:",
+            opt1: "Серіппе №1 (Жұмсақ)",
+            opt2: "Серіппе №2 (Орташа)",
+            opt3: "Серіппе №3 (Қатаң)",
+            sbWeights: "Жүктер (1 Н-нан)",
+            noWeights: "Жүк жоқ",
+            btnAdd: "+ Қосу",
+            btnRem: "- Алу",
+            sbData: "Деректерді басқару",
+            btnRec: "ЖУРНАЛҒА ЖАЗУ",
+            btnRes: "ТӘЖІРИБЕНІ ҚАЙТАЛАУ",
+            sbInst: "Қадамдық нұсқаулық",
+            inst1: "Жүксіз серіппенің ұзындығын (l<sub>0</sub>) өлшеңіз. Жазыңыз (\"Жазу\" түймесін басыңыз).",
+            inst2: "1 жүк (1 Н) қосыңыз. Ұзындығын l<sub>1</sub> өлшеңіз. Жазыңыз.",
+            inst3: "Әр жолы деректерді жаза отырып, 2, 3 және 4 жүк қосыңыз.",
+            inst4: "Журналдағы k бағанын талдаңыз. Орташа мәнін табыңыз.",
+            svgForce: "Ауырлық күші:",
+            svgLen: "Ұзындық L:",
+            journalTitle: "Өлшеу журналы",
+            btnClear: "Кестені тазарту",
+            th1: "Тәжірибе №", th2: "Күш F (Н)", th3: "Баст. ұзындық l₀ (м)", th4: "Ұзындық l (м)", th5: "Ұзару Δl (м)", th6: "Қатаңдық k (Н/м)",
+            unitN: "Н", unitM: "м"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function toggleLang() {
+        currentLang = currentLang === 'ru' ? 'kz' : 'ru';
+        applyTranslations();
+        updateSimulation(); // Update dynamic values
+    }
+
+    function applyTranslations() {
+        const t = dict[currentLang];
+        
+        document.title = t.pageTitle;
+        document.getElementById('title-main').innerText = t.titleMain;
+        
+        document.getElementById('theory-goal').innerHTML = t.goal;
+        document.getElementById('theory-equip').innerHTML = t.equip;
+        document.getElementById('theory-form').innerHTML = t.form;
+        document.getElementById('theory-hints').innerHTML = t.hints;
+        
+        document.getElementById('sb-setup').innerText = t.sbSetup;
+        document.getElementById('lbl-spring').innerText = t.lblSpring;
+        document.getElementById('opt-1').innerText = t.opt1;
+        document.getElementById('opt-2').innerText = t.opt2;
+        document.getElementById('opt-3').innerText = t.opt3;
+        
+        document.getElementById('sb-weights').innerText = t.sbWeights;
+        document.getElementById('btn-add').innerText = t.btnAdd;
+        document.getElementById('btn-rem').innerText = t.btnRem;
+        
+        document.getElementById('sb-data').innerText = t.sbData;
+        document.getElementById('btn-rec').innerText = t.btnRec;
+        document.getElementById('btn-res').innerText = t.btnRes;
+        
+        document.getElementById('sb-inst').innerText = t.sbInst;
+        document.getElementById('inst-1').innerHTML = t.inst1;
+        document.getElementById('inst-2').innerHTML = t.inst2;
+        document.getElementById('inst-3').innerText = t.inst3;
+        document.getElementById('inst-4').innerHTML = t.inst4;
+        
+        document.getElementById('svg-force-label').innerText = t.svgForce;
+        document.getElementById('svg-len-label').innerText = t.svgLen;
+        
+        document.getElementById('journal-title').innerText = t.journalTitle;
+        document.getElementById('btn-clear-table').innerText = t.btnClear;
+        
+        for (let i = 1; i <= 6; i++) {
+            document.getElementById(`th-${i}`).innerText = t[`th${i}`];
+        }
+        
+        // Re-render empty text if zero weights
+        if (weightCount === 0) {
+            document.getElementById('weights-visual').innerHTML = `<span id="no-weights-text" style="color:#aaa; font-style:italic;">${t.noWeights}</span>`;
+        }
+    }
+
+
+    // === CONFIGURATION ===
+    const PIXELS_PER_METER = 1000; // 1000px = 1 meter (10cm = 100px)
+    const INITIAL_LENGTH_M = 0.10; // 10 cm
+    const SPRING_START_Y = 0;
+    
+    // === STATE ===
+    let stiffness = 40; // N/m (Soft)
+    let weightCount = 0;
+    let currentLengthM = INITIAL_LENGTH_M;
+    let initialLengthM = INITIAL_LENGTH_M;
+    let force = 0;
+
+    // === DOM ELEMENTS ===
+    const ui = {
+        springPath: document.getElementById('spring-path'),
+        hookGroup: document.getElementById('hook-group'),
+        weightsSvg: document.getElementById('weights-svg-group'),
+        weightsIcons: document.getElementById('weights-visual'),
+        ruler: document.getElementById('ruler'),
+        forceDisp: document.getElementById('force-display'),
+        lenDisp: document.getElementById('length-display'),
+        tableBody: document.querySelector('#data-table tbody')
+    };
+
+    // === INIT ===
+    function init() {
+        drawRuler();
+        applyTranslations();
+        updateSimulation();
+    }
+
+    function drawRuler() {
+        for(let cm=0; cm<=50; cm++) {
+            const y = cm * 10; 
+            const isMajor = (cm % 5 === 0);
+            const w = isMajor ? 15 : 8;
+            
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", 0); line.setAttribute("y1", y);
+            line.setAttribute("x2", w); line.setAttribute("y2", y);
+            line.setAttribute("class", "ruler-tick");
+            ui.ruler.appendChild(line);
+
+            if(isMajor) {
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", 20); text.setAttribute("y", y + 3);
+                text.setAttribute("class", "ruler-text");
+                text.textContent = (cm).toString(); 
+                ui.ruler.appendChild(text);
+            }
+        }
+    }
+
+    // === LOGIC ===
+    function changeSpring() {
+        stiffness = parseInt(document.getElementById('spring-select').value);
+        updateSimulation();
+    }
+
+    function addWeight() {
+        if (weightCount < 4) {
+            weightCount++;
+            updateSimulation();
+        }
+    }
+
+    function removeWeight() {
+        if (weightCount > 0) {
+            weightCount--;
+            updateSimulation();
+        }
+    }
+
+    function updateSimulation() {
+        const t = dict[currentLang];
+        
+        // 1. Calculate Physics
+        force = weightCount * 1; // 1N per weight
+        const extension = force / stiffness;
+        currentLengthM = initialLengthM + extension;
+
+        // 2. Update Visuals
+        const totalLenPx = currentLengthM * PIXELS_PER_METER;
+        
+        // Draw ZigZag Spring
+        const numCoils = 10;
+        const coilHeight = totalLenPx / numCoils;
+        let d = `M0,0 `;
+        for(let i=1; i<=numCoils; i++) {
+            const y = i * coilHeight;
+            const x = (i % 2 === 0) ? -10 : 10; // Zigzag width
+            const xFinal = (i === numCoils) ? 0 : x;
+            d += `L${xFinal},${y} `;
+        }
+        ui.springPath.setAttribute('d', d);
+
+        // Move Hook
+        ui.hookGroup.setAttribute('transform', `translate(0, ${totalLenPx})`);
+
+        // Update Weights Visuals (SVG)
+        ui.weightsSvg.innerHTML = '';
+        for(let i=0; i<weightCount; i++) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute("transform", `translate(0, ${i*25})`);
+            
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("width", 30); rect.setAttribute("height", 25);
+            rect.setAttribute("rx", 3);
+            rect.setAttribute("class", "weight-svg");
+            
+            const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            txt.setAttribute("x", 15); txt.setAttribute("y", 17);
+            txt.setAttribute("class", "text-svg");
+            txt.textContent = "1" + t.unitN;
+
+            g.appendChild(rect);
+            g.appendChild(txt);
+            ui.weightsSvg.appendChild(g);
+        }
+
+        // Update Control Panel Icons
+        if (weightCount === 0) {
+            ui.weightsIcons.innerHTML = `<span id="no-weights-text" style="color:#aaa; font-style:italic;">${t.noWeights}</span>`;
+        } else {
+            let html = '';
+            for(let i=0; i<weightCount; i++) html += `<div class="weight-icon">1${t.unitN}</div>`;
+            ui.weightsIcons.innerHTML = html;
+        }
+
+        // Update Text
+        ui.forceDisp.textContent = force + " " + t.unitN;
+        ui.lenDisp.textContent = currentLengthM.toFixed(3) + " " + t.unitM;
+    }
+
+    function recordData() {
+        const deltaL = currentLengthM - initialLengthM;
+        let kCalc = (deltaL > 0.0001) ? (force / deltaL).toFixed(1) : "-";
+        
+        const row = document.createElement('tr');
+        const num = ui.tableBody.children.length + 1;
+        
+        row.innerHTML = `
+            <td>${num}</td>
+            <td>${force}</td>
+            <td>${initialLengthM.toFixed(3)}</td>
+            <td>${currentLengthM.toFixed(3)}</td>
+            <td>${deltaL.toFixed(3)}</td>
+            <td><b>${kCalc}</b></td>
+        `;
+        
+        ui.tableBody.appendChild(row);
+        
+        // Scroll to bottom of table
+        const wrapper = document.querySelector('.table-wrapper');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function resetExperiment() {
+        weightCount = 0;
+        updateSimulation();
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+    }
+
+    // Start
+    init();
+
+</script>
+</body>
+</html>
