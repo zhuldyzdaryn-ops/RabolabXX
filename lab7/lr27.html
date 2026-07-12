@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лаб. работа №10: Плавание тел</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --bg: #ecf0f1;
+            --water: rgba(52, 152, 219, 0.7);
+            --sand: #f39c12;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--primary);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* HEADER */
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        h1 { margin: 0; font-size: 1.4rem; }
+        .goal {
+            margin-top: 5px;
+            font-size: 0.95rem;
+            font-style: italic;
+            opacity: 0.9;
+            border-left: 3px solid #f1c40f;
+            padding-left: 10px;
+        }
+
+        /* WORKSPACE */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 320px;
+            background: white;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .control-group {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: 0.2s;
+        }
+        .btn-scale { background: #e67e22; }
+        .btn-water { background: #3498db; }
+        .btn-record { background: #27ae60; margin-top: auto; }
+        .btn:hover { opacity: 0.9; transform: scale(1.02); }
+
+        .readout {
+            font-family: monospace;
+            font-size: 1.2rem;
+            text-align: center;
+            background: #222;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        /* SIMULATION AREA */
+        .sim-area {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle, #fff, #bdc3c7);
+        }
+
+        /* --- EQUIPMENT --- */
+
+        /* SCALES */
+        .scales-container {
+            position: absolute;
+            left: 100px;
+            bottom: 50px;
+            width: 140px;
+            height: 120px;
+        }
+        .scales-base {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40px;
+            background: #7f8c8d;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: monospace;
+        }
+        .scales-stem {
+            position: absolute;
+            bottom: 40px;
+            left: 65px;
+            width: 10px;
+            height: 40px;
+            background: #95a5a6;
+        }
+        .scales-plate {
+            position: absolute;
+            bottom: 80px; 
+            left: 10px;
+            width: 120px;
+            height: 10px;
+            background: #34495e;
+            border-radius: 2px;
+            transition: transform 0.2s;
+        }
+
+        /* BEAKER */
+        .beaker-container {
+            position: absolute;
+            left: 400px;
+            bottom: 50px;
+            width: 140px;
+            height: 250px;
+        }
+        .beaker {
+            width: 100%;
+            height: 100%;
+            border: 3px solid #7f8c8d;
+            border-top: none;
+            background: rgba(255,255,255,0.3);
+            border-radius: 0 0 10px 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .liquid {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 150px; /* Initial Level V1 */
+            background: var(--water);
+            transition: height 0.5s ease-out;
+            border-top: 2px solid rgba(255,255,255,0.6);
+        }
+        .graduation {
+            position: absolute;
+            right: 0;
+            width: 20px;
+            height: 100%;
+            border-left: 1px solid #333;
+        }
+        .tick { position: absolute; right: 0; height: 1px; background: #333; width: 6px; }
+        .tick-label { position: absolute; right: 8px; font-size: 10px; transform: translateY(-50%); }
+
+        /* TEST TUBE */
+        .test-tube {
+            width: 30px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #555;
+            border-radius: 0 0 15px 15px;
+            position: absolute;
+            left: 275px; 
+            bottom: 200px;
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: hidden;
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+        .sand {
+            width: 100%;
+            height: 20%;
+            background: var(--sand);
+            transition: height 0.2s;
+        }
+        .cork {
+            position: absolute;
+            top: -5px; left: 2px;
+            width: 24px; height: 5px;
+            background: #c0392b;
+        }
+
+        /* JOURNAL */
+        .journal {
+            width: 350px;
+            background: white;
+            border-left: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        th, td { border: 1px solid #ccc; padding: 4px; text-align: center; }
+        th { background: #eee; }
+        
+        .result-float { color: #27ae60; font-weight: bold; }
+        .result-sink { color: #c0392b; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Лабораторная работа №10: Выяснение условий плавания тела в жидкости</h1>
+    <div class="goal">Цель работы: на опыте выяснить условия, при которых тело плавает и при которых тонет.</div>
+</header>
+
+<div class="workspace">
+    
+    <div class="sidebar">
+        <div class="control-group">
+            <label>Количество песка (Масса)</label>
+            <input type="range" id="sandRange" min="0" max="40" value="10" oninput="updateSettings()">
+            <div style="text-align: right; font-size: 0.9rem;" id="massDisplay">Общая масса: 20 г</div>
+        </div>
+
+        <div class="control-group">
+            <label>Управление:</label>
+            <button class="btn btn-scale" onclick="moveToScales()">1. На весы (Взвесить)</button>
+            <button class="btn btn-water" onclick="moveToWater()">2. В воду (Погрузить)</button>
+        </div>
+
+        <div class="control-group">
+            <label>Показания весов / Сила:</label>
+            <div class="readout" id="mainReadout">---</div>
+            <div id="statusText" style="text-align: center; font-size: 0.8rem; margin-top: 5px; color: #555;"></div>
+        </div>
+
+        <button class="btn btn-record" onclick="recordResult()">Записать в таблицу</button>
+        <button class="btn" style="background:#7f8c8d; margin-top: 10px;" onclick="resetPos()">Сброс положения</button>
+    </div>
+
+    <div class="sim-area">
+        
+        <div class="scales-container">
+            <div class="scales-plate" id="scalePlate"></div>
+            <div class="scales-stem"></div>
+            <div class="scales-base" id="scaleScreen">0.0 г</div>
+        </div>
+
+        <div class="beaker-container">
+            <div class="beaker">
+                <div class="liquid" id="liquid"></div>
+                <div class="graduation" id="grad"></div>
+            </div>
+            <div style="text-align:center; font-weight:bold; margin-top:5px;">Мензурка</div>
+        </div>
+
+        <div class="test-tube" id="tube">
+            <div class="cork"></div>
+            <div class="sand" id="visualSand"></div>
+        </div>
+
+    </div>
+
+    <div class="journal">
+        <h3>Результаты измерений</h3>
+        <button onclick="clearTable()" style="float:right; padding:2px 5px; background:#ddd; border:none; cursor:pointer;">Очистить</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>№</th>
+                    <th>V<sub>1</sub><br>(мл)</th>
+                    <th>V<sub>2</sub><br>(мл)</th>
+                    <th>m<br>(г)</th>
+                    <th>F<sub>тяж</sub><br>(Н)</th>
+                    <th>F<sub>A</sub><br>(Н)</th>
+                    <th>Итог</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <div style="font-size: 0.8rem; margin-top: 10px; color: #555; background: #f9f9f9; padding: 5px; border-left: 3px solid #ccc;">
+            <strong>Формулы:</strong><br>
+            1. F<sub>тяж</sub> = m · g <br>
+            2. F<sub>A</sub> = ρ · g · (V<sub>2</sub> - V<sub>1</sub>)
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- PHYSICS CONSTANTS ---
+    const g = 9.8;
+    const rho_water = 1000; // kg/m3
+    
+    const tubeEmptyMass = 10; // g
+    const tubeMaxVolume = 40; // cm3 (ml)
+    const tubeHeightPx = 80;
+
+    // Positional Constants
+    const posScale = { left: '145px', bottom: '140px' };
+    const posWaterX = '455px';
+    const beakerBottomY = 50;
+
+    // --- STATE ---
+    let currentSand = 10;
+    let totalMass = 20;
+    let locationState = 'air'; 
+    let v1 = 100; // ml
+    let v2 = 100; // ml
+    let count = 0;
+
+    // --- INIT ---
+    function init() {
+        createGraduations();
+        updateSettings();
+    }
+
+    function createGraduations() {
+        const el = document.getElementById('grad');
+        for(let i=0; i<=200; i+=20) {
+            const y = (i/200)*100;
+            const tick = document.createElement('div');
+            tick.className = 'tick';
+            tick.style.bottom = y + '%';
+            el.appendChild(tick);
+            if(i%50===0 && i>0){
+                const lbl = document.createElement('div');
+                lbl.className = 'tick-label';
+                lbl.style.bottom = y + '%';
+                lbl.innerText = i;
+                el.appendChild(lbl);
+            }
+        }
+    }
+
+    // --- LOGIC ---
+    function updateSettings() {
+        const val = parseInt(document.getElementById('sandRange').value);
+        currentSand = val;
+        totalMass = tubeEmptyMass + currentSand;
+        
+        document.getElementById('massDisplay').innerText = `Общая масса: ${totalMass} г`;
+        const hPct = (currentSand / 40) * 90;
+        document.getElementById('visualSand').style.height = hPct + '%';
+
+        if (locationState === 'scale') {
+            document.getElementById('scaleScreen').innerText = totalMass.toFixed(1) + ' г';
+            const Fg = (totalMass/1000)*g;
+            document.getElementById('mainReadout').innerText = Fg.toFixed(2) + ' Н';
+        }
+    }
+
+    function resetPos() {
+        locationState = 'air';
+        const tube = document.getElementById('tube');
+        tube.style.left = '275px';
+        tube.style.bottom = '200px';
+        
+        document.getElementById('scaleScreen').innerText = '0.0 г';
+        document.getElementById('scalePlate').style.transform = 'translateY(0)';
+        
+        v2 = v1;
+        setLiquidLevel(v1);
+        
+        document.getElementById('mainReadout').innerText = '---';
+        document.getElementById('statusText').innerHTML = '';
+    }
+
+    function moveToScales() {
+        locationState = 'scale';
+        const tube = document.getElementById('tube');
+        
+        tube.style.left = posScale.left;
+        tube.style.bottom = posScale.bottom;
+        
+        setTimeout(() => {
+             document.getElementById('scalePlate').style.transform = 'translateY(5px)';
+             document.getElementById('scaleScreen').innerText = totalMass.toFixed(1) + ' г';
+             
+             const Fg = (totalMass/1000)*g;
+             document.getElementById('mainReadout').innerText = Fg.toFixed(2) + ' Н';
+             document.getElementById('statusText').innerHTML = 'Сила тяжести F<sub>тяж</sub>';
+        }, 600);
+        
+        setLiquidLevel(v1);
+    }
+
+    function moveToWater() {
+        locationState = 'water';
+        const tube = document.getElementById('tube');
+        
+        tube.style.left = posWaterX;
+        
+        document.getElementById('scalePlate').style.transform = 'translateY(0)';
+        document.getElementById('scaleScreen').innerText = '0.0 г';
+        
+        const Fg = (totalMass/1000) * g;
+        const Fa_max = (tubeMaxVolume/1000000) * rho_water * g;
+        
+        let submergedVol = 0;
+        let isSinking = false;
+        
+        if (Fg > Fa_max) {
+            isSinking = true;
+            submergedVol = tubeMaxVolume;
+        } else {
+            isSinking = false;
+            submergedVol = totalMass;
+        }
+        
+        const pxPerMl = 1.25;
+        const v1_px = v1 * pxPerMl;
+        v2 = v1 + submergedVol;
+        const v2_px = v2 * pxPerMl;
+        
+        let tubeBottomRelToBeaker = 0;
+        
+        if (isSinking) {
+            tubeBottomRelToBeaker = 5; 
+            document.getElementById('statusText').innerHTML = 'Тело тонет (F<sub>тяж</sub> > F<sub>A</sub>)';
+        } else {
+            const depth = (submergedVol / tubeMaxVolume) * tubeHeightPx;
+            tubeBottomRelToBeaker = v2_px - depth;
+            document.getElementById('statusText').innerHTML = 'Тело плавает (F<sub>тяж</sub> = F<sub>A</sub>)';
+        }
+        
+        const absoluteBottom = beakerBottomY + tubeBottomRelToBeaker;
+        tube.style.bottom = absoluteBottom + 'px';
+        
+        setTimeout(() => {
+             setLiquidLevel(v2);
+             const Fa = (submergedVol/1000000)*rho_water*g;
+             document.getElementById('mainReadout').innerText = Fa.toFixed(2) + ' Н';
+        }, 300);
+    }
+
+    function setLiquidLevel(ml) {
+        const pct = (ml / 200) * 100;
+        document.getElementById('liquid').style.height = pct + '%';
+    }
+
+    // --- TABLE ---
+    function recordResult() {
+        if (locationState !== 'water') {
+            alert("Пожалуйста, сначала погрузите тело в воду.");
+            return;
+        }
+        
+        count++;
+        const tbody = document.getElementById('tableBody');
+        const tr = document.createElement('tr');
+        
+        const Fg = (totalMass/1000)*g;
+        const Vsub = v2 - v1;
+        const Fa = (Vsub/1000000)*rho_water*g;
+        
+        let res = "";
+        let style = "";
+        if (Math.abs(Fg - Fa) < 0.02 && Vsub < tubeMaxVolume) {
+            res = "Плавает";
+            style = "result-float";
+        } else if (Fg > Fa) {
+            res = "Тонет";
+            style = "result-sink";
+        } else {
+             res = "Всплывает"; 
+             style = "result-float";
+        }
+
+        tr.innerHTML = `
+            <td>${count}</td>
+            <td>${v1}</td>
+            <td>${v2.toFixed(1)}</td>
+            <td>${totalMass}</td>
+            <td>${Fg.toFixed(2)}</td>
+            <td>${Fa.toFixed(2)}</td>
+            <td class="${style}">${res}</td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function clearTable() {
+        document.getElementById('tableBody').innerHTML = '';
+        count = 0;
+    }
+
+    init();
+
+</script>
+</body>
+</html>
