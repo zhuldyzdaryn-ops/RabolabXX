@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лабораторная работа: Соединение пружин (со штативом)</title>
+    <style>
+        :root {
+            --primary: #34495e;
+            --accent: #27ae60; /* Зеленый акцент */
+            --bg: #fdfefe;
+            --panel: #ffffff;
+            --text: #2c3e50;
+            --border: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        h1 { margin: 0 0 10px 0; font-size: 1.4rem; }
+        .theory-block { font-size: 0.9rem; line-height: 1.4; display: flex; gap: 20px; }
+        .theory-col { flex: 1; }
+        .theory-col strong { color: #f1c40f; }
+
+        /* --- MAIN LAYOUT --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 340px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+
+        .control-group { border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        h3 { margin-top: 0; font-size: 1.1rem; color: var(--accent); margin-bottom: 10px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; }
+        select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        .btn {
+            width: 100%; padding: 10px; margin-top: 5px; border: none; border-radius: 4px;
+            cursor: pointer; font-weight: bold; color: white; transition: 0.2s;
+        }
+        .btn-act { background: var(--accent); } .btn-act:hover { background: #2ecc71; }
+        .btn-rec { background: #2980b9; } .btn-rec:hover { background: #3498db; }
+        .btn-res { background: #e74c3c; } .btn-res:hover { background: #c0392b; }
+
+        .weights-viz {
+            display: flex; gap: 4px; justify-content: center; margin: 10px 0;
+            min-height: 35px; align-items: center; background: #f0f3f4; border-radius: 4px;
+        }
+        .w-icon { width: 25px; height: 25px; background: #34495e; color: white; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border-radius: 3px; }
+
+        /* --- SIMULATION --- */
+        .simulation-area {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #ffffff, #ecf0f1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        svg { width: 100%; height: 100%; }
+
+        /* SVG Styles */
+        .stand-base { fill: #34495e; stroke: #2c3e50; }
+        .stand-pole { fill: #95a5a6; stroke: #7f8c8d; }
+        .stand-clamp { fill: #34495e; }
+        
+        .spring-line { fill: none; stroke: #555; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+        .weight-svg { fill: #34495e; stroke: #2c3e50; }
+        
+        .ruler-bg { fill: rgba(255, 255, 224, 0.8); stroke: #f1c40f; }
+        .ruler-line { stroke: #333; stroke-width: 1; }
+        .ruler-text { font-size: 10px; fill: #333; font-family: monospace; }
+        
+        .measure-line { stroke: #e74c3c; stroke-width: 1; stroke-dasharray: 4; }
+
+        /* --- JOURNAL --- */
+        .journal-panel {
+            height: 180px;
+            background: white;
+            border-top: 2px solid var(--accent);
+            display: flex;
+            flex-direction: column;
+        }
+        .journal-header { padding: 8px 20px; background: #ecf0f1; font-weight: bold; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+        .table-wrapper { flex: 1; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        th { background-color: #f8f9fa; position: sticky; top: 0; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Лабораторная работа: Соединение пружин</h1>
+    <div class="theory-block">
+        <div class="theory-col">
+            <strong>Цель:</strong> Изучить жесткость системы пружин при последовательном и параллельном соединении.<br>
+            <strong>Закон Гука:</strong> $F = k \cdot \Delta x$
+        </div>
+        <div class="theory-col">
+            <strong>Параллельно:</strong> $k_{общ} = k_1 + k_2$ (Жесткость увеличивается)<br>
+            <strong>Последовательно:</strong> $\frac{1}{k_{общ}} = \frac{1}{k_1} + \frac{1}{k_2}$ (Жесткость уменьшается)
+        </div>
+    </div>
+</header>
+
+<div class="main-container">
+    <aside class="sidebar">
+        
+        <div class="control-group">
+            <h3>1. Тип соединения</h3>
+            <select id="conn-mode" onchange="updateUI()">
+                <option value="single">Одна пружина</option>
+                <option value="parallel">Параллельно (рядом)</option>
+                <option value="series">Последовательно (друг за другом)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <h3>2. Параметры пружин</h3>
+            <label>Пружина №1 (k1):</label>
+            <select id="k1-select" onchange="updateSim()">
+                <option value="40">40 Н/м (Мягкая)</option>
+                <option value="60">60 Н/м</option>
+                <option value="100">100 Н/м (Жёсткая)</option>
+            </select>
+
+            <div id="k2-group" class="hidden">
+                <label>Пружина №2 (k2):</label>
+                <select id="k2-select" onchange="updateSim()">
+                    <option value="40">40 Н/м (Мягкая)</option>
+                    <option value="60">60 Н/м</option>
+                    <option value="100">100 Н/м (Жёсткая)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>3. Нагрузка (по 1 Н)</h3>
+            <div class="weights-viz" id="w-viz"></div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-act" onclick="addWeight()">+ Груз</button>
+                <button class="btn btn-act" style="background:#c0392b" onclick="removeWeight()">- Груз</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <button class="btn btn-rec" onclick="recordData()">ЗАПИСАТЬ В ЖУРНАЛ</button>
+            <button class="btn btn-res" onclick="resetSim()">СБРОС</button>
+        </div>
+        
+        <div style="font-size: 0.8rem; color:#666">
+            <strong>Инструкция:</strong><br>
+            1. Пружины закреплены на штативе.<br>
+            2. Линейка зафиксирована на стойке.<br>
+            3. Измерьте $l_0$ (без грузов).<br>
+            4. Добавляйте грузы и фиксируйте удлинение.
+        </div>
+    </aside>
+
+    <section class="simulation-area">
+        <svg id="sim-svg" viewBox="0 0 500 600" preserveAspectRatio="xMidYMid meet">
+            
+            <defs>
+                <linearGradient id="metal-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#bdc3c7;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#ecf0f1;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#95a5a6;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+
+            <rect x="50" y="550" width="200" height="20" class="stand-base" />
+            <rect x="140" y="50" width="20" height="500" fill="url(#metal-grad)" stroke="#7f8c8d" />
+            
+            <g transform="translate(140, 80)">
+                <rect x="-5" y="-10" width="30" height="40" class="stand-clamp" rx="3" />
+                <rect x="10" y="0" width="180" height="12" fill="url(#metal-grad)" stroke="#7f8c8d" />
+                <rect x="-15" y="5" width="10" height="10" fill="#2c3e50" />
+            </g>
+
+            <g id="ruler" transform="translate(110, 100)"></g>
+
+            <g id="system-group" transform="translate(280, 100)"></g>
+
+            <text x="360" y="60" fill="#333" font-size="14" font-weight="bold">Сила F: <tspan id="txt-force" fill="#e74c3c">0 Н</tspan></text>
+            <text x="360" y="90" fill="#333" font-size="14" font-weight="bold">Длина L: <tspan id="txt-len" fill="#8e44ad">0.00 м</tspan></text>
+            <text x="360" y="120" fill="#333" font-size="14" font-weight="bold">k (системы): <tspan id="txt-k" fill="#27ae60">0 Н/м</tspan></text>
+        </svg>
+    </section>
+</div>
+
+<footer class="journal-panel">
+    <div class="journal-header">
+        <span>Журнал наблюдений</span>
+        <button class="btn btn-res" style="width:auto; padding:4px 10px; margin:0;" onclick="clearTable()">Очистить</button>
+    </div>
+    <div class="table-wrapper">
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>Тип</th>
+                    <th>F (Н)</th>
+                    <th>L₀ (м)</th>
+                    <th>L (м)</th>
+                    <th>ΔL (м)</th>
+                    <th>k (расчёт)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</footer>
+
+<script>
+    // === CONFIG ===
+    const PX_PER_M = 800; // 1m = 800px. 10cm = 80px.
+    const SPRING_NATURAL_LEN_M = 0.10; // 10 cm natural length
+
+    // === STATE ===
+    let mode = 'single';
+    let k1 = 40, k2 = 40;
+    let weightCount = 0;
+    
+    // Calculated values
+    let totalK = 40;
+    let totalL0 = 0.10;
+    let currentL = 0.10;
+    let force = 0;
+
+    // === INIT ===
+    function init() {
+        drawRuler();
+        updateUI();
+    }
+
+    function drawRuler() {
+        const r = document.getElementById('ruler');
+        
+        // Draw Ruler Background
+        const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        bg.setAttribute("x", 0); bg.setAttribute("y", -10);
+        bg.setAttribute("width", 30); bg.setAttribute("height", 450);
+        bg.setAttribute("class", "ruler-bg");
+        r.appendChild(bg);
+
+        // Clamps holding ruler to pole
+        const clamp1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        clamp1.setAttribute("x", 25); clamp1.setAttribute("y", 20);
+        clamp1.setAttribute("width", 10); clamp1.setAttribute("height", 20);
+        clamp1.setAttribute("fill", "#34495e");
+        r.appendChild(clamp1);
+        
+        const clamp2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        clamp2.setAttribute("x", 25); clamp2.setAttribute("y", 300);
+        clamp2.setAttribute("width", 10); clamp2.setAttribute("height", 20);
+        clamp2.setAttribute("fill", "#34495e");
+        r.appendChild(clamp2);
+
+        // Ticks (0 to 50cm)
+        for(let cm=0; cm<=50; cm++) {
+            const y = cm * (PX_PER_M / 100);
+            const w = (cm%10===0) ? 20 : (cm%5===0 ? 15 : 10);
+            
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", 30); line.setAttribute("y1", y);
+            line.setAttribute("x2", 30-w); line.setAttribute("y2", y);
+            line.setAttribute("class", "ruler-line");
+            r.appendChild(line);
+
+            if(cm%10===0) {
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", 5); txt.setAttribute("y", y+4);
+                txt.setAttribute("class", "ruler-text");
+                txt.textContent = cm;
+                r.appendChild(txt);
+            }
+        }
+    }
+
+    // === LOGIC ===
+    function updateUI() {
+        mode = document.getElementById('conn-mode').value;
+        const k2Group = document.getElementById('k2-group');
+        
+        if (mode === 'single') {
+            k2Group.classList.add('hidden');
+        } else {
+            k2Group.classList.remove('hidden');
+        }
+        updateSim();
+    }
+
+    function updateSim() {
+        // 1. Get Values
+        k1 = parseInt(document.getElementById('k1-select').value);
+        k2 = parseInt(document.getElementById('k2-select').value);
+        
+        force = weightCount * 1; // 1N per weight
+
+        // 2. Physics Calculation
+        if (mode === 'single') {
+            totalK = k1;
+            totalL0 = SPRING_NATURAL_LEN_M;
+        } else if (mode === 'parallel') {
+            totalK = k1 + k2;
+            totalL0 = SPRING_NATURAL_LEN_M;
+        } else if (mode === 'series') {
+            // 1/k = 1/k1 + 1/k2 => k = (k1*k2)/(k1+k2)
+            totalK = (k1 * k2) / (k1 + k2);
+            totalL0 = SPRING_NATURAL_LEN_M * 2;
+        }
+
+        const extension = force / totalK;
+        currentL = totalL0 + extension;
+
+        drawSystem();
+        updateText();
+    }
+
+    // === DRAWING ===
+    function drawSystem() {
+        const container = document.getElementById('system-group');
+        container.innerHTML = ''; // Clear
+
+        // We draw starting from y=0 relative to the group, which is at the Arm Height
+        // But springs usually hang from a hook.
+        // Let's draw a small hook at (0,0) which corresponds to y=100 global
+        
+        container.appendChild(createCircle(0, -6, 4, '#555')); // Hook on arm
+
+        if (mode === 'single') {
+            const ext = force / k1;
+            const lenPx = (SPRING_NATURAL_LEN_M + ext) * PX_PER_M;
+            
+            // Draw Spring
+            container.appendChild(createSpringPath(0, 0, 20, lenPx));
+            // Draw Weights
+            container.appendChild(createWeights(0, lenPx));
+            // Pointer to ruler
+            container.appendChild(createPointer(0, lenPx));
+
+        } else if (mode === 'parallel') {
+            const ext = force / (k1 + k2);
+            const lenPx = (SPRING_NATURAL_LEN_M + ext) * PX_PER_M;
+            
+            // Top Bar for parallel spacing
+            container.appendChild(createLine(-25, 0, 25, 0, 4, '#555'));
+
+            // Spring 1
+            container.appendChild(createSpringPath(-25, 0, 15, lenPx));
+            // Spring 2
+            container.appendChild(createSpringPath(25, 0, 15, lenPx));
+
+            // Bottom Connecting Bar
+            container.appendChild(createLine(-25, lenPx, 25, lenPx, 4, '#555'));
+
+            // Weights (Center)
+            container.appendChild(createWeights(0, lenPx));
+            // Pointer
+            container.appendChild(createPointer(0, lenPx));
+
+        } else if (mode === 'series') {
+            const ext1 = force / k1;
+            const len1Px = (SPRING_NATURAL_LEN_M + ext1) * PX_PER_M;
+            
+            const ext2 = force / k2;
+            const len2Px = (SPRING_NATURAL_LEN_M + ext2) * PX_PER_M;
+
+            // Spring 1
+            container.appendChild(createSpringPath(0, 0, 20, len1Px));
+            
+            // Connector Ring
+            container.appendChild(createCircle(0, len1Px, 3, '#333'));
+            
+            // Spring 2 (starts where 1 ends)
+            container.appendChild(createSpringPath(0, len1Px, 20, len2Px));
+
+            // Weights
+            const totalY = len1Px + len2Px;
+            container.appendChild(createWeights(0, totalY));
+            // Pointer
+            container.appendChild(createPointer(0, totalY));
+        }
+    }
+
+    // Helper: Zigzag Spring
+    function createSpringPath(x, y, width, length) {
+        const coils = 12;
+        const segH = length / coils;
+        let d = `M${x},${y} `;
+        
+        for(let i=1; i<=coils; i++) {
+            const currY = y + i*segH;
+            const currX = (i===coils) ? x : (i%2===0 ? x-width/2 : x+width/2);
+            d += `L${currX},${currY} `;
+        }
+        
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", d);
+        path.setAttribute("class", "spring-line");
+        return path;
+    }
+
+    // Helper: Weights Group
+    function createWeights(x, y) {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("transform", `translate(${x}, ${y})`);
+        
+        // Hook
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", 0); line.setAttribute("y1", 0);
+        line.setAttribute("x2", 0); line.setAttribute("y2", 20);
+        line.setAttribute("stroke", "#333");
+        line.setAttribute("stroke-width", "2");
+        g.appendChild(line);
+
+        for(let i=0; i<weightCount; i++) {
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", -15); rect.setAttribute("y", 20 + i*25);
+            rect.setAttribute("width", 30); rect.setAttribute("height", 22);
+            rect.setAttribute("rx", 3);
+            rect.setAttribute("class", "weight-svg");
+            
+            const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            txt.setAttribute("x", 0); txt.setAttribute("y", 36 + i*25);
+            txt.setAttribute("fill", "white");
+            txt.setAttribute("font-size", "10");
+            txt.setAttribute("text-anchor", "middle");
+            txt.textContent = "1H";
+            
+            g.appendChild(rect);
+            g.appendChild(txt);
+        }
+        return g;
+    }
+
+    // Helper: Pointer Line (To Ruler)
+    function createPointer(x, y) {
+        // System group is at x=280. Ruler right edge is at x=140.
+        // We need to draw line to left.
+        // 280 - 140 = 140 distance.
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x); line.setAttribute("y1", y);
+        line.setAttribute("x2", x - 138); line.setAttribute("y2", y);
+        line.setAttribute("class", "measure-line");
+        return line;
+    }
+
+    function createLine(x1, y1, x2, y2, w, color) {
+        const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+        l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+        l.setAttribute("stroke", color);
+        l.setAttribute("stroke-width", w);
+        return l;
+    }
+
+    function createCircle(cx, cy, r, fill) {
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", r);
+        c.setAttribute("fill", fill);
+        return c;
+    }
+
+    function updateText() {
+        document.getElementById('txt-force').textContent = force + " Н";
+        document.getElementById('txt-len').textContent = currentL.toFixed(3) + " м";
+        document.getElementById('txt-k').textContent = totalK.toFixed(1) + " Н/м";
+        
+        // Update weight icons
+        const viz = document.getElementById('w-viz');
+        viz.innerHTML = '';
+        if(weightCount===0) viz.innerHTML = '<span style="font-size:0.7rem; color:#aaa">Пусто</span>';
+        for(let i=0; i<weightCount; i++) {
+            viz.innerHTML += '<div class="w-icon">1</div>';
+        }
+    }
+
+    function addWeight() { if(weightCount < 5) { weightCount++; updateSim(); } }
+    function removeWeight() { if(weightCount > 0) { weightCount--; updateSim(); } }
+    
+    function resetSim() {
+        weightCount = 0;
+        updateSim();
+    }
+
+    function recordData() {
+        const tbody = document.querySelector('#data-table tbody');
+        const deltaL = currentL - totalL0;
+        const kCalc = (deltaL > 0.001) ? (force / deltaL).toFixed(1) : "-";
+        
+        let typeStr = "";
+        if(mode==='single') typeStr = "Один";
+        if(mode==='parallel') typeStr = "Паралл.";
+        if(mode==='series') typeStr = "Послед.";
+
+        const row = `<tr>
+            <td>${typeStr}</td>
+            <td>${force}</td>
+            <td>${totalL0.toFixed(3)}</td>
+            <td>${currentL.toFixed(3)}</td>
+            <td>${deltaL.toFixed(3)}</td>
+            <td><b>${kCalc}</b></td>
+        </tr>`;
+        tbody.innerHTML += row;
+        
+        // Auto scroll
+        const wrapper = document.querySelector('.table-wrapper');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function clearTable() {
+        document.querySelector('#data-table tbody').innerHTML = '';
+    }
+
+    init();
+
+</script>
+</body>
+</html>
