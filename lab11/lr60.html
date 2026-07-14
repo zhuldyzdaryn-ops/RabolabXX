@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Действие магнитного поля на ток</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --magnet-n: #e74c3c;
+            --magnet-s: #3498db;
+            --coil: #d35400;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active {
+            background: var(--accent);
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--primary);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg {
+            width: 100%;
+            height: 380px;
+            display: block;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px 0; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-toggle { background: #f39c12; }
+        .btn-toggle:hover:not(:disabled) { background: #d68910; }
+        .btn-reverse { background: #9b59b6; }
+        .btn-reverse:hover:not(:disabled) { background: #8e44ad; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+
+        /* --- DISPLAYS --- */
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .display-item { text-align: center; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; }
+        .display-item strong { font-size: 1.2rem; font-family: monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        /* --- CHART --- */
+        .chart-container {
+            position: relative;
+            min-height: 250px;
+            width: 100%;
+        }
+
+        /* SVG Elements */
+        .wire { fill: none; stroke: #34495e; stroke-width: 3; }
+        .wire-active { stroke: #e74c3c; stroke-dasharray: 5,5; animation: dash 1s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -10; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Действие магнитного поля на ток</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- TOP PANEL: Intro -->
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Лабораторная работа: Действие магнитного поля на ток</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Исследовать взаимодействие тока с постоянным магнитом.</span></p>
+        <p><span class="intro-label" id="lbl-equip">Оборудование:</span> <span id="txt-equip">источник тока, реостат, ключ, катушка, полосовой магнит, штатив, динамометр, амперметр, соединительные провода.</span></p>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Замкните ключ электрической цепи.</li>
+            <li>Изменяйте силу тока с помощью реостата. Записывайте показания динамометра в таблицу №1.</li>
+            <li>Измените направление тока в катушке (переключателем полярности).</li>
+            <li>Проведите аналогичные измерения и запишите их в таблицу №2.</li>
+        </ul>
+    </div>
+
+    <!-- LEFT PANEL: Simulation -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg viewBox="0 0 600 380" id="sim-svg">
+                <rect x="0" y="0" width="600" height="380" fill="#ecf0f1"/>
+
+                <!-- Цепь (Провода) - Единый контур с разрывами только для элементов -->
+                <path class="wire" id="circuit-wire" d="
+                    M 310 250 L 100 250 L 100 280
+                    M 100 320 L 100 350 L 165 350
+                    M 235 350 L 285 350
+                    M 315 350 L 370 350
+                    M 470 350 L 500 350 L 500 250 L 370 250
+                "/>
+
+                <!-- Амперметр (по середине левого провода) -->
+                <g transform="translate(100, 300)">
+                    <circle cx="0" cy="0" r="20" fill="#fff" stroke="#2c3e50" stroke-width="2"/>
+                    <text x="0" y="5" text-anchor="middle" font-weight="bold" font-size="16">A</text>
+                </g>
+
+                <!-- Источник тока -->
+                <g id="battery" transform="translate(170, 335)">
+                    <rect x="0" y="0" width="60" height="30" fill="#95a5a6" rx="3"/>
+                    <rect id="bat-term-left" x="-5" y="10" width="5" height="10" fill="#2c3e50"/> <!-- Левая клемма -->
+                    <rect id="bat-term-right" x="60" y="10" width="5" height="10" fill="#c0392b"/> <!-- Правая клемма -->
+                    <text x="10" y="20" font-weight="bold" font-size="14" id="bat-minus">-</text>
+                    <text x="40" y="20" font-weight="bold" font-size="14" fill="#c0392b" id="bat-plus">+</text>
+                </g>
+
+                <!-- Ключ (разрыв цепи) -->
+                <g transform="translate(285, 350)" id="switch-group" style="cursor: pointer;" onclick="toggleSwitch()">
+                    <!-- Контакты, к которым вплотную подходят провода -->
+                    <circle cx="0" cy="0" r="4" fill="#2c3e50"/>
+                    <circle cx="30" cy="0" r="4" fill="#2c3e50"/>
+                    <!-- Лезвие ключа (в разомкнутом состоянии) -->
+                    <line id="switch-blade" x1="0" y1="0" x2="25" y2="-15" stroke="#2c3e50" stroke-width="4" stroke-linecap="round"/>
+                </g>
+                <text x="300" y="375" text-anchor="middle" font-size="12" id="lbl-svg-switch">Ключ</text>
+
+                <!-- Реостат -->
+                <g transform="translate(370, 340)">
+                    <rect x="0" y="0" width="100" height="20" fill="#7f8c8d" rx="2"/>
+                    <rect id="rheo-slider" x="50" y="-15" width="10" height="30" fill="#f39c12"/>
+                    <text x="50" y="-20" text-anchor="middle" font-size="12">Реостат</text>
+                </g>
+
+                <!-- Штатив -->
+                <rect x="30" y="40" width="10" height="200" fill="#7f8c8d"/>
+                <rect x="10" y="240" width="50" height="10" fill="#34495e"/>
+                <rect x="30" y="40" width="310" height="10" fill="#7f8c8d"/>
+                <circle cx="340" cy="45" r="5" fill="#2c3e50"/>
+
+                <!-- Динамометр и Магнит -->
+                <g id="magnet-sys">
+                    <!-- Пружина динамометра -->
+                    <path id="dyn-spring" d="M 340 50 Q 330 60 340 70 Q 350 80 340 90 Q 330 100 340 110" fill="none" stroke="#95a5a6" stroke-width="2"/>
+                    
+                    <!-- Корпус динамометра (шкала неподвижна) -->
+                    <rect x="330" y="50" width="20" height="60" fill="rgba(255,255,255,0.7)" stroke="#2c3e50"/>
+                    
+                    <!-- Подвижный магнит -->
+                    <g id="magnet-body" transform="translate(325, 110)">
+                        <rect x="0" y="0" width="30" height="40" fill="var(--magnet-n)"/>
+                        <text x="15" y="25" fill="#fff" text-anchor="middle" font-weight="bold">N</text>
+                        <rect x="0" y="40" width="30" height="40" fill="var(--magnet-s)"/>
+                        <text x="15" y="65" fill="#fff" text-anchor="middle" font-weight="bold">S</text>
+                        <path d="M 15 -10 L 15 0" stroke="#34495e" stroke-width="2"/> <!-- Крючок -->
+                    </g>
+                </g>
+
+                <!-- Катушка -->
+                <g id="coil-group" transform="translate(310, 200)">
+                    <rect x="0" y="0" width="60" height="50" fill="#e67e22" rx="5"/>
+                    <!-- Витки -->
+                    <line x1="10" y1="0" x2="10" y2="50" stroke="#d35400" stroke-width="2"/>
+                    <line x1="20" y1="0" x2="20" y2="50" stroke="#d35400" stroke-width="2"/>
+                    <line x1="30" y1="0" x2="30" y2="50" stroke="#d35400" stroke-width="2"/>
+                    <line x1="40" y1="0" x2="40" y2="50" stroke="#d35400" stroke-width="2"/>
+                    <line x1="50" y1="0" x2="50" y2="50" stroke="#d35400" stroke-width="2"/>
+                    <!-- Полюса электромагнита (скрыты без тока) -->
+                    <text id="coil-n-pole" x="30" y="-5" fill="var(--magnet-n)" text-anchor="middle" font-weight="bold" opacity="0">N</text>
+                    <text id="coil-s-pole" x="30" y="-5" fill="var(--magnet-s)" text-anchor="middle" font-weight="bold" opacity="0">S</text>
+                </g>
+
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group" style="grid-column: 1 / -1;">
+                <label id="lbl-slider">Положение реостата (сопротивление R):</label>
+                <input type="range" id="slider-rheo" min="0" max="100" value="100" oninput="updateRheostat()">
+            </div>
+            
+            <div class="btn-group" style="grid-column: 1 / -1;">
+                <button class="btn btn-toggle" id="btn-switch" onclick="toggleSwitch()">
+                    <span id="txt-btn-switch">Замкнуть ключ</span>
+                </button>
+                <button class="btn btn-reverse" id="btn-reverse" onclick="reverseCurrent()">
+                    <span id="txt-btn-reverse">Изменить направление тока</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-i">Сила тока I (А)</span>
+                <strong id="meas-i">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-f">Сила тяги F (Н)</span>
+                <strong id="meas-f">5.00</strong> <!-- Начальный вес магнита -->
+            </div>
+            <div class="display-item">
+                <span id="disp-state">Состояние цепи</span>
+                <strong id="meas-state" style="color:#e74c3c;">Разомкнута</strong>
+            </div>
+        </div>
+
+        <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+    </div>
+
+    <!-- BOTTOM PANEL: Data -->
+    <div class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <h2 class="panel-title" id="lbl-journal1">Опыт 1: Прямое направление тока</h2>
+                <div class="table-wrap">
+                    <table id="data-table-1">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>I (А)</th>
+                                <th>F (Н)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <h2 class="panel-title" id="lbl-journal2">Опыт 2: Обратное направление тока</h2>
+                <div class="table-wrap">
+                    <table id="data-table-2">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>I (А)</th>
+                                <th>F (Н)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">График зависимости F(I)</h2>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- TRANSLATION DICTIONARY ---
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Действие магнитного поля на ток",
+            themeLbl: "Тема:",
+            themeTxt: "Наблюдение действия магнитного поля на ток.",
+            goalLbl: "Цель работы:",
+            goalTxt: "Исследовать взаимодействие тока с постоянным магнитом.",
+            equipLbl: "Оборудование:",
+            equipTxt: "источник тока, реостат, ключ, катушка, полосовой магнит, штатив, динамометр, амперметр, соединительные провода.",
+            procLbl: "Ход работы:",
+            procList: [
+                "Замкните ключ электрической цепи.",
+                "Изменяйте силу тока с помощью реостата. Записывайте показания динамометра в таблицу №1.",
+                "Измените направление тока в катушке (переключателем полярности).",
+                "Проведите аналогичные измерения и запишите их в таблицу №2."
+            ],
+            sim: "Симуляция эксперимента",
+            sliderLbl: "Положение реостата (сопротивление R):",
+            btnSwitchOn: "Замкнуть ключ",
+            btnSwitchOff: "Разомкнуть ключ",
+            btnReverse: "Изменить направление тока",
+            btnRecord: "Записать в таблицу",
+            dispI: "Сила тока I (А)",
+            dispF: "Сила тяги F (Н)",
+            dispState: "Состояние цепи",
+            stateOff: "Разомкнута",
+            stateOn: "Замкнута",
+            journal1: "Опыт 1: Прямое направление тока",
+            journal2: "Опыт 2: Обратное направление тока",
+            chartTitle: "Зависимость силы (показаний динамометра) от тока",
+            svgSwitch: "Ключ"
+        },
+        kz: {
+            title: "Магнит өрісінің токқа әсерін бақылау",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Магнит өрісінің токқа әсерін бақылау.",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Токтың тұрақты магнитпен өзара әсерлесуін зерттеу.",
+            equipLbl: "Құрал-жабдықтар:",
+            equipTxt: "ток көзі, реостат, кілт, катушка, жолақ магнит, штатив, динамометр, амперметр, жалғағыш сымдар.",
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Электр тізбегінің кілтін қосыңыз.",
+                "Реостат арқылы ток күшін өзгертіңіз. Динамометр көрсеткіштерін №1 кестеге жазыңыз.",
+                "Катушкадағы ток бағытын өзгертіңіз (полярлық қосқышпен).",
+                "Ұқсас өлшеулер жүргізіп, оларды №2 кестеге жазыңыз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            sliderLbl: "Реостат орны (R кедергісі):",
+            btnSwitchOn: "Кілтті қосу",
+            btnSwitchOff: "Кілтті ажырату",
+            btnReverse: "Ток бағытын өзгерту",
+            btnRecord: "Кестеге жазу",
+            dispI: "Ток күші I (А)",
+            dispF: "Тарту күші F (Н)",
+            dispState: "Тізбек күйі",
+            stateOff: "Ажыратылған",
+            stateOn: "Қосылған",
+            journal1: "1-тәжірибе: Тоқтың тура бағыты",
+            journal2: "2-тәжірибе: Тоқтың кері бағыты",
+            chartTitle: "Күштің (динамометр көрсеткішінің) токқа тәуелділігі",
+            svgSwitch: "Кілт"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        const t = dict[lang];
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-equip').innerText = t.equipLbl;
+        document.getElementById('txt-equip').innerText = t.equipTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => { let li = document.createElement('li'); li.innerText = item; ul.appendChild(li); });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-slider').innerText = t.sliderLbl;
+        document.getElementById('txt-btn-switch').innerText = isClosed ? t.btnSwitchOff : t.btnSwitchOn;
+        document.getElementById('txt-btn-reverse').innerText = t.btnReverse;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('disp-i').innerText = t.dispI;
+        document.getElementById('disp-f').innerText = t.dispF;
+        document.getElementById('disp-state').innerText = t.dispState;
+        
+        const stateEl = document.getElementById('meas-state');
+        stateEl.innerText = isClosed ? t.stateOn : t.stateOff;
+        stateEl.style.color = isClosed ? "#27ae60" : "#e74c3c";
+
+        document.getElementById('lbl-journal1').innerText = t.journal1;
+        document.getElementById('lbl-journal2').innerText = t.journal2;
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-svg-switch').innerText = t.svgSwitch;
+
+        chartObj.options.plugins.title.text = t.chartTitle;
+        chartObj.update();
+    }
+
+    // --- PHYSICS LOGIC ---
+    let isClosed = false;
+    let isReversed = false; // false = прямое (ток создает поле, отталкивающее магнит)
+    
+    const VOLTAGE = 5; // Условное напряжение
+    const R_MIN = 10; // Сопротивление катушки
+    const R_MAX_RHEO = 40; // Макс сопротивление реостата
+    const F_MAGNET_WEIGHT = 5.0; // Сила тяжести магнита (Начальное показание)
+    const K_MAGNETIC = 4.0; // Коэффициент магнитной силы (F_m = K * I)
+
+    let currentI = 0;
+    let currentF = F_MAGNET_WEIGHT;
+
+    function toggleSwitch() {
+        isClosed = !isClosed;
+        
+        const blade = document.getElementById('switch-blade');
+        const t = dict[currentLang];
+        
+        if (isClosed) {
+            blade.setAttribute('x2', '30');
+            blade.setAttribute('y2', '0');
+            document.getElementById('txt-btn-switch').innerText = t.btnSwitchOff;
+            document.getElementById('meas-state').innerText = t.stateOn;
+            document.getElementById('meas-state').style.color = "#27ae60";
+            document.getElementById('btn-record').disabled = false;
+            
+            // Анимация проводов
+            document.querySelectorAll('.wire').forEach(w => w.classList.add('wire-active'));
+        } else {
+            blade.setAttribute('x2', '25');
+            blade.setAttribute('y2', '-15');
+            document.getElementById('txt-btn-switch').innerText = t.btnSwitchOn;
+            document.getElementById('meas-state').innerText = t.stateOff;
+            document.getElementById('meas-state').style.color = "#e74c3c";
+            document.getElementById('btn-record').disabled = true;
+            
+            document.querySelectorAll('.wire').forEach(w => w.classList.remove('wire-active'));
+        }
+        
+        updatePhysics();
+    }
+
+    function reverseCurrent() {
+        isReversed = !isReversed;
+        
+        // Меняем полярность батареи визуально
+        const batLeftTerm = document.getElementById('bat-term-left');
+        const batRightTerm = document.getElementById('bat-term-right');
+        const batMinus = document.getElementById('bat-minus');
+        const batPlus = document.getElementById('bat-plus');
+        
+        if (isReversed) {
+            batLeftTerm.setAttribute('fill', '#c0392b');
+            batRightTerm.setAttribute('fill', '#2c3e50');
+            batMinus.setAttribute('x', '40'); batMinus.setAttribute('fill', '#34495e');
+            batPlus.setAttribute('x', '10'); batPlus.setAttribute('fill', '#c0392b');
+        } else {
+            batLeftTerm.setAttribute('fill', '#2c3e50');
+            batRightTerm.setAttribute('fill', '#c0392b');
+            batMinus.setAttribute('x', '10'); batMinus.setAttribute('fill', '#34495e');
+            batPlus.setAttribute('x', '40'); batPlus.setAttribute('fill', '#c0392b');
+        }
+        
+        updatePhysics();
+    }
+
+    function updateRheostat() {
+        const sliderVal = document.getElementById('slider-rheo').value;
+        const visualPos = (sliderVal / 100) * 80; // Ширина реостата
+        document.getElementById('rheo-slider').setAttribute('x', visualPos);
+        
+        updatePhysics();
+    }
+
+    function updatePhysics() {
+        const sliderVal = document.getElementById('slider-rheo').value;
+        
+        if (isClosed) {
+            // Расчет тока: I = U / R. R_total = R_coil + R_rheostat
+            const R_rheo = (sliderVal / 100) * R_MAX_RHEO;
+            currentI = VOLTAGE / (R_MIN + R_rheo);
+            
+            // Расчет силы Ампера (взаимодействия)
+            // При прямом токе: Катушка сверху N, магнит снизу S -> Притягиваются (F увеличивается)
+            // В таблице из картинки: при прямом токе F УМЕНЬШАЕТСЯ (отталкивание).
+            // Значит по умолчанию полюса ОДНОИМЕННЫЕ.
+            let F_magnetic = K_MAGNETIC * currentI; 
+            
+            if (!isReversed) {
+                // Прямой ток: Отталкивание (Динамометр показывает МЕНЬШЕ)
+                currentF = F_MAGNET_WEIGHT - F_magnetic;
+                
+                // Визуализация полюсов (отталкивание: магнит S внизу, катушка S вверху)
+                document.getElementById('coil-s-pole').setAttribute('opacity', '1');
+                document.getElementById('coil-n-pole').setAttribute('opacity', '0');
+                
+            } else {
+                // Обратный ток: Притяжение (Динамометр показывает БОЛЬШЕ)
+                currentF = F_MAGNET_WEIGHT + F_magnetic;
+                
+                document.getElementById('coil-n-pole').setAttribute('opacity', '1');
+                document.getElementById('coil-s-pole').setAttribute('opacity', '0');
+            }
+            
+        } else {
+            currentI = 0;
+            currentF = F_MAGNET_WEIGHT;
+            document.getElementById('coil-n-pole').setAttribute('opacity', '0');
+            document.getElementById('coil-s-pole').setAttribute('opacity', '0');
+        }
+
+        // Обновление табло
+        document.getElementById('meas-i').innerText = currentI.toFixed(2);
+        document.getElementById('meas-f').innerText = currentF.toFixed(2);
+
+        // Анимация динамометра (Сдвиг магнита и пружины)
+        // Если F=5, то сдвиг 0. Если F < 5 (отталкивание), магнит идет вверх (y < 110)
+        let dy = (currentF - 5.0) * 10; 
+        document.getElementById('magnet-body').setAttribute('transform', `translate(325, ${110 + dy})`);
+        
+        // Анимация пружины
+        let sy = 110 + dy;
+        document.getElementById('dyn-spring').setAttribute('d', `M 340 50 Q 330 ${50 + (sy-50)*0.2} 340 ${50 + (sy-50)*0.4} Q 350 ${50 + (sy-50)*0.6} 340 ${50 + (sy-50)*0.8} Q 330 ${50 + (sy-50)*0.9} 340 ${sy}`);
+    }
+
+    function recordData() {
+        const tableId = isReversed ? '#data-table-2 tbody' : '#data-table-1 tbody';
+        const tbody = document.querySelector(tableId);
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td>${tbody.children.length + 1}</td>
+            <td>${currentI.toFixed(2)}</td>
+            <td>${currentF.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+
+        // Добавление точки на график
+        const datasetIndex = isReversed ? 1 : 0;
+        chartObj.data.datasets[datasetIndex].data.push({x: parseFloat(currentI.toFixed(2)), y: parseFloat(currentF.toFixed(2))});
+        // Сортировка для ровной линии
+        chartObj.data.datasets[datasetIndex].data.sort((a, b) => a.x - b.x);
+        chartObj.update();
+
+        // Прокрутка таблицы вниз
+        const wrapper = tbody.parentElement.parentElement;
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    // --- CHART INITIALIZATION ---
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chartObj = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [
+                {
+                    label: 'Прямой ток (Отталкивание)',
+                    data: [],
+                    borderColor: '#3498db', backgroundColor: '#3498db',
+                    borderWidth: 2, pointRadius: 5, fill: false, tension: 0
+                },
+                {
+                    label: 'Обратный ток (Притяжение)',
+                    data: [],
+                    borderColor: '#e74c3c', backgroundColor: '#e74c3c',
+                    borderWidth: 2, pointRadius: 5, fill: false, tension: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'linear',
+                    title: { display: true, text: 'Сила тока I (А)' },
+                    min: 0, max: 0.6,
+                    ticks: { stepSize: 0.1 },
+                    grid: { color: '#e0e0e0' }
+                },
+                y: {
+                    title: { display: true, text: 'Показания динамометра F (Н)' },
+                    min: 2.0, max: 8.0,
+                    ticks: { stepSize: 1.0 },
+                    grid: { color: '#e0e0e0' }
+                }
+            },
+            plugins: {
+                legend: { display: true, position: 'bottom' }
+            }
+        }
+    });
+
+    // Инициализация при старте
+    setLang('ru');
+    updatePhysics();
+
+</script>
+</body>
+</html>
