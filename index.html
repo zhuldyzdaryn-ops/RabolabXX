@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RABOlab X2 — интерактивная лаборатория по физике</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f4f7f6;
+            --text: #333;
+            --white: #ffffff;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        /* Изменено: добавлено relative для позиционирования иконок внутри шапки */
+        header { position: relative; text-align: center; padding: 50px 20px; background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        header h1 { margin: 0; font-size: 2.5rem; letter-spacing: 2px; }
+        header p { opacity: 0.8; margin-top: 10px; font-size: 1.1rem; }
+
+        /* Стили для социальных иконок */
+        .social-links {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+        }
+        .social-links a {
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+        .social-links a:hover {
+            transform: scale(1.15); /* Увеличение при наведении */
+            color: var(--accent); /* Изменение цвета на акцентный */
+        }
+        .social-links svg {
+            width: 32px;
+            height: 32px;
+            fill: currentColor;
+        }
+
+        .container { flex: 1; max-width: 1200px; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; }
+
+        .section-title { 
+            background: var(--white); 
+            padding: 15px 20px; 
+            border-left: 6px solid var(--accent); 
+            margin: 40px 0 20px 0; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--white);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid transparent;
+        }
+        .card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+        
+        .card .number { font-weight: bold; color: var(--accent); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 8px; }
+        .card h3 { margin: 0 0 10px 0; color: var(--primary); font-size: 1.15rem; line-height: 1.4; }
+        .card .btn { margin-top: auto; background: var(--accent); color: white; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; }
+
+        footer { background: var(--primary); color: white; text-align: center; padding: 30px 20px; margin-top: 50px; }
+        footer a { color: var(--accent); text-decoration: none; font-weight: bold; }
+        footer a:hover { text-decoration: underline; }
+
+        /* Адаптив для мобильных экранов (чтобы иконки не "наезжали" на текст) */
+        @media (max-width: 600px) {
+            .social-links {
+                top: 15px;
+                right: 15px;
+            }
+            .social-links svg {
+                width: 26px;
+                height: 26px;
+            }
+            header {
+                padding-top: 60px; /* Дополнительное место сверху для иконок на маленьких экранах */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <!-- Блок с иконками соцсетей -->
+    <div class="social-links">
+        <a href="https://wa.me/message/CRHNZRLA3HFQK1" target="_blank" rel="noopener noreferrer" title="Связаться в WhatsApp">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+            </svg>
+        </a>
+        <a href="https://t.me/+q5pPVgwk54UwYjUy" target="_blank" rel="noopener noreferrer" title="Перейти в Telegram">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.287 5.906c-.778.324-2.334.994-4.666 2.01-.378.15-.577.298-.595.442-.03.243.275.339.69.47l.175.055c.408.133.958.288 1.243.294.26.006.549-.1.868-.32 2.179-1.471 3.304-2.214 3.374-2.23.05-.012.12-.026.166.016.047.041.042.12.037.141-.03.129-1.227 1.241-1.846 1.817-.193.18-.33.307-.358.336a8.154 8.154 0 0 1-.188.186c-.38.366-.664.64.015 1.088.327.216.589.393.85.571.284.194.568.387.936.629.093.06.183.125.27.187.331.236.63.448.997.414.214-.02.435-.22.547-.82.265-1.417.786-4.486.906-5.751a1.426 1.426 0 0 0-.013-.315.337.337 0 0 0-.114-.217.526.526 0 0 0-.31-.093c-.3.005-.763.166-2.984 1.09z"/>
+            </svg>
+        </a>
+    </div>
+
+    <h1>RABOlab X2</h1>
+    <p>Интерактивная онлайн-лаборатория по физике</p>
+</header>
+
+<div class="container">
+
+    <div class="section-title">7 класс</div>
+    <div class="grid">
+        <a href="lab7/lr9.html" class="card"><span class="number">№1</span><h3>Сила трения скольжения</h3><div class="btn">Запустить</div></a>
+        <a href="lab7/lr27.html" class="card"><span class="number">№2</span><h3>Выяснение условий плавания тела в жидкости</h3><div class="btn">Запустить</div></a>
+        <a href="lab7/lr28.html" class="card"><span class="number">№3</span><h3>Определение условия равновесия рычага</h3><div class="btn">Запустить</div></a>
+        <a href="lab7/lr29.html" class="card"><span class="number">№4</span><h3>Определение КПД наклонной плоскости</h3><div class="btn">Запустить</div></a>
+        <a href="lab7/lr30.html" class="card"><span class="number">№5</span><h3>Закон Гука</h3><div class="btn">Запустить</div></a>
+        <a href="lab7/lr31.html" class="card"><span class="number">№6</span><h3>Сила трения скольжения</h3><div class="btn">Запустить</div></a>
+        <a href="lab7/lr102.html" class="card"><span class="number">№7</span><h3>Исследование силы трения</h3><div class="btn">Запустить</div></a>
+        <a href="lab7/lr26.html" class="card"><span class="number">№8</span><h3>Определение выталкивающей силы</h3><div class="btn">Запустить</div></a>
+           </div>
+
+    <div class="section-title">8 класс</div>
+    <div class="grid">
+        <a href="lab8/la.html" class="card"><span class="number">№1</span><h3>Закон Ома</h3><div class="btn">Запустить</div></a>
+        <a href="lab8/lr5.html" class="card"><span class="number">№2</span><h3>Определение показателя преломления стекла</h3><div class="btn">Запустить</div></a>
+        <a href="lab8/lr38.html" class="card"><span class="number">№3</span><h3>Измерение электрического заряда одновалентного иона</h3><div class="btn">Запустить</div></a>
+        <a href="lab8/lr39.html" class="card"><span class="number">№4</span><h3>Определение фокусного расстояния тонкой линзы</h3><div class="btn">Запустить</div></a>
+        <a href="lab8/lr51.html" class="card"><span class="number">№5</span><h3>Определение показателя преломления стекла</h3><div class="btn">Запустить</div></a>
+
+          </div>
+
+    <div class="section-title">9 класс</div>
+    <div class="grid">
+        <a href="lab9/lr3.html" class="card"><span class="number">№1</span><h3>Проверка второго закона Ньютона</h3><div class="btn">Запустить</div></a>
+        <a href="lab9/lr7.html" class="card"><span class="number">№2</span><h3>Зависимость скорости от времени</h3><div class="btn">Запустить</div></a>
+         <a href="lab9/lr8.html" class="card"><span class="number">№3</span><h3>Зависимость скорости от пройденного пути</h3><div class="btn">Запустить</div></a>
+         <a href="lab9/lr14.html" class="card"><span class="number">№4</span><h3>Определение коэффициента трения</h3><div class="btn">Запустить</div></a>
+         <a href="lab9/lr16.html" class="card"><span class="number">№5</span><h3>Неупругое столкновение</h3><div class="btn">Запустить</div></a>
+         <a href="lab9/lr17.html" class="card"><span class="number">№6</span><h3>Расталкивание тележек</h3><div class="btn">Запустить</div></a>
+         <a href="lab9/lr18.html" class="card"><span class="number">№7</span><h3>Упругое столкновение</h3><div class="btn">Запустить</div></a>
+         <a href="lab9/lr19.html" class="card"><span class="number">№8</span><h3>Столкновение шаров (Маятник)</h3><div class="btn">Запустить</div></a>
+         <a href="lab9/lr21.html" class="card"><span class="number">№9</span><h3>Сохранение энергии</h3><div class="btn">Запустить</div></a>
+          <a href="lab9/lr22.html" class="card"><span class="number">№10</span><h3>Сохранение энергии (Маятник)</h3><div class="btn">Запустить</div></a>
+          <a href="lab9/lr23.html" class="card"><span class="number">№11</span><h3>Период и Амплитуда</h3><div class="btn">Запустить</div></a>
+           <a href="lab9/lr24.html" class="card"><span class="number">№12</span><h3>Зависимость периода колебания нитяного маятника от массы груза</h3><div class="btn">Запустить</div></a>
+           <a href="lab9/lr25.html" class="card"><span class="number">№13</span><h3>Зависимость периода колебания нитяного маятника от длины подвеса</h3><div class="btn">Запустить</div></a>
+           <a href="lab9/lr26.html" class="card"><span class="number">№14</span><h3>Определение выталкивающей силы</h3><div class="btn">Запустить</div></a>
+           <a href="lab9/lr29.html" class="card"><span class="number">№15</span><h3>Определение КПД наклонной плоскости</h3><div class="btn">Запустить</div></a>
+           <a href="lab9/lr101.html" class="card"><span class="number">№16</span><h3>Исследование равнопеременного движения</h3><div class="btn">Запустить</div></a>
+           </div>
+
+    <div class="section-title">10 класс</div>
+    <div class="grid">
+        <a href="lab10/lr1.html" class="card"><span class="number">№1</span><h3>Измерение скорости равномерного движения</h3><div class="btn">Запустить</div></a>
+       <a href="lab10/lr2.html" class="card"><span class="number">№2</span><h3>Движение по наклонной плоскости</h3><div class="btn">Запустить</div></a>
+       <a href="lab10/lr3.html" class="card"><span class="number">№3</span><h3>Проверка второго закона Ньютона</h3><div class="btn">Запустить</div></a>
+        <a href="lab10/lr4.html" class="card"><span class="number">№4</span><h3>Горизонтальный бросок</h3><div class="btn">Запустить</div></a>
+        <a href="lab10/lr15.html" class="card"><span class="number">№5</span><h3>Движение связанных тел</h3><div class="btn">Запустить</div></a>
+        <a href="lab10/lr21.html" class="card"><span class="number">№6</span><h3>Сохранение энергии</h3><div class="btn">Запустить</div></a>
+        <a href="lab10/lr32.html" class="card"><span class="number">№7</span><h3>Соединение пружин</h3><div class="btn">Запустить</div></a>
+         <a href="lab10/lr35.html" class="card"><span class="number">№8</span><h3>Исследование силы трения</h3><div class="btn">Запустить</div></a>
+         <a href="lab10/lr37.html" class="card"><span class="number">№9</span><h3> Изучение полупроводникового диода</h3><div class="btn">Запустить</div></a>
+         <a href="lab10/lr38.html" class="card"><span class="number">№10</span><h3> Измерение электрического заряда одновалентного иона</h3><div class="btn">Запустить</div></a>
+         <a href="lab10/lr101.html" class="card"><span class="number">№11</span><h3> Исследование равнопеременного движения</h3><div class="btn">Запустить</div></a>
+
+           </div>
+
+     <div class="section-title">11 класс</div>
+    <div class="grid">
+        <a href="lab11/lr60.html" class="card"><span class="number">№1</span><h3>Наблюдение действия магнитного поля на ток</h3><div class="btn">Запустить</div></a>
+            </div>
+
+        <div class="section-title">Физический практикум</div>
+    <div class="grid">
+        <a href="labs/lr40.html" class="card"><span class="number">№1</span><h3>Изучение движения тела по окружности под действием сил упругости и тяжести</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr41.html" class="card"><span class="number">№2</span><h3>Измерение массы тела методом гидростатического взвешивания</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr42.html" class="card"><span class="number">№3</span><h3>Измерение модуля упругости (модуля Юнги) резины</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr43.html" class="card"><span class="number">№4</span><h3>Изучение колебаний математического маятника</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr44.html" class="card"><span class="number">№5</span><h3>Изучение колебаний пружинного маятника</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr45.html" class="card"><span class="number">№6</span><h3>Снятие вольт-амперной характеристики резистора</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr46.html" class="card"><span class="number">№7</span><h3>Измерение влажности воздуха</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr47.html" class="card"><span class="number">№8</span><h3>Определение длины волны светового излучения с помощью дифракционной решётки</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr48.html" class="card"><span class="number">№9</span><h3>Нахождение ярких звезд и некоторых созвездий осеннего, зимнего и весеннего неба в данной местности</h3><div class="btn">Запустить</div></a>
+        <a href="labs/lr49.html" class="card"><span class="number">№10</span><h3>Определение скорости света в различных веществах с помощью сферических линз</h3><div class="btn">Запустить</div></a>
+    </div>
+
+</div>
+
+<footer>
+    <p>© 2026 RABOlab X2 — Виртуальные работы для учителей и учеников</p>
+    <p>Разработчик: <a href="mailto:zhuldyzdaryn@gmail.com">zhuldyzdaryn@gmail.com</a></p>
+</footer>
+
+</body>
+</html>
