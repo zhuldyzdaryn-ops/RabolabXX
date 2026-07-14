@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Виртуальная Лабораторная Работа</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root { --primary: #2980b9; --bg: #f4f6f9; --panel: #ffffff; --accent: #c0392b; --text: #2c3e50; --success: #27ae60; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        
+        /* КНОПКА ЯЗЫКА */
+        .lang-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .btn-lang {
+            background: #34495e;
+            color: white;
+            border: 2px solid #2c3e50;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .btn-lang:hover { background: #2c3e50; transform: translateY(-2px); }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+            margin-top: 40px; /* Отступ для кнопки языка */
+        }
+
+        .card { background: var(--panel); padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        /* Стили для Теории */
+        .theory-block { grid-column: 1 / -1; }
+        h1 { margin-top: 0; color: var(--primary); font-size: 1.5rem; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+        h3 { margin: 15px 0 5px 0; font-size: 1.1rem; color: #34495e; }
+        .theory-content ul { margin: 5px 0; padding-left: 20px; color: #555; }
+        
+        /* Формула */
+        .formula-box { 
+            background: #f8f9fa; padding: 15px; text-align: center; border-radius: 5px; margin: 15px 0; border: 1px solid #e9ecef;
+            font-family: 'Times New Roman', serif; font-size: 1.8rem; font-style: italic;
+        }
+        .fraction { display: inline-block; vertical-align: middle; text-align: center; margin: 0 5px; }
+        .fraction-top { border-bottom: 2px solid #000; padding-bottom: 2px; display: block; }
+        .fraction-bottom { padding-top: 2px; display: block; }
+        .var { font-style: italic; font-family: 'Times New Roman', serif; }
+
+        /* Элементы управления */
+        h2 { font-size: 1.2rem; margin-top: 0; color: #333; }
+        .control-row { margin-bottom: 20px; }
+        label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+        
+        .output-row { padding: 15px; background: #eefecf; border-radius: 8px; border-left: 5px solid var(--accent); margin-bottom: 20px; }
+        .val-box { color: var(--primary); font-family: monospace; font-size: 1.2em; font-weight: bold; }
+        progress { width: 100%; height: 12px; margin-top: 8px; border-radius: 6px; overflow: hidden; }
+        progress::-webkit-progress-value { background: var(--accent); }
+
+        /* КНОПКИ */
+        .btn { border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 1rem; transition: 0.2s; width: 100%; font-weight: bold; }
+        .btn-record { background: var(--primary); color: white; }
+        .btn-record:hover { background: #1f6391; }
+        .btn-clear { background: #e74c3c; color: white; width: auto; font-size: 0.9rem; padding: 5px 15px; }
+        .btn-clear:hover { background: #c0392b; }
+
+        /* СИМУЛЯЦИЯ (SVG) */
+        .simulation-card { grid-column: 2; grid-row: 2 / 3; height: 520px; display: flex; flex-direction: column; }
+        .svg-container { flex-grow: 1; border: 1px solid #dfe6e9; background: #fff; border-radius: 8px; position: relative; overflow: hidden; }
+        svg { width: 100%; height: 100%; cursor: default; }
+        .circuit-line { stroke: #2d3436; stroke-width: 3; fill: none; stroke-linecap: round; }
+        .text-label { font-family: sans-serif; font-size: 16px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; fill: #2d3436; }
+        .rheostat-slider { cursor: grab; fill: var(--accent); transition: fill 0.2s, r 0.2s; }
+        .rheostat-slider:hover { fill: #e74c3c; r: 10; }
+        .rheostat-slider:active { cursor: grabbing; }
+
+        /* Графики */
+        .charts-container { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        canvas { width: 100%; max-height: 250px; }
+
+        /* ТАБЛИЦА */
+        .table-block { grid-column: 1 / -1; }
+        .table-header-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #f2f2f2; color: #333; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+    </style>
+</head>
+<body>
+
+<div class="lang-switch">
+    <button class="btn-lang" onclick="toggleLanguage()">RU | KZ</button>
+</div>
+
+<div class="grid-container">
+    
+    <div class="card theory-block">
+        <h1 id="t-main-title">Лабораторная работа: Закон Ома для участка цепи</h1>
+        <div class="theory-content">
+            <h3 id="t-goal-header">1. Цель работы</h3>
+            <p id="t-goal-text">Экспериментально установить зависимость силы тока (I) от напряжения (U) на участке цепи и от сопротивления (R) этого участка.</p>
+            <h3 id="t-eq-header">2. Оборудование</h3>
+            <ul id="t-eq-list">
+                <li>Источник постоянного тока (регулируемый)</li>
+                <li>Амперметр, Вольтметр, Реостат, Лампа</li>
+            </ul>
+            <h3 id="t-theory-header">3. Краткая теория</h3>
+            <div class="formula-box">
+                I = <div class="fraction"><span class="fraction-top">U</span><span class="fraction-bottom">R</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 id="t-panel-header">Панель управления</h2>
+        
+        <div class="control-row">
+            <label><span id="t-label-u">Напряжение (U):</span> <span class="val-box"><span id="u-val">20</span> <span id="t-unit-v">В</span></span></label>
+            <input type="range" id="u-input" min="0" max="100" value="20" step="1" oninput="syncInputs('u')">
+        </div>
+
+        <div class="control-row">
+            <label><span id="t-label-r">Сопротивление (R):</span> <span class="val-box"><span id="r-val">10</span> <span id="t-unit-ohm">Ом</span></span></label>
+            <input type="range" id="r-input" min="1" max="100" value="10" step="1" oninput="syncInputs('r')">
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;">
+
+        <div class="output-row">
+            <label><span id="t-label-i">Сила тока (I):</span> <span class="val-box" style="color: var(--accent)"><span id="i-val-panel">2.00</span> <span id="t-unit-a">А</span></span></label>
+            <progress id="i-progress" max="20" value="2"></progress>
+        </div>
+
+        <button class="btn btn-record" id="t-btn-record" onclick="recordData()">⬇ Записать в таблицу</button>
+    </div>
+
+    <div class="card simulation-card">
+        <h2 id="t-sim-header">Стенд с оборудованием</h2>
+        <div class="svg-container" id="circuit-container">
+            <svg viewBox="0 0 650 350" id="circuit-svg">
+                <defs>
+                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <path d="M 150,280 L 150,50" class="circuit-line" />
+                <g transform="translate(150, 165)">
+                    <rect x="-10" y="-30" width="20" height="60" fill="white" /> 
+                    <line x1="-15" y1="10" x2="15" y2="10" stroke="black" stroke-width="4" />
+                    <line x1="-25" y1="-10" x2="25" y2="-10" stroke="black" stroke-width="2" />
+                    <text x="-35" y="-10" font-size="14" font-family="monospace">DC</text>
+                </g>
+
+                <path d="M 150,50 L 50,50 L 50,280 L 150,280" class="circuit-line" stroke-width="2" />
+                <g transform="translate(50, 165)">
+                    <circle cx="0" cy="0" r="24" fill="#fff" stroke="#2d3436" stroke-width="2" />
+                    <text x="0" y="2" class="text-label">V</text>
+                </g>
+
+                <line x1="150" y1="50" x2="600" y2="50" class="circuit-line" />
+                <line x1="150" y1="280" x2="600" y2="280" class="circuit-line" />
+                <line x1="600" y1="50" x2="600" y2="280" class="circuit-line" />
+
+                <g transform="translate(280, 50)">
+                    <circle cx="0" cy="0" r="24" fill="#fff" stroke="#2d3436" stroke-width="2" />
+                    <text x="0" y="2" class="text-label">A</text>
+                </g>
+
+                <g transform="translate(480, 50)">
+                    <rect x="-50" y="-15" width="100" height="30" fill="white" stroke="#2d3436" stroke-width="2" />
+                    <text x="0" y="5" class="text-label" font-size="14">R</text>
+                    <g id="rheostat-wiper" transform="translate(0, 0)" style="cursor: pointer">
+                        <line x1="0" y1="-15" x2="0" y2="-45" stroke="#2d3436" stroke-width="2" />
+                        <polygon points="0,-15 -6,-25 6,-25" fill="#2d3436" />
+                        <circle cx="0" cy="-50" r="9" class="rheostat-slider" />
+                    </g>
+                </g>
+
+                <g transform="translate(600, 165)">
+                    <circle cx="0" cy="0" r="25" fill="white" stroke="#2d3436" stroke-width="2" />
+                    <line x1="-17" y1="-17" x2="17" y2="17" stroke="#2d3436" stroke-width="2" />
+                    <line x1="-17" y1="17" x2="17" y2="-17" stroke="#2d3436" stroke-width="2" />
+                    <circle id="lamp-bg" cx="0" cy="0" r="23" fill="#f1c40f" style="opacity: 0" />
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="card">
+            <h3 id="t-chart1-header">График 1: Зависимость I от R</h3>
+            <canvas id="chartR"></canvas>
+            <p style="font-size: 0.8rem; text-align: center; color: #7f8c8d" id="t-chart1-sub">При постоянном напряжении (U=const)</p>
+        </div>
+        <div class="card">
+            <h3 id="t-chart2-header">График 2: Зависимость I от U</h3>
+            <canvas id="chartU"></canvas>
+            <p style="font-size: 0.8rem; text-align: center; color: #7f8c8d" id="t-chart2-sub">При постоянном сопротивлении (R=const)</p>
+        </div>
+    </div>
+
+    <div class="card table-block">
+        <div class="table-header-group">
+            <h3 id="t-table-header">Таблица измерений</h3>
+            <button class="btn btn-clear" id="t-btn-clear" onclick="clearTable()">Очистить таблицу</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th id="t-col-no">№ Опыта</th>
+                    <th id="t-col-u">Напряжение U, (В)</th>
+                    <th id="t-col-r">Сопротивление R, (Ом)</th>
+                    <th id="t-col-i">Сила тока I, (А)</th>
+                </tr>
+            </thead>
+            <tbody id="data-table-body">
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    // --- ЯЗЫКОВАЯ ЛОГИКА ---
+    let currentLang = 'ru';
+
+    const translations = {
+        ru: {
+            't-main-title': 'Лабораторная работа: Закон Ома для участка цепи',
+            't-goal-header': '1. Цель работы',
+            't-goal-text': 'Экспериментально установить зависимость силы тока (I) от напряжения (U) на участке цепи и от сопротивления (R) этого участка.',
+            't-eq-header': '2. Оборудование',
+            't-eq-list': '<li>Источник постоянного тока (регулируемый)</li><li>Амперметр, Вольтметр, Реостат, Лампа</li>',
+            't-theory-header': '3. Краткая теория',
+            't-panel-header': 'Панель управления',
+            't-label-u': 'Напряжение (U):',
+            't-label-r': 'Сопротивление (R):',
+            't-label-i': 'Сила тока (I):',
+            't-unit-v': 'В',
+            't-unit-ohm': 'Ом',
+            't-unit-a': 'А',
+            't-btn-record': '⬇ Записать в таблицу',
+            't-sim-header': 'Стенд с оборудованием',
+            't-chart1-header': 'График 1: Зависимость I от R',
+            't-chart1-sub': 'При постоянном напряжении (U=const)',
+            't-chart2-header': 'График 2: Зависимость I от U',
+            't-chart2-sub': 'При постоянном сопротивлении (R=const)',
+            't-table-header': 'Таблица измерений',
+            't-btn-clear': 'Очистить таблицу',
+            't-col-no': '№ Опыта',
+            't-col-u': 'Напряжение U, (В)',
+            't-col-r': 'Сопротивление R, (Ом)',
+            't-col-i': 'Сила тока I, (А)',
+            // Chart labels
+            'chart-x-r': 'R (Ом)',
+            'chart-y-i': 'I (А)',
+            'chart-x-u': 'U (В)'
+        },
+        kz: {
+            't-main-title': 'Зертханалық жұмыс: Тізбек бөлігі үшін Ом заңы',
+            't-goal-header': '1. Жұмыс мақсаты',
+            't-goal-text': 'Тізбек бөлігіндегі ток күшінің (I) кернеуге (U) және кедергіге (R) тәуелділігін тәжірибе жүзінде анықтау.',
+            't-eq-header': '2. Құрал-жабдықтар',
+            't-eq-list': '<li>Тұрақты ток көзі (реттелетін)</li><li>Амперметр, Вольтметр, Реостат, Шам</li>',
+            't-theory-header': '3. Қысқаша теория',
+            't-panel-header': 'Басқару панелі',
+            't-label-u': 'Кернеу (U):',
+            't-label-r': 'Кедергі (R):',
+            't-label-i': 'Ток күші (I):',
+            't-unit-v': 'В',
+            't-unit-ohm': 'Ом',
+            't-unit-a': 'А',
+            't-btn-record': '⬇ Кестеге жазу',
+            't-sim-header': 'Құрылғы стенді',
+            't-chart1-header': 'График 1: I-ның R-ге тәуелділігі',
+            't-chart1-sub': 'Тұрақты кернеуде (U=const)',
+            't-chart2-header': 'График 2: I-ның U-ға тәуелділігі',
+            't-chart2-sub': 'Тұрақты кедергіде (R=const)',
+            't-table-header': 'Өлшеу кестесі',
+            't-btn-clear': 'Кестені тазалау',
+            't-col-no': '№ Тәжірибе',
+            't-col-u': 'Кернеу U, (В)',
+            't-col-r': 'Кедергі R, (Ом)',
+            't-col-i': 'Ток күші I, (А)',
+            // Chart labels
+            'chart-x-r': 'R (Ом)',
+            'chart-y-i': 'I (А)',
+            'chart-x-u': 'U (В)'
+        }
+    };
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'ru' ? 'kz' : 'ru';
+        const t = translations[currentLang];
+
+        // Обновляем тексты в HTML
+        for (const [id, text] of Object.entries(t)) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (id === 't-eq-list') {
+                    el.innerHTML = text; // Для списка используем innerHTML
+                } else {
+                    el.innerText = text;
+                }
+            }
+        }
+
+        // Обновляем графики
+        if (chartR) {
+            chartR.options.scales.x.title.text = t['chart-x-r'];
+            chartR.options.scales.y.title.text = t['chart-y-i'];
+            chartR.update();
+        }
+        if (chartU) {
+            chartU.options.scales.x.title.text = t['chart-x-u'];
+            chartU.options.scales.y.title.text = t['chart-y-i'];
+            chartU.update();
+        }
+    }
+
+
+    // --- КОНСТАНТЫ И ПЕРЕМЕННЫЕ ---
+    const R_MIN = 1, R_MAX = 100;
+    const RHEOSTAT_X_CENTER = 480;
+    let measurementCount = 0; // Счетчик измерений
+    
+    // --- ЭЛЕМЕНТЫ DOM ---
+    const ui = {
+        uInput: document.getElementById('u-input'),
+        rInput: document.getElementById('r-input'),
+        uText: document.getElementById('u-val'),
+        rText: document.getElementById('r-val'),
+        iTextPanel: document.getElementById('i-val-panel'),
+        iProgress: document.getElementById('i-progress'),
+        wiper: document.getElementById('rheostat-wiper'),
+        lamp: document.getElementById('lamp-bg'),
+        tableBody: document.getElementById('data-table-body')
+    };
+
+    // --- НАСТРОЙКА ГРАФИКОВ ---
+    const commonOptions = {
+        responsive: true,
+        animation: { duration: 0 },
+        elements: { point: { radius: 2, hoverRadius: 5 } },
+        plugins: { legend: { display: false } },
+        scales: { 
+            x: { grid: { color: '#f0f0f0' }, title: {display: true, text: 'R (Ом)'} }, 
+            y: { grid: { color: '#f0f0f0' }, min: 0, max: 20, title: {display: true, text: 'I (А)'} } 
+        }
+    };
+
+    const chartR = new Chart(document.getElementById('chartR'), {
+        type: 'line',
+        data: { datasets: [{ data: [], borderColor: '#c0392b', borderWidth: 2, backgroundColor: 'rgba(192, 57, 43, 0.1)', fill: true }] },
+        options: { ...commonOptions }
+    });
+
+    const chartU = new Chart(document.getElementById('chartU'), {
+        type: 'line',
+        data: { datasets: [{ data: [], borderColor: '#2980b9', borderWidth: 2, backgroundColor: 'rgba(41, 128, 185, 0.1)', fill: true }] },
+        options: { ...commonOptions }
+    });
+    
+    // Начальная установка подписей графика
+    chartU.options.scales.x.title.text = 'U (В)';
+
+
+    // --- ИНТЕРАКТИВНОСТЬ ---
+    let isDragging = false;
+    const svg = document.getElementById('circuit-svg');
+
+    ui.wiper.addEventListener('mousedown', () => { isDragging = true; });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    svg.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        let pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+        let svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+        let localX = Math.max(-50, Math.min(50, svgP.x - RHEOSTAT_X_CENTER));
+        let newR = Math.round(((localX + 50) / 100) * (R_MAX - R_MIN) + R_MIN);
+        ui.rInput.value = newR;
+        syncInputs('r');
+    });
+
+    // --- ЛОГИКА ---
+    function syncInputs(source) {
+        let U = parseFloat(ui.uInput.value);
+        let R = parseFloat(ui.rInput.value);
+        if(R <= 0) R = 0.1;
+        let I = U / R;
+
+        ui.uText.innerText = U;
+        ui.rText.innerText = R;
+        ui.iTextPanel.innerText = I.toFixed(2);
+        ui.iProgress.value = I;
+
+        if (source === 'r' || source === 'u') {
+            let percent = (R - R_MIN) / (R_MAX - R_MIN);
+            let posX = (percent * 100) - 50; 
+            ui.wiper.setAttribute('transform', `translate(${posX}, 0)`);
+        }
+        ui.lamp.style.opacity = Math.min(I / 5, 1);
+        updateCharts(U, R);
+    }
+
+    function updateCharts(currentU, currentR) {
+        let dataR = [], labelsR = [];
+        for (let r = 1; r <= 100; r+=2) { labelsR.push(r); dataR.push(currentU / r); }
+        chartR.data.labels = labelsR; chartR.data.datasets[0].data = dataR; chartR.update();
+
+        let dataU = [], labelsU = [];
+        for (let u = 0; u <= 100; u+=5) { labelsU.push(u); dataU.push(u / currentR); }
+        chartU.data.labels = labelsU; chartU.data.datasets[0].data = dataU; chartU.update();
+    }
+
+    // --- ФУНКЦИИ ТАБЛИЦЫ ---
+    function recordData() {
+        // 1. Получаем текущие данные
+        let U = ui.uInput.value;
+        let R = ui.rInput.value;
+        let I = ui.iTextPanel.innerText;
+        measurementCount++;
+
+        // 2. Создаем строку таблицы
+        let row = `
+            <tr>
+                <td>${measurementCount}</td>
+                <td>${U}</td>
+                <td>${R}</td>
+                <td><strong>${I}</strong></td>
+            </tr>
+        `;
+
+        // 3. Добавляем в конец таблицы
+        ui.tableBody.insertAdjacentHTML('beforeend', row);
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+        measurementCount = 0;
+    }
+
+    syncInputs('init');
+</script>
+</body>
+</html>
