@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Практикум №9: Звездное небо</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap');
+        
+        :root { 
+            --primary: #0f172a; 
+            --accent: #6366f1; /* Indigo 500 */
+            --bg: #f8fafc; 
+            --panel: #ffffff; 
+            --success: #10b981; 
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--primary); margin: 0; padding: 15px; }
+        
+        /* КНОПКА ЯЗЫКА */
+        .lang-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+        .btn-lang {
+            background: #ffffff;
+            color: #0f172a;
+            border: 2px solid #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        .btn-lang:hover { background: #f1f5f9; transform: translateY(-1px); }
+
+        .container-main { max-width: 1280px; margin: 0 auto; margin-top: 40px; }
+        .card { background: var(--panel); padding: 25px; border-radius: 24px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); margin-bottom: 24px; border: 1px solid #e2e8f0; }
+        
+        h1 { font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 20px; }
+        h3 { font-size: 1.1rem; color: #4f46e5; margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+        /* УПРАВЛЕНИЕ */
+        @media (min-width: 1024px) { .layout-grid { display: grid; grid-template-columns: 350px 1fr; gap: 24px; } }
+
+        .control-group { background: #f8fafc; padding: 15px 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
+        .control-label { display: block; font-weight: 800; margin-bottom: 12px; font-size: 0.85rem; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;}
+        
+        /* Кнопки сезонов */
+        .season-btn { width: 100%; padding: 12px; border-radius: 12px; font-weight: 700; text-align: left; margin-bottom: 8px; border: 2px solid #e2e8f0; background: #fff; color: #64748b; transition: 0.2s; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .season-btn:hover { border-color: #cbd5e1; background: #f1f5f9; }
+        .season-btn.active { border-color: #6366f1; background: #eef2ff; color: #4f46e5; }
+        
+        /* Тумблеры */
+        .toggle-label { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; color: #334155; font-size: 0.9rem; padding: 8px 0;}
+        .toggle-switch { position: relative; width: 44px; height: 24px; background-color: #cbd5e1; border-radius: 12px; transition: 0.3s; }
+        .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input:checked + .toggle-switch { background-color: #6366f1; }
+        input:checked + .toggle-switch::after { transform: translateX(20px); }
+
+        .btn { border: none; padding: 14px 20px; border-radius: 12px; cursor: pointer; font-weight: 800; width: 100%; transition: 0.2s; color: white; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-reset { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+        .btn-reset:hover { background: #e2e8f0; color: #ef4444; }
+
+        /* СИМУЛЯЦИЯ ЗВЕЗДНОГО НЕБА */
+        .sky-wrap { 
+            width: 100%; border: 1px solid #1e293b; border-radius: 16px; 
+            position: relative; overflow: hidden; background: #020617;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: inset 0 0 50px rgba(0,0,0,1);
+            aspect-ratio: 1 / 1;
+            max-height: 700px;
+        }
+        
+        #sky-svg {
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: 400px 400px;
+        }
+
+        .star { transition: r 0.2s, fill 0.2s; cursor: pointer; }
+        .star:hover { r: 6; fill: #ffffff !important; filter: url(#glow); }
+        
+        .const-line { transition: opacity 0.5s; stroke-dasharray: 4,4; }
+        .star-label { transition: opacity 0.5s; pointer-events: none; text-shadow: 0 0 4px #000; }
+
+        /* HUD ИНФО */
+        #star-hud {
+            position: absolute; top: 15px; left: 15px; background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155; padding: 15px; border-radius: 12px;
+            color: white; font-size: 0.9rem; backdrop-filter: blur(4px);
+            pointer-events: none; opacity: 0; transition: opacity 0.2s;
+            max-width: 250px;
+        }
+
+        /* ТАБЛИЦА */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; font-size: 0.9rem; min-width: 600px; }
+        th, td { border-bottom: 1px solid #e2e8f0; padding: 12px; text-align: left; }
+        th { background-color: #f8fafc; font-weight: 800; color: #475569; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+        tbody tr:hover { background: #f1f5f9; }
+        
+        .compass-label { font-weight: 900; fill: rgba(255,255,255,0.3); font-size: 24px; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div class="lang-switch">
+    <button class="btn-lang" onclick="toggleLanguage()">RU | KZ</button>
+</div>
+
+<div class="container-main">
+    <div class="card">
+        <h1 id="t-main-title">Практикум №9: Нахождение ярких звезд и созвездий в данной местности</h1>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <h3 id="t-goal-header"><i data-lucide="target" class="w-5 h-5"></i> Цель работы:</h3>
+                <p id="t-goal-text" class="text-slate-600 mb-4 leading-relaxed">Научиться ориентироваться по звездному небу, находить Полярную звезду, распознавать основные созвездия и ярчайшие звезды осеннего, зимнего и весеннего неба.</p>
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-indigo-800 text-sm">
+                    <strong id="t-hint-title">Подсказка:</strong> <span id="t-hint-text">Вид звездного неба меняется в течение года из-за вращения Земли вокруг Солнца. Карта показывает небо Северного полушария. Центр карты — зенит (и Полярная звезда рядом с ним). Край круга — горизонт.</span>
+                </div>
+            </div>
+            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <h3 id="t-steps-header" class="text-indigo-600"><i data-lucide="list-ordered" class="w-5 h-5"></i> Ход работы:</h3>
+                <ol id="t-steps-list" class="list-decimal pl-5 space-y-2 text-slate-700 text-sm font-medium">
+                    <li>Выберите сезон (Осень, Зима или Весна) на панели управления. Наблюдайте, как вращается небесная сфера.</li>
+                    <li>Включите "Линии созвездий" и "Названия звезд", чтобы изучить карту.</li>
+                    <li>Найдите <strong>Большую Медведицу</strong> и по ней — <strong>Полярную звезду</strong>.</li>
+                    <li>Наведите курсор на яркую звезду, чтобы узнать её созвездие.</li>
+                    <li>Кликните по 5-6 ярким звездам разных сезонов, чтобы внести их в Журнал наблюдений.</li>
+                    <li>Сделайте вывод об изменениях вида звездного неба.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="layout-grid">
+        <!-- Управление -->
+        <div class="card flex flex-col h-fit">
+            <h3 id="t-settings-header" class="text-slate-800 border-b pb-3 mb-5"><i data-lucide="telescope" class="w-5 h-5"></i> Панель управления</h3>
+            
+            <div class="control-group">
+                <span class="control-label" id="t-lbl-season">Время года (вечернее небо)</span>
+                <button class="season-btn" id="btn-autumn" onclick="setSeason('autumn')">
+                    <i data-lucide="leaf" class="text-orange-500 w-5 h-5"></i> <span id="t-s-autumn">Осень</span>
+                </button>
+                <button class="season-btn active" id="btn-winter" onclick="setSeason('winter')">
+                    <i data-lucide="snowflake" class="text-blue-500 w-5 h-5"></i> <span id="t-s-winter">Зима</span>
+                </button>
+                <button class="season-btn" id="btn-spring" onclick="setSeason('spring')">
+                    <i data-lucide="flower-2" class="text-pink-500 w-5 h-5"></i> <span id="t-s-spring">Весна</span>
+                </button>
+            </div>
+
+            <div class="control-group space-y-2">
+                <span class="control-label" id="t-lbl-display">Отображение</span>
+                <label class="toggle-label">
+                    <span id="t-tog-lines">Линии созвездий</span>
+                    <input type="checkbox" id="toggle-lines" class="hidden" checked onchange="updateDisplay()">
+                    <div class="toggle-switch"></div>
+                </label>
+                <label class="toggle-label">
+                    <span id="t-tog-names">Названия ярких звезд</span>
+                    <input type="checkbox" id="toggle-names" class="hidden" checked onchange="updateDisplay()">
+                    <div class="toggle-switch"></div>
+                </label>
+            </div>
+
+            <button class="btn btn-reset mt-4" onclick="clearTable()">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> <span id="t-btn-reset">Очистить журнал</span>
+            </button>
+        </div>
+
+        <!-- Симуляция: Звездное небо -->
+        <div class="card flex flex-col p-4">
+            <div class="sky-wrap" id="sky-container">
+                <!-- HUD -->
+                <div id="star-hud">
+                    <div id="hud-name" class="font-black text-lg text-indigo-300 mb-1">Звезда</div>
+                    <div class="text-xs text-slate-300 flex items-center gap-2 mb-1">
+                        <i data-lucide="layout-grid" class="w-3 h-3"></i> <span id="hud-const">Созвездие</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest mt-2" id="t-hud-click">Кликните, чтобы записать</div>
+                </div>
+
+                <svg viewBox="0 0 800 800" style="width: 100%; height: 100%; max-width: 800px; max-height: 800px;">
+                    <defs>
+                        <!-- Горизонт (маска) -->
+                        <clipPath id="horizon-clip">
+                            <circle cx="400" cy="400" r="380" />
+                        </clipPath>
+                        <!-- Свечение звезд -->
+                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
+
+                    <!-- Темный фон неба -->
+                    <circle cx="400" cy="400" r="380" fill="#090a0f" />
+                    <!-- Сетка азимута/высоты (упрощенная) -->
+                    <circle cx="400" cy="400" r="250" fill="none" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4,4" />
+                    <circle cx="400" cy="400" r="120" fill="none" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4,4" />
+                    <line x1="400" y1="20" x2="400" y2="780" stroke="rgba(255,255,255,0.05)" />
+                    <line x1="20" y1="400" x2="780" y2="400" stroke="rgba(255,255,255,0.05)" />
+
+                    <!-- Точки компаса -->
+                    <text x="400" y="15" class="compass-label" text-anchor="middle" id="comp-n">С</text>
+                    <text x="400" y="795" class="compass-label" text-anchor="middle" id="comp-s">Ю</text>
+                    <text x="10" y="408" class="compass-label" text-anchor="start" id="comp-e">В</text>
+                    <text x="790" y="408" class="compass-label" text-anchor="end" id="comp-w">З</text>
+
+                    <!-- Вращающаяся сфера со звездами -->
+                    <g id="sky-svg" clip-path="url(#horizon-clip)">
+                        <!-- Линии созвездий -->
+                        <g id="constellations-layer"></g>
+                        <!-- Звезды -->
+                        <g id="stars-layer"></g>
+                        <!-- Метки -->
+                        <g id="labels-layer"></g>
+                    </g>
+                </svg>
+            </div>
+            <p id="t-sim-note" class="text-xs text-slate-500 mt-3 text-center">* Карта показывает вид неба в районе зенита для средних широт Северного полушария (~51° с.ш.).</p>
+        </div>
+    </div>
+
+    <!-- Таблица -->
+    <div class="card mt-4">
+        <h2 id="t-table-header" class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="book-open" class="text-indigo-500 w-6 h-6"></i> Журнал наблюдений</h2>
+        <div class="table-wrap">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th id="t-col-1" class="rounded-tl-xl w-12 text-center">№</th>
+                        <th id="t-col-2">Название звезды</th>
+                        <th id="t-col-3">Созвездие</th>
+                        <th id="t-col-4" class="rounded-tr-xl">Сезон наблюдения</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="4" class="text-center py-6 text-slate-400 italic" id="t-table-empty">Кликните по звезде на карте, чтобы добавить запись.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Вывод -->
+    <div class="card mt-8 mb-10">
+        <h2 id="t-conclusion-title" class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <span class="bg-amber-400 text-white p-1.5 rounded-lg"><i data-lucide="pen-tool" class="w-5 h-5"></i></span> 
+            Вывод по лабораторной работе
+        </h2>
+        <textarea id="t-conclusion-text" class="w-full h-28 p-4 border border-slate-300 rounded-xl resize-none font-sans text-base mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Напишите выводы: изменяется ли вид звездного неба при смене времен года? Положение какой звезды остается неизменным?"></textarea>
+        
+        <div class="flex flex-col items-start gap-2">
+            <button onclick="toggleExampleConclusion()" class="bg-slate-100 hover:bg-slate-200 text-indigo-600 border border-indigo-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2">
+                <i data-lucide="lightbulb" class="w-4 h-4"></i> <span id="t-btn-example">Показать пример вывода</span>
+            </button>
+            <div id="example-conclusion" class="hidden w-full p-5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-900 text-sm leading-relaxed mt-2 shadow-inner">
+                <strong id="t-example-title" class="block mb-2 text-indigo-800">Пример правильного вывода:</strong>
+                <span id="t-example-text">В ходе работы мы научились находить яркие звезды и созвездия. Мы убедились, что вид звездного неба меняется в зависимости от времени года из-за движения Земли вокруг Солнца. Например, Орион и Сириус хорошо видны зимой, Волопас с Арктуром — весной, а Пегас — осенью. При этом околополярные созвездия (Большая и Малая Медведицы) видны круглый год, а Полярная звезда практически не меняет своего положения на небе, указывая на север.</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    lucide.createIcons();
+
+    // --- ЯЗЫКОВАЯ ЛОГИКА ---
+    let currentLang = 'ru';
+
+    const translations = {
+        ru: {
+            't-main-title': 'Практикум №9: Нахождение ярких звезд и созвездий осеннего, зимнего и весеннего неба',
+            't-goal-header': 'Цель работы:',
+            't-goal-text': 'Научиться ориентироваться по звездному небу, находить Полярную звезду, распознавать основные созвездия и ярчайшие звезды осеннего, зимнего и весеннего неба.',
+            't-hint-title': 'Подсказка:',
+            't-hint-text': 'Вид звездного неба меняется в течение года из-за вращения Земли вокруг Солнца. Карта показывает небо Северного полушария. Центр карты — область вблизи зенита (и Полярная звезда рядом с ним). Край круга — горизонт.',
+            't-steps-header': 'Ход работы:',
+            't-steps-list': `
+                <li>Выберите сезон (Осень, Зима или Весна) на панели управления. Наблюдайте, как вращается небесная сфера.</li>
+                <li>Включите "Линии созвездий" и "Названия звезд", чтобы изучить карту.</li>
+                <li>Найдите <strong>Большую Медведицу</strong> и по ней — <strong>Полярную звезду</strong>.</li>
+                <li>Наведите курсор на яркую звезду, чтобы узнать её созвездие.</li>
+                <li>Кликните по 5-6 ярким звездам разных сезонов, чтобы внести их в Журнал наблюдений.</li>
+                <li>Сделайте вывод об изменениях вида звездного неба.</li>
+            `,
+            't-settings-header': 'Панель управления',
+            't-lbl-season': 'Время года (вечернее небо)',
+            't-s-autumn': 'Осень',
+            't-s-winter': 'Зима',
+            't-s-spring': 'Весна',
+            't-lbl-display': 'Отображение',
+            't-tog-lines': 'Линии созвездий',
+            't-tog-names': 'Названия ярких звезд',
+            't-btn-reset': 'Очистить журнал',
+            't-hud-click': 'Кликните, чтобы записать',
+            'comp-n': 'С', 'comp-s': 'Ю', 'comp-e': 'В', 'comp-w': 'З',
+            't-sim-note': '* Карта показывает вид неба в районе зенита для средних широт Северного полушария (~51° с.ш.).',
+            't-table-header': 'Журнал наблюдений',
+            't-col-1': '№', 't-col-2': 'Название звезды', 't-col-3': 'Созвездие', 't-col-4': 'Сезон наблюдения',
+            't-table-empty': 'Кликните по звезде на карте, чтобы добавить запись.',
+            't-conclusion-title': 'Вывод по лабораторной работе',
+            'ph-conclusion': 'Напишите выводы: изменяется ли вид звездного неба при смене времен года? Положение какой звезды остается неизменным?',
+            'btn-example-show': 'Показать пример вывода',
+            'btn-example-hide': 'Скрыть пример вывода',
+            't-example-title': 'Пример правильного вывода:',
+            't-example-text': 'В ходе работы мы научились находить яркие звезды и созвездия. Мы убедились, что вид звездного неба меняется в зависимости от времени года из-за движения Земли вокруг Солнца. Например, Орион и Сириус хорошо видны зимой, Волопас с Арктуром — весной, а Пегас — осенью. При этом околополярные созвездия (Большая и Малая Медведицы) видны круглый год, а Полярная звезда практически не меняет своего положения на небе, указывая на север.',
+            'err-dup': 'Эта звезда уже записана в журнал!',
+            'err-limit': 'Журнал заполнен (макс. 6 записей).'
+        },
+        kz: {
+            't-main-title': '№9 Практикум: Күзгі, қысқы және көктемгі аспанның жарық жұлдыздары мен кейбір шоқжұлдыздарын табу',
+            't-goal-header': 'Жұмыс мақсаты:',
+            't-goal-text': 'Жұлдызды аспан бойынша бағдарлауды, Темірқазық жұлдызын табуды, күзгі, қысқы және көктемгі аспанның негізгі шоқжұлдыздары мен ең жарық жұлдыздарын тануды үйрену.',
+            't-hint-title': 'Нұсқау:',
+            't-hint-text': 'Жердің Күнді айналуына байланысты жұлдызды аспанның көрінісі жыл бойы өзгереді. Карта Солтүстік жартышардың аспанын көрсетеді. Картаның ортасы — зенит маңы (және оның жанындағы Темірқазық). Шеңбердің шеті — көкжиек.',
+            't-steps-header': 'Жұмыс барысы:',
+            't-steps-list': `
+                <li>Басқару панелінде мезгілді (Күз, Қыс немесе Көктем) таңдаңыз. Аспан сферасының қалай айналатынын бақылаңыз.</li>
+                <li>Картаны зерттеу үшін "Шоқжұлдыздар сызықтары" және "Жұлдыздар атауы" қосыңыз.</li>
+                <li><strong>Жетіқарақшыны</strong>, ал ол арқылы — <strong>Темірқазықты</strong> (Полярлық жұлдызды) табыңыз.</li>
+                <li>Шоқжұлдызды білу үшін курсорды жарық жұлдызға апарыңыз.</li>
+                <li>Бақылау журналына енгізу үшін әртүрлі мезгілдердің 5-6 жарық жұлдызын басыңыз.</li>
+                <li>Жұлдызды аспан көрінісінің өзгеруі туралы қорытынды жасаңыз.</li>
+            `,
+            't-settings-header': 'Басқару панелі',
+            't-lbl-season': 'Жыл мезгілі (кешкі аспан)',
+            't-s-autumn': 'Күз',
+            't-s-winter': 'Қыс',
+            't-s-spring': 'Көктем',
+            't-lbl-display': 'Көрсету',
+            't-tog-lines': 'Шоқжұлдыздар сызықтары',
+            't-tog-names': 'Жарық жұлдыздар атауы',
+            't-btn-reset': 'Журналды тазарту',
+            't-hud-click': 'Жазу үшін басыңыз',
+            'comp-n': 'С', 'comp-s': 'О', 'comp-e': 'Ш', 'comp-w': 'Б',
+            't-sim-note': '* Карта Солтүстік жартышардың орташа ендіктері (~51° с.е.) үшін зенит маңындағы аспан көрінісін көрсетеді.',
+            't-table-header': 'Бақылау журналы',
+            't-col-1': '№', 't-col-2': 'Жұлдыз атауы', 't-col-3': 'Шоқжұлдыз', 't-col-4': 'Бақылау мезгілі',
+            't-table-empty': 'Жазба қосу үшін картадағы жұлдызды басыңыз.',
+            't-conclusion-title': 'Зертханалық жұмыс бойынша қорытынды',
+            'ph-conclusion': 'Қорытындыңызды осында жазыңыз: жыл мезгілдері ауысқанда жұлдызды аспан көрінісі өзгере ме? Қай жұлдыздың орны өзгеріссіз қалады?',
+            'btn-example-show': 'Қорытынды мысалын көрсету',
+            'btn-example-hide': 'Қорытынды мысалын жасыру',
+            't-example-title': 'Дұрыс қорытындының мысалы:',
+            't-example-text': 'Жұмыс барысында біз жарық жұлдыздар мен шоқжұлдыздарды табуды үйрендік. Жердің Күнді айнала қозғалуына байланысты жұлдызды аспан көрінісінің жыл мезгіліне қарай өзгеретініне көз жеткіздік. Мысалы, Орион мен Сүмбіле қыста, Сиыршы мен Арктур көктемде, ал Пегас күзде жақсы көрінеді. Сонымен қатар поляр маңындағы шоқжұлдыздар (Жетіқарақшы және Кіші Аю) жыл бойы көрінеді, ал Темірқазық (Полярлық жұлдыз) солтүстікті көрсетіп, аспандағы орнын іс жүзінде өзгертпейді.',
+            'err-dup': 'Бұл жұлдыз журналға жазылып қойған!',
+            'err-limit': 'Журнал толды (макс. 6 жазба).'
+        }
+    };
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'ru' ? 'kz' : 'ru';
+        const tr = translations[currentLang];
+
+        const keys = Object.keys(tr).filter(k => k.startsWith('t-') && k !== 't-steps-list' && k !== 't-table-empty');
+        keys.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if(el.innerHTML.includes('<i data-lucide=')) {
+                    const iconHTML = el.innerHTML.match(/<i[^>]+><\/i>/)[0];
+                    el.innerHTML = iconHTML + ' ' + tr[id];
+                } else if(el.innerHTML.includes('<span class="bg-amber-400')) {
+                    const iconHTML = el.innerHTML.match(/<span[^>]+>.*?<\/span>/)[0];
+                    el.innerHTML = iconHTML + '\n            ' + tr[id];
+                } else {
+                    el.innerText = tr[id];
+                }
+            }
+        });
+
+        document.getElementById('t-steps-list').innerHTML = tr['t-steps-list'];
+        document.getElementById('t-conclusion-text').placeholder = tr['ph-conclusion'];
+        
+        if (records.length === 0) {
+            document.getElementById('t-table-empty').innerText = tr['t-table-empty'];
+        }
+
+        const exBlock = document.getElementById('example-conclusion');
+        const btnEx = document.getElementById('t-btn-example');
+        if (!exBlock.classList.contains('hidden')) {
+            btnEx.innerText = tr['btn-example-hide'];
+        } else {
+            btnEx.innerText = tr['btn-example-show'];
+        }
+
+        renderSky(); // Перерисовать с новыми названиями
+        updateTableUI();
+        lucide.createIcons();
+    }
+
+    function toggleExampleConclusion() {
+        const block = document.getElementById('example-conclusion');
+        const btn = document.getElementById('t-btn-example');
+        const tr = translations[currentLang];
+        
+        if (block.classList.contains('hidden')) {
+            block.classList.remove('hidden');
+            btn.innerText = tr['btn-example-hide'];
+        } else {
+            block.classList.add('hidden');
+            btn.innerText = tr['btn-example-show'];
+        }
+    }
+
+    // --- ДАННЫЕ О ЗВЕЗДНОМ НЕБЕ ---
+    // Координаты рассчитаны для центра (400, 400). Полюс мира немного смещен, но для наглядности Полярная звезда в центре (упрощение для плана).
+    // Базовая ориентация: Зима (0 градусов).
+    
+    const STARS = {
+        // Околополярные
+        'polaris': { x: 400, y: 390, mag: 2, color: '#fff', ru: 'Полярная звезда', kz: 'Темірқазық', const_id: 'ursa_minor' },
+        'kochab': { x: 340, y: 320, mag: 2, color: '#ffd', ru: 'Кохаб', kz: 'Қохаб', const_id: 'ursa_minor' },
+        'um_1': { x: 360, y: 370, mag: 3, const_id: 'ursa_minor' },
+        'um_2': { x: 340, y: 350, mag: 3, const_id: 'ursa_minor' },
+        
+        'dubhe': { x: 250, y: 280, mag: 1.8, color: '#ffd', ru: 'Дубхе', kz: 'Дубхе', const_id: 'ursa_major' },
+        'merak': { x: 220, y: 300, mag: 2.3, color: '#fff', ru: 'Мерак', kz: 'Мерак', const_id: 'ursa_major' },
+        'phecda': { x: 190, y: 250, mag: 2.4, color: '#fff', ru: 'Фекда', kz: 'Фекда', const_id: 'ursa_major' },
+        'megrez': { x: 220, y: 230, mag: 3.3, color: '#fff', ru: 'Мегрец', kz: 'Мегрец', const_id: 'ursa_major' },
+        'alioth': { x: 170, y: 190, mag: 1.7, color: '#fff', ru: 'Алиот', kz: 'Алиот', const_id: 'ursa_major' },
+        'mizar': { x: 130, y: 160, mag: 2.2, color: '#fff', ru: 'Мицар', kz: 'Мицар', const_id: 'ursa_major' },
+        'alkaid': { x: 90, y: 170, mag: 1.8, color: '#bbf', ru: 'Бенетнаш', kz: 'Бенетнаш', const_id: 'ursa_major' },
+
+        'caph': { x: 500, y: 480, mag: 2.2, color: '#fff', ru: 'Каф', kz: 'Каф', const_id: 'cassiopeia' },
+        'schedar': { x: 530, y: 510, mag: 2.2, color: '#ffd', ru: 'Шедар', kz: 'Шедар', const_id: 'cassiopeia' },
+        'gamma_cas': { x: 560, y: 490, mag: 2.1, color: '#bbf', ru: 'Нави', kz: 'Нави', const_id: 'cassiopeia' },
+        'ruchbah': { x: 580, y: 520, mag: 2.6, color: '#fff', ru: 'Рукбах', kz: 'Рукбах', const_id: 'cassiopeia' },
+        'segin': { x: 610, y: 500, mag: 3.3, color: '#fff', ru: 'Сегин', kz: 'Сегин', const_id: 'cassiopeia' },
+
+        // Зима
+        'betelgeuse': { x: 350, y: 620, mag: 0.4, color: '#ffcda5', ru: 'Бетельгейзе', kz: 'Бетельгейзе', const_id: 'orion', highlight: true },
+        'rigel': { x: 450, y: 690, mag: 0.1, color: '#a5c0ff', ru: 'Ригель', kz: 'Ригель', const_id: 'orion', highlight: true },
+        'bellatrix': { x: 420, y: 600, mag: 1.6, color: '#bbf', ru: 'Беллатрикс', kz: 'Беллатрикс', const_id: 'orion' },
+        'saiph': { x: 380, y: 710, mag: 2.0, color: '#bbf', ru: 'Саиф', kz: 'Саиф', const_id: 'orion' },
+        'belt1': { x: 390, y: 650, mag: 2, const_id: 'orion' },
+        'belt2': { x: 405, y: 655, mag: 2, const_id: 'orion' },
+        'belt3': { x: 420, y: 660, mag: 2, const_id: 'orion' },
+        
+        'sirius': { x: 480, y: 760, mag: -1.46, color: '#a5c0ff', ru: 'Сириус', kz: 'Сүмбіле', const_id: 'canis_major', highlight: true },
+        'cm1': { x: 510, y: 780, mag: 2, const_id: 'canis_major' },
+        'cm2': { x: 490, y: 810, mag: 2, const_id: 'canis_major' }, // за горизонтом
+
+        'aldebaran': { x: 280, y: 570, mag: 0.8, color: '#ffb380', ru: 'Альдебаран', kz: 'Альдебаран', const_id: 'taurus', highlight: true },
+        'pleiades': { x: 220, y: 520, mag: 1.2, color: '#bbf', ru: 'Плеяды', kz: 'Үркер', const_id: 'taurus' },
+
+        'castor': { x: 230, y: 470, mag: 1.5, color: '#fff', ru: 'Кастор', kz: 'Кастор', const_id: 'gemini' },
+        'pollux': { x: 250, y: 490, mag: 1.1, color: '#ffd', ru: 'Поллукс', kz: 'Поллукс', const_id: 'gemini', highlight: true },
+
+        'capella': { x: 240, y: 380, mag: 0.08, color: '#ffffc0', ru: 'Капелла', kz: 'Капелла', const_id: 'auriga', highlight: true },
+
+        // Весна (Координаты так, чтобы при повороте +90 они были внизу)
+        // Чтобы весной (поворот +90) Арктур был внизу (y~600), сейчас он должен быть слева (x~150, y~400)
+        'arcturus': { x: 100, y: 450, mag: -0.05, color: '#ffcc99', ru: 'Арктур', kz: 'Арктур', const_id: 'bootes', highlight: true },
+        'bo1': { x: 80, y: 400, mag: 3, const_id: 'bootes' },
+        'bo2': { x: 50, y: 420, mag: 3, const_id: 'bootes' },
+        'bo3': { x: 60, y: 470, mag: 3, const_id: 'bootes' },
+        'bo4': { x: 120, y: 410, mag: 3, const_id: 'bootes' },
+
+        'regulus': { x: 150, y: 600, mag: 1.3, color: '#bbf', ru: 'Регул', kz: 'Регул', const_id: 'leo', highlight: true },
+        'denebola': { x: 60, y: 550, mag: 2.1, color: '#fff', ru: 'Денебола', kz: 'Денебола', const_id: 'leo' },
+        'leo1': { x: 120, y: 520, mag: 3, const_id: 'leo' },
+        'leo2': { x: 160, y: 550, mag: 3, const_id: 'leo' },
+        
+        'spica': { x: 40, y: 650, mag: 0.9, color: '#a5c0ff', ru: 'Спика', kz: 'Спика', const_id: 'virgo', highlight: true },
+
+        // Осень (Координаты так, чтобы при повороте -90 они были внизу)
+        // Осенью Пегас внизу (y~600), значит сейчас он справа (x~650, y~400)
+        'alpheratz': { x: 600, y: 350, mag: 2.0, color: '#bbf', ru: 'Альферац', kz: 'Альферац', const_id: 'pegasus', highlight: true },
+        'scheat': { x: 650, y: 280, mag: 2.4, color: '#ffd', ru: 'Шеат', kz: 'Шеат', const_id: 'pegasus' },
+        'markab': { x: 720, y: 300, mag: 2.4, color: '#fff', ru: 'Маркаб', kz: 'Маркаб', const_id: 'pegasus' },
+        'algenib': { x: 670, y: 380, mag: 2.8, color: '#bbf', ru: 'Альгениб', kz: 'Альгениб', const_id: 'pegasus' },
+        'peg1': { x: 750, y: 250, mag: 3, const_id: 'pegasus' },
+
+        'deneb': { x: 680, y: 150, mag: 1.2, color: '#fff', ru: 'Денеб', kz: 'Денеб', const_id: 'cygnus', highlight: true },
+        'cyg1': { x: 650, y: 180, mag: 2, const_id: 'cygnus' },
+        'cyg2': { x: 620, y: 210, mag: 3, const_id: 'cygnus' },
+        
+        'vega': { x: 550, y: 100, mag: 0.03, color: '#a5c0ff', ru: 'Вега', kz: 'Вега', const_id: 'lyra', highlight: true },
+        'altair': { x: 780, y: 200, mag: 0.7, color: '#fff', ru: 'Альтаир', kz: 'Альтаир', const_id: 'aquila', highlight: true }
+    };
+
+    const CONSTELLATIONS = {
+        'ursa_minor': { ru: 'Малая Медведица', kz: 'Кіші Аю', lines: [['polaris', 'um_1'], ['um_1', 'um_2'], ['um_2', 'kochab']] },
+        'ursa_major': { ru: 'Большая Медведица', kz: 'Жетіқарақшы', lines: [['dubhe', 'merak'], ['merak', 'phecda'], ['phecda', 'megrez'], ['megrez', 'dubhe'], ['megrez', 'alioth'], ['alioth', 'mizar'], ['mizar', 'alkaid']] },
+        'cassiopeia': { ru: 'Кассиопея', kz: 'Кассиопея', lines: [['caph', 'schedar'], ['schedar', 'gamma_cas'], ['gamma_cas', 'ruchbah'], ['ruchbah', 'segin']] },
+        'orion': { ru: 'Орион', kz: 'Орион', lines: [['betelgeuse', 'bellatrix'], ['bellatrix', 'belt1'], ['betelgeuse', 'belt3'], ['belt1', 'belt2'], ['belt2', 'belt3'], ['belt1', 'rigel'], ['belt3', 'saiph'], ['rigel', 'saiph']] },
+        'canis_major': { ru: 'Большой Пес', kz: 'Үлкен Арлан', lines: [['sirius', 'cm1'], ['cm1', 'cm2']] },
+        'taurus': { ru: 'Телец', kz: 'Торпақ', lines: [['aldebaran', 'pleiades']] },
+        'gemini': { ru: 'Близнецы', kz: 'Егіздер', lines: [['castor', 'pollux']] },
+        'auriga': { ru: 'Возничий', kz: 'Арбакеш', lines: [] },
+        'bootes': { ru: 'Волопас', kz: 'Сиыршы', lines: [['arcturus', 'bo1'], ['bo1', 'bo2'], ['bo2', 'bo3'], ['bo3', 'bo4'], ['bo4', 'arcturus']] },
+        'leo': { ru: 'Лев', kz: 'Арыстан', lines: [['regulus', 'leo1'], ['leo1', 'leo2'], ['leo2', 'denebola'], ['denebola', 'regulus']] },
+        'virgo': { ru: 'Дева', kz: 'Бикеш', lines: [] },
+        'pegasus': { ru: 'Пегас', kz: 'Пегас', lines: [['alpheratz', 'scheat'], ['scheat', 'markab'], ['markab', 'algenib'], ['algenib', 'alpheratz'], ['scheat', 'peg1']] },
+        'cygnus': { ru: 'Лебедь', kz: 'Аққу', lines: [['deneb', 'cyg1'], ['cyg1', 'cyg2']] },
+        'lyra': { ru: 'Лира', kz: 'Лира', lines: [] },
+        'aquila': { ru: 'Орел', kz: 'Бүркіт', lines: [] }
+    };
+
+    let currentSeason = 'winter'; // autumn, winter, spring
+    const SEASON_ANGLES = { 'winter': 0, 'spring': 90, 'autumn': -90 };
+    
+    let records = [];
+
+    const ui = {
+        skySvg: document.getElementById('sky-svg'),
+        layerLines: document.getElementById('constellations-layer'),
+        layerStars: document.getElementById('stars-layer'),
+        layerLabels: document.getElementById('labels-layer'),
+        togLines: document.getElementById('toggle-lines'),
+        togNames: document.getElementById('toggle-names'),
+        hud: document.getElementById('star-hud'),
+        hudName: document.getElementById('hud-name'),
+        hudConst: document.getElementById('hud-const'),
+        tbody: document.getElementById('tableBody')
+    };
+
+    function setSeason(season) {
+        currentSeason = season;
+        document.querySelectorAll('.season-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${season}`).classList.add('active');
+        
+        const angle = SEASON_ANGLES[season];
+        ui.skySvg.style.transform = `rotate(${angle}deg)`;
+        
+        // Для текстов нужно компенсировать вращение, чтобы они не были вверх ногами
+        const labels = document.querySelectorAll('.star-label');
+        labels.forEach(lbl => {
+            const x = lbl.getAttribute('data-x');
+            const y = lbl.getAttribute('data-y');
+            lbl.setAttribute('transform', `rotate(${-angle} ${x} ${y})`);
+        });
+    }
+
+    function updateDisplay() {
+        const showLines = ui.togLines.checked;
+        const showNames = ui.togNames.checked;
+        
+        ui.layerLines.style.opacity = showLines ? '0.4' : '0';
+        ui.layerLabels.style.opacity = showNames ? '1' : '0';
+    }
+
+    function calcSize(mag) {
+        // Яркие звезды (малая звездная величина) - больше
+        let size = 5 - mag; 
+        if (size < 1) size = 1;
+        if (size > 6) size = 6;
+        return size;
+    }
+
+    function renderSky() {
+        let linesHtml = '';
+        let starsHtml = '';
+        let labelsHtml = '';
+
+        // Рисуем линии
+        for (const [cId, constell] of Object.entries(CONSTELLATIONS)) {
+            constell.lines.forEach(line => {
+                const s1 = STARS[line[0]];
+                const s2 = STARS[line[1]];
+                if (s1 && s2) {
+                    linesHtml += `<line x1="${s1.x}" y1="${s1.y}" x2="${s2.x}" y2="${s2.y}" stroke="rgba(255,255,255,0.4)" stroke-width="1" class="const-line" />`;
+                }
+            });
+        }
+
+        // Рисуем звезды
+        for (const [sId, star] of Object.entries(STARS)) {
+            const r = calcSize(star.mag);
+            const color = star.color || '#e2e8f0';
+            
+            starsHtml += `<circle cx="${star.x}" cy="${star.y}" r="${r}" fill="${color}" class="star" 
+                onmouseenter="showHud('${sId}', event)" onmouseleave="hideHud()" onclick="recordStar('${sId}')" />`;
+            
+            if (star.ru && star.highlight) {
+                const name = star[currentLang];
+                labelsHtml += `<text x="${star.x + 8}" y="${star.y + 4}" fill="#94a3b8" font-size="10" font-family="sans-serif" class="star-label" data-x="${star.x + 8}" data-y="${star.y + 4}">${name}</text>`;
+            }
+        }
+
+        ui.layerLines.innerHTML = linesHtml;
+        ui.layerStars.innerHTML = starsHtml;
+        ui.layerLabels.innerHTML = labelsHtml;
+        
+        // Применяем компенсацию вращения к новым меткам
+        const angle = SEASON_ANGLES[currentSeason];
+        const labels = document.querySelectorAll('.star-label');
+        labels.forEach(lbl => {
+            const x = lbl.getAttribute('data-x');
+            const y = lbl.getAttribute('data-y');
+            lbl.setAttribute('transform', `rotate(${-angle} ${x} ${y})`);
+        });
+
+        updateDisplay();
+    }
+
+    // --- ИНТЕРАКТИВ ---
+    function showHud(sId, e) {
+        const star = STARS[sId];
+        if (!star || !star.ru) return; // Показываем инфо только для именованных
+        
+        ui.hudName.innerText = star[currentLang];
+        const cId = star.const_id;
+        ui.hudConst.innerText = CONSTELLATIONS[cId][currentLang];
+        
+        ui.hud.style.opacity = '1';
+        
+        // Позиционируем относительно курсора, но внутри контейнера
+        const containerRect = document.getElementById('sky-container').getBoundingClientRect();
+        let left = e.clientX - containerRect.left + 15;
+        let top = e.clientY - containerRect.top + 15;
+        
+        ui.hud.style.left = `${left}px`;
+        ui.hud.style.top = `${top}px`;
+    }
+
+    function hideHud() {
+        ui.hud.style.opacity = '0';
+    }
+
+    // --- ТАБЛИЦА ---
+    function recordStar(sId) {
+        const star = STARS[sId];
+        if (!star || !star.ru) return; // Только именованные
+
+        const tr = translations[currentLang];
+        
+        if (records.length >= 6) {
+            alert(tr['err-limit']);
+            return;
+        }
+
+        const isDuplicate = records.some(r => r.id === sId);
+        if (isDuplicate) {
+            alert(tr['err-dup']);
+            return;
+        }
+
+        const expNum = records.length + 1;
+        const constellName = CONSTELLATIONS[star.const_id][currentLang];
+        
+        const seasonName = {
+            'autumn': tr['t-s-autumn'],
+            'winter': tr['t-s-winter'],
+            'spring': tr['t-s-spring']
+        }[currentSeason];
+
+        records.push({ id: sId, name_ru: star.ru, name_kz: star.kz, const_ru: CONSTELLATIONS[star.const_id].ru, const_kz: CONSTELLATIONS[star.const_id].kz, season_ru: translations.ru[`t-s-${currentSeason}`], season_kz: translations.kz[`t-s-${currentSeason}`] });
+
+        updateTableUI();
+    }
+
+    function updateTableUI() {
+        if (records.length === 0) {
+            ui.tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400 italic" id="t-table-empty">${translations[currentLang]['t-table-empty']}</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        records.forEach((r, idx) => {
+            html += `
+                <tr>
+                    <td class="font-bold text-slate-400 text-center rounded-l-xl">${idx + 1}</td>
+                    <td class="font-bold text-indigo-600">${r[`name_${currentLang}`]}</td>
+                    <td class="text-slate-600">${r[`const_${currentLang}`]}</td>
+                    <td class="text-slate-500 rounded-r-xl">${r[`season_${currentLang}`]}</td>
+                </tr>
+            `;
+        });
+        ui.tbody.innerHTML = html;
+    }
+
+    function clearTable() {
+        records = [];
+        updateTableUI();
+        document.getElementById('t-conclusion-text').value = '';
+        
+        const exBlock = document.getElementById('example-conclusion');
+        if (!exBlock.classList.contains('hidden')) {
+            toggleExampleConclusion();
+        }
+    }
+
+    // Инициализация
+    renderSky();
+
+</script>
+</body>
+</html>

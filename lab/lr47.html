@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Практикум №8: Дифракционная решетка</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap');
+        
+        :root { 
+            --primary: #0f172a; 
+            --accent: #8b5cf6; /* Violet 500 */
+            --bg: #f8fafc; 
+            --panel: #ffffff; 
+            --success: #10b981; 
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--primary); margin: 0; padding: 15px; }
+        .digital-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* КНОПКА ЯЗЫКА */
+        .lang-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+        .btn-lang {
+            background: #ffffff;
+            color: #0f172a;
+            border: 2px solid #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        .btn-lang:hover { background: #f1f5f9; transform: translateY(-1px); }
+
+        .container-main { max-width: 1280px; margin: 0 auto; margin-top: 40px; }
+        .card { background: var(--panel); padding: 25px; border-radius: 24px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); margin-bottom: 24px; border: 1px solid #e2e8f0; }
+        
+        h1 { font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 20px; }
+        h3 { font-size: 1.1rem; color: #7c3aed; margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+        .formula-box { 
+            background: #f5f3ff; padding: 15px; text-align: center; border-radius: 12px; 
+            border: 1px solid #ddd6fe; margin-bottom: 15px; color: #5b21b6;
+            font-family: 'Times New Roman', serif; font-size: 1.4rem; font-weight: bold; font-style: italic;
+        }
+
+        /* УПРАВЛЕНИЕ */
+        .controls-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        @media (min-width: 1024px) { .layout-grid { display: grid; grid-template-columns: 400px 1fr; gap: 24px; } }
+
+        .control-group { background: #f8fafc; padding: 15px 20px; border-radius: 16px; border: 1px solid #e2e8f0; }
+        .control-label { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 12px; font-size: 0.9rem; color: #475569; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: var(--accent); }
+        select { width: 100%; padding: 8px; border-radius: 8px; border: 2px solid #cbd5e1; font-weight: bold; color: #1e293b; outline: none; }
+        select:focus { border-color: #8b5cf6; }
+        .val-badge { background: #ede9fe; color: #6d28d9; padding: 4px 10px; border-radius: 8px; font-family: monospace; font-size: 1rem; }
+        
+        .btn { border: none; padding: 14px 20px; border-radius: 12px; cursor: pointer; font-weight: 800; width: 100%; transition: 0.2s; color: white; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-record { background: #8b5cf6; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
+        .btn-record:hover { background: #7c3aed; transform: translateY(-1px); }
+        .btn-check { background: var(--success); width: auto; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);}
+        .btn-check:hover { background: #059669; }
+        .btn:disabled { background: #94a3b8 !important; box-shadow: none !important; cursor: not-allowed; transform: none !important; }
+        .btn-reset { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+        .btn-reset:hover { background: #e2e8f0; color: #ef4444; }
+
+        /* СИМУЛЯЦИЯ */
+        .svg-wrap { 
+            width: 100%; border: 1px solid #cbd5e1; background: #020617; border-radius: 16px; 
+            position: relative; overflow: hidden; min-height: 500px;
+            box-shadow: inset 0 2px 20px rgba(0,0,0,0.8);
+            display: flex; justify-content: center; align-items: center;
+        }
+        
+        /* ТАБЛИЦА */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; font-size: 0.85rem; min-width: 850px; }
+        th, td { border-bottom: 1px solid #e2e8f0; padding: 12px 8px; text-align: center; }
+        th { background-color: #f8fafc; font-weight: 800; color: #475569; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+        tbody tr:hover { background: #f1f5f9; }
+        
+        .calc-input { width: 75px; padding: 6px; text-align: center; border: 2px solid #cbd5e1; border-radius: 8px; font-family: monospace; font-weight: bold; font-size: 0.95rem; color: #0f172a; transition: 0.2s;}
+        .calc-input:focus { outline: none; border-color: #8b5cf6; }
+        .calc-input.correct { background-color: #ecfdf5; border-color: #10b981; color: #047857; }
+        .calc-input.incorrect { background-color: #fef2f2; border-color: #ef4444; color: #b91c1c; }
+        .hidden { display: none !important; }
+
+        input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        
+        .feedback-icon { font-size: 1rem; margin-left: 4px; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="lang-switch">
+    <button class="btn-lang" onclick="toggleLanguage()">RU | KZ</button>
+</div>
+
+<div class="container-main">
+    <div class="card">
+        <h1 id="t-main-title">Практикум №8: Определение длины волны светового излучения с помощью дифракционной решётки</h1>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <h3 id="t-goal-header"><i data-lucide="target" class="w-5 h-5"></i> Цель работы:</h3>
+                <p id="t-goal-text" class="text-slate-600 mb-6 leading-relaxed">Экспериментально определить длину волны монохроматического света, используя явление дифракции на дифракционной решетке.</p>
+                
+                <h3 id="t-formula-header"><i data-lucide="function-square" class="w-5 h-5"></i> Расчетные формулы:</h3>
+                <div class="formula-box" style="margin-bottom: 10px;">
+                    λ = <span style="display:inline-block; vertical-align:middle; text-align:center;"><span style="border-bottom:1px solid #5b21b6; display:block;">d · x</span><span>k · L</span></span>
+                </div>
+                <div style="font-size: 0.85rem; color: #64748b; text-align: center;" id="t-form-note1">где <b>d</b> - период решетки (d = 1 мм / N), <b>L</b> - расстояние до экрана, <b>x</b> - расстояние от центрального до k-го максимума.</div>
+            </div>
+            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <h3 id="t-steps-header" class="text-violet-600"><i data-lucide="list-ordered" class="w-5 h-5"></i> Ход работы:</h3>
+                <ol id="t-steps-list" class="list-decimal pl-5 space-y-2 text-slate-700 text-sm font-medium">
+                    <li>Выберите цвет лазера и дифракционную решетку. Обратите внимание на количество штрихов (N) на 1 мм.</li>
+                    <li>Установите расстояние от решетки до экрана (<strong>L</strong>).</li>
+                    <li>Выберите порядок максимума (<strong>k</strong>), который вы будете измерять.</li>
+                    <li>На экране измерьте расстояние (<strong>x</strong>) от центра до выбранного максимума. Нажмите "Записать в таблицу".</li>
+                    <li><strong>Самостоятельно</strong> вычислите период решетки <strong>d</strong> (в мкм) и длину волны <strong>λ</strong> (в нм). Рекомендуется все перевести в СИ (метры) перед расчетом!</li>
+                    <li>Нажмите "Проверить вычисления".</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="layout-grid">
+        <!-- Управление -->
+        <div class="card flex flex-col justify-between">
+            <div>
+                <h3 id="t-settings-header" class="text-slate-800 border-b pb-3 mb-5"><i data-lucide="sliders" class="w-5 h-5"></i> Настройки установки</h3>
+                
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="t-label-color">Цвет источника света:</span>
+                        </div>
+                        <select id="color-input" onchange="updateSim()">
+                            <option value="red" id="t-color-red">Красный лазер</option>
+                            <option value="green" id="t-color-green">Зеленый лазер</option>
+                            <option value="violet" id="t-color-violet">Фиолетовый лазер</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="t-label-grating">Дифракционная решетка:</span>
+                        </div>
+                        <select id="grating-input" onchange="updateSim()">
+                            <option value="50" id="t-gr-50">50 штрихов / мм</option>
+                            <option value="100" id="t-gr-100">100 штрихов / мм</option>
+                            <option value="200" id="t-gr-200">200 штрихов / мм</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="t-label-l">Расстояние до экрана (L):</span> 
+                            <span class="val-badge"><span id="l-val">1.00</span> м</span>
+                        </div>
+                        <input type="range" id="l-input" min="0.5" max="2.0" value="1.0" step="0.1" oninput="updateSim()">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="t-label-k">Порядок максимума (k):</span> 
+                            <span class="val-badge"><span id="k-val">1</span></span>
+                        </div>
+                        <input type="range" id="k-input" min="1" max="2" value="1" step="1" oninput="updateSim()">
+                    </div>
+
+                    <!-- Табло показаний -->
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-700 shadow-inner mt-2 relative">
+                        <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1" id="t-measurement">Измеренное расстояние (x)</div>
+                        <div class="digital-font text-violet-400 text-3xl">
+                            <span id="x-display">0.00</span><span class="text-lg text-violet-600 ml-1">см</span>
+                        </div>
+                        <p id="t-meas-note" class="text-[9px] text-slate-500 italic m-0 mt-1 uppercase tracking-wider">* Расстояние от k=0 до выбранного k</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 space-y-3">
+                <button class="btn btn-record" id="btn-record" onclick="recordData()"><i data-lucide="save" class="w-4 h-4"></i> <span id="t-btn-record">Записать в таблицу</span></button>
+                <button class="btn btn-reset" onclick="clearTable()"><i data-lucide="trash-2" class="w-4 h-4"></i> <span id="t-btn-reset">Очистить журнал</span></button>
+            </div>
+        </div>
+
+        <!-- Симуляция: Оптическая скамья -->
+        <div class="card flex flex-col p-4">
+            <h3 id="t-sim-header" class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2 px-2 text-center">Визуализация хода лучей (Вид сверху)</h3>
+            <div class="svg-wrap" id="svg-container">
+                <svg id="sim-svg" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" style="height: 100%; width: 100%;">
+                    
+                    <!-- Сетка фона -->
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                        </pattern>
+                        <!-- Фильтры свечения для лазеров -->
+                        <filter id="glow-red" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                        <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                        <filter id="glow-violet" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+
+                    <!-- Главная оптическая ось -->
+                    <line x1="50" y1="200" x2="550" y2="200" stroke="rgba(255,255,255,0.2)" stroke-dasharray="8,4" stroke-width="1" />
+
+                    <!-- Лазер (источник) -->
+                    <g transform="translate(20, 190)">
+                        <rect x="0" y="0" width="40" height="20" fill="#334155" rx="3" stroke="#1e293b" stroke-width="2"/>
+                        <rect x="40" y="6" width="5" height="8" fill="#cbd5e1" />
+                    </g>
+
+                    <!-- Дифракционная решетка (фиксирована на x=120) -->
+                    <g transform="translate(120, 150)">
+                        <!-- Рамка -->
+                        <rect x="-3" y="0" width="6" height="100" fill="#475569" />
+                        <line x1="0" y1="0" x2="0" y2="100" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2,2" />
+                        <text x="0" y="-10" fill="#94a3b8" font-size="10" font-family="sans-serif" text-anchor="middle">Решетка</text>
+                    </g>
+
+                    <!-- Экран (позиция зависит от L) -->
+                    <g id="screen-group">
+                        <rect x="0" y="20" width="8" height="360" fill="#e2e8f0" rx="2" />
+                        <!-- Центральная отметка экрана -->
+                        <line x1="-5" y1="180" x2="13" y2="180" stroke="#475569" stroke-width="1" />
+                        <text x="15" y="183" fill="#94a3b8" font-size="10" font-family="sans-serif">k=0</text>
+                        <!-- Метки для k=1, k=2 генерируются JS -->
+                        <g id="screen-marks"></g>
+                    </g>
+
+                    <!-- Лучи -->
+                    <g id="rays-group"></g>
+
+                    <!-- Измерительная выноска (размер x) -->
+                    <g id="measure-group">
+                        <line id="m-line-1" x1="0" y1="0" x2="0" y2="0" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2,2" />
+                        <line id="m-line-2" x1="0" y1="0" x2="0" y2="0" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2,2" />
+                        <line id="m-arrow" x1="0" y1="0" x2="0" y2="0" stroke="#cbd5e1" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)"/>
+                        <text id="m-text" x="0" y="0" fill="#cbd5e1" font-size="12" font-weight="bold" font-family="sans-serif" text-anchor="start">x</text>
+                    </g>
+
+                    <!-- Стрелки для размеров -->
+                    <defs>
+                        <marker id="arrow-start" viewBox="0 0 10 10" refX="0" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+                            <path d="M 10 0 L 0 5 L 10 10 z" fill="#cbd5e1" />
+                        </marker>
+                        <marker id="arrow-end" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#cbd5e1" />
+                        </marker>
+                    </defs>
+
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица -->
+    <div class="card mt-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+            <h2 id="t-table-header" class="text-xl font-bold text-slate-800 m-0 flex items-center gap-2"><i data-lucide="table-2" class="text-emerald-500 w-6 h-6"></i> Журнал измерений</h2>
+            <button class="btn btn-check" style="padding: 8px 15px;" onclick="checkMath()"><i data-lucide="check-circle" class="w-4 h-4"></i> <span id="t-btn-check">Проверить вычисления</span></button>
+        </div>
+        <div class="table-wrap">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th id="t-col-1" class="rounded-tl-xl">Опыт</th>
+                        <th id="t-col-2">N, мм⁻¹</th>
+                        <th id="t-col-3">L, м</th>
+                        <th id="t-col-4">Порядок k</th>
+                        <th id="t-col-5">x, см</th>
+                        <th id="t-col-6" style="color: #6366f1;">d, мкм</th>
+                        <th id="t-col-7" style="color: #059669;" class="rounded-tr-xl">λ, нм</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <p id="t-table-note" class="text-xs text-slate-500 mt-3">* Для расчетов <strong>λ</strong> рекомендуется перевести d, x и L в метры. Итоговый ответ λ запишите в нанометрах (нм).</p>
+    </div>
+
+    <!-- Вывод -->
+    <div class="card mt-8 mb-10">
+        <h2 id="t-conclusion-title" class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <span class="bg-amber-400 text-white p-1.5 rounded-lg"><i data-lucide="pen-tool" class="w-5 h-5"></i></span> 
+            Вывод по лабораторной работе
+        </h2>
+        <textarea id="t-conclusion-text" class="w-full h-28 p-4 border border-slate-300 rounded-xl resize-none font-sans text-base mb-3 focus:outline-none focus:ring-2 focus:ring-violet-400" placeholder="Напишите выводы: как расстояние между дифракционными максимумами зависит от длины волны и периода решетки?"></textarea>
+        
+        <div class="flex flex-col items-start gap-2">
+            <button onclick="toggleExampleConclusion()" class="bg-slate-100 hover:bg-slate-200 text-violet-600 border border-violet-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2">
+                <i data-lucide="lightbulb" class="w-4 h-4"></i> <span id="t-btn-example">Показать пример вывода</span>
+            </button>
+            <div id="example-conclusion" class="hidden w-full p-5 bg-violet-50 border border-violet-200 rounded-xl text-violet-900 text-sm leading-relaxed mt-2 shadow-inner">
+                <strong id="t-example-title" class="block mb-2 text-violet-800">Пример правильного вывода:</strong>
+                <span id="t-example-text">В ходе работы мы с помощью дифракционной решетки экспериментально определили длину волны света для лазеров разного цвета. Расчеты подтвердили, что красный свет имеет наибольшую длину волны (около 650 нм), а фиолетовый — наименьшую (около 405 нм). Из формулы дифракционной решетки (d·sinφ = kλ) видно, что при одинаковом периоде решетки (d) красные лучи отклоняются на больший угол, чем фиолетовые. Также подтверждено, что использование решетки с бОльшим числом штрихов (меньшим периодом d) приводит к более широкому расхождению дифракционных максимумов (x увеличивается).</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    lucide.createIcons();
+
+    // --- ЯЗЫКОВАЯ ЛОГИКА ---
+    let currentLang = 'ru';
+
+    const translations = {
+        ru: {
+            't-main-title': 'Практикум №8: Определение длины волны светового излучения с помощью дифракционной решётки',
+            't-goal-header': 'Цель работы:',
+            't-goal-text': 'Экспериментально определить длину волны монохроматического света, используя явление дифракции на дифракционной решетке.',
+            't-formula-header': 'Расчетные формулы:',
+            't-form-note1': 'где <b>d</b> - период решетки (d = 1 мм / N), <b>L</b> - расстояние до экрана, <b>x</b> - расстояние от центрального до k-го максимума.',
+            't-steps-header': 'Ход работы:',
+            't-steps-list': `
+                <li>Выберите цвет лазера и дифракционную решетку. Обратите внимание на количество штрихов (N) на 1 мм.</li>
+                <li>Установите расстояние от решетки до экрана (<strong>L</strong>).</li>
+                <li>Выберите порядок максимума (<strong>k</strong>), который вы будете измерять.</li>
+                <li>На экране измерьте расстояние (<strong>x</strong>) от центра до выбранного максимума. Нажмите "Записать в таблицу".</li>
+                <li><strong>Самостоятельно</strong> вычислите период решетки <strong>d</strong> (в мкм) и длину волны <strong>λ</strong> (в нм). Рекомендуется все перевести в СИ (метры) перед расчетом!</li>
+                <li>Нажмите "Проверить вычисления".</li>
+            `,
+            't-settings-header': 'Настройки установки',
+            't-label-color': 'Цвет источника света:',
+            't-color-red': 'Красный лазер',
+            't-color-green': 'Зеленый лазер',
+            't-color-violet': 'Фиолетовый лазер',
+            't-label-grating': 'Дифракционная решетка:',
+            't-gr-50': '50 штрихов / мм',
+            't-gr-100': '100 штрихов / мм',
+            't-gr-200': '200 штрихов / мм',
+            't-label-l': 'Расстояние до экрана (L):',
+            't-label-k': 'Порядок максимума (k):',
+            't-measurement': 'Измеренное расстояние (x)',
+            't-meas-note': '* Расстояние от k=0 до выбранного k',
+            't-btn-record': 'Записать в таблицу',
+            't-btn-reset': 'Очистить журнал',
+            't-sim-header': 'Визуализация хода лучей (Вид сверху)',
+            't-table-header': 'Журнал измерений',
+            't-btn-check': 'Проверить вычисления',
+            't-col-1': 'Опыт',
+            't-col-4': 'Порядок k',
+            't-table-note': '* Для расчетов <strong>λ</strong> рекомендуется перевести d, x и L в метры. Итоговый ответ λ запишите в нанометрах (нм).',
+            't-conclusion-title': 'Вывод по лабораторной работе',
+            'ph-conclusion': 'Напишите выводы: как расстояние между дифракционными максимумами зависит от длины волны и периода решетки?',
+            'btn-example-show': 'Показать пример вывода',
+            'btn-example-hide': 'Скрыть пример вывода',
+            't-example-title': 'Пример правильного вывода:',
+            't-example-text': 'В ходе работы мы с помощью дифракционной решетки экспериментально определили длину волны света для лазеров разного цвета. Расчеты подтвердили, что красный свет имеет наибольшую длину волны (около 650 нм), а фиолетовый — наименьшую (около 405 нм). Из формулы дифракционной решетки (d·sinφ = kλ) видно, что при одинаковом периоде решетки (d) красные лучи отклоняются на больший угол, чем фиолетовые. Также подтверждено, что использование решетки с бОльшим числом штрихов (меньшим периодом d) приводит к более широкому расхождению дифракционных максимумов (x увеличивается).',
+            'err-dup': 'Такой опыт уже записан!',
+            'err-limit': 'Достигнут предел измерений (5).',
+            'svg-grating': 'Решетка'
+        },
+        kz: {
+            't-main-title': '№8 Практикум: Дифракциялық тордың көмегімен жарық сәулесінің толқын ұзындығын анықтау',
+            't-goal-header': 'Жұмыс мақсаты:',
+            't-goal-text': 'Дифракциялық тордағы дифракция құбылысын пайдалана отырып, монохроматты жарықтың толқын ұзындығын тәжірибе жүзінде анықтау.',
+            't-formula-header': 'Есептеу формулалары:',
+            't-form-note1': 'мұндағы <b>d</b> - тордың периоды (d = 1 мм / N), <b>L</b> - экранға дейінгі қашықтық, <b>x</b> - орталықтан k-ші максимумға дейінгі қашықтық.',
+            't-steps-header': 'Жұмыс барысы:',
+            't-steps-list': `
+                <li>Лазердің түсін және дифракциялық торды таңдаңыз. 1 мм-дегі штрихтар санына (N) назар аударыңыз.</li>
+                <li>Тордан экранға дейінгі қашықтықты (<strong>L</strong>) орнатыңыз.</li>
+                <li>Өлшейтін максимумның ретін (<strong>k</strong>) таңдаңыз.</li>
+                <li>Экранда орталықтан таңдалған максимумға дейінгі қашықтықты (<strong>x</strong>) өлшеңіз. "Кестеге жазу" түймесін басыңыз.</li>
+                <li>Тордың периодын <strong>d</strong> (мкм-мен) және толқын ұзындығын <strong>λ</strong> (нм-мен) <strong>өз бетіңізше</strong> есептеңіз. Есептеу алдында барлығын ХБЖ (метрге) ауыстыру ұсынылады!</li>
+                <li>"Есептеулерді тексеру" түймесін басыңыз.</li>
+            `,
+            't-settings-header': 'Қондырғы баптаулары',
+            't-label-color': 'Жарық көзінің түсі:',
+            't-color-red': 'Қызыл лазер',
+            't-color-green': 'Жасыл лазер',
+            't-color-violet': 'Күлгін лазер',
+            't-label-grating': 'Дифракциялық тор:',
+            't-gr-50': '50 штрих / мм',
+            't-gr-100': '100 штрих / мм',
+            't-gr-200': '200 штрих / мм',
+            't-label-l': 'Экранға дейінгі қашықтық (L):',
+            't-label-k': 'Максимум реті (k):',
+            't-measurement': 'Өлшенген қашықтық (x)',
+            't-meas-note': '* k=0-ден таңдалған k-ға дейінгі қашықтық',
+            't-btn-record': 'Кестеге жазу',
+            't-btn-reset': 'Журналды тазарту',
+            't-sim-header': 'Сәулелердің жүруін визуалдау (Жоғарыдан көрініс)',
+            't-table-header': 'Өлшеу журналы',
+            't-btn-check': 'Есептеулерді тексеру',
+            't-col-1': 'Тәжірибе',
+            't-col-4': 'Реті k',
+            't-table-note': '* <strong>λ</strong> есептеу үшін d, x және L-ді метрге айналдыру ұсынылады. λ қорытынды жауабын нанометрмен (нм) жазыңыз.',
+            't-conclusion-title': 'Зертханалық жұмыс бойынша қорытынды',
+            'ph-conclusion': 'Қорытындыңызды осында жазыңыз: дифракциялық максимумдар арасындағы қашықтық толқын ұзындығына және тордың периодына қалай тәуелді?',
+            'btn-example-show': 'Қорытынды мысалын көрсету',
+            'btn-example-hide': 'Қорытынды мысалын жасыру',
+            't-example-title': 'Дұрыс қорытындының мысалы:',
+            't-example-text': 'Жұмыс барысында біз дифракциялық тордың көмегімен әртүрлі түсті лазерлер үшін жарықтың толқын ұзындығын тәжірибе жүзінде анықтадық. Есептеулер қызыл жарықтың толқын ұзындығы ең үлкен (шамамен 650 нм), ал күлгін жарықтың ең кіші (шамамен 405 нм) екенін растады. Дифракциялық тор формуласынан (d·sinφ = kλ) тордың бірдей периодында (d) қызыл сәулелер күлгін сәулелерге қарағанда үлкен бұрышқа ауытқитыны көрінеді. Сондай-ақ, штрихтар саны көп (d периоды аз) торды пайдалану дифракциялық максимумдардың кеңірек таралуына (x артады) әкелетіні расталды.',
+            'err-dup': 'Мұндай тәжірибе жазылып қойған!',
+            'err-limit': 'Өлшеу шегіне жетті (5).',
+            'svg-grating': 'Тор'
+        }
+    };
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'ru' ? 'kz' : 'ru';
+        const tr = translations[currentLang];
+
+        const keys = Object.keys(tr).filter(k => k.startsWith('t-') && k !== 't-steps-list');
+        keys.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if(el.innerHTML.includes('<i data-lucide=')) {
+                    const iconHTML = el.innerHTML.match(/<i[^>]+><\/i>/)[0];
+                    el.innerHTML = iconHTML + ' ' + tr[id];
+                } else if(el.innerHTML.includes('<span class="bg-amber-400')) {
+                    const iconHTML = el.innerHTML.match(/<span[^>]+>.*?<\/span>/)[0];
+                    el.innerHTML = iconHTML + '\n            ' + tr[id];
+                } else {
+                    el.innerHTML = tr[id];
+                }
+            }
+        });
+
+        document.getElementById('t-steps-list').innerHTML = tr['t-steps-list'];
+        document.getElementById('t-conclusion-text').placeholder = tr['ph-conclusion'];
+        
+        // SVG Text
+        const gratingText = document.querySelector('text[x="0"][y="-10"]');
+        if(gratingText) gratingText.textContent = tr['svg-grating'];
+
+        const exBlock = document.getElementById('example-conclusion');
+        const btnEx = document.getElementById('t-btn-example');
+        if (!exBlock.classList.contains('hidden')) {
+            btnEx.innerText = tr['btn-example-hide'];
+        } else {
+            btnEx.innerText = tr['btn-example-show'];
+        }
+
+        lucide.createIcons();
+    }
+
+    function toggleExampleConclusion() {
+        const block = document.getElementById('example-conclusion');
+        const btn = document.getElementById('t-btn-example');
+        const tr = translations[currentLang];
+        
+        if (block.classList.contains('hidden')) {
+            block.classList.remove('hidden');
+            btn.innerText = tr['btn-example-hide'];
+        } else {
+            block.classList.add('hidden');
+            btn.innerText = tr['btn-example-show'];
+        }
+    }
+
+    // --- ФИЗИКА И СИМУЛЯЦИЯ ---
+    const COLORS = {
+        'red': { wave: 650, hex: '#ef4444', filter: 'url(#glow-red)' }, // 650 нм
+        'green': { wave: 532, hex: '#22c55e', filter: 'url(#glow-green)' }, // 532 нм
+        'violet': { wave: 405, hex: '#a855f7', filter: 'url(#glow-violet)' } // 405 нм
+    };
+    
+    // Координаты на SVG
+    const SVG_W = 600;
+    const SVG_H = 400;
+    const X_GRATING = 120;
+    const Y_CENTER = 200;
+
+    let currentColor = 'red';
+    let currentN_mm = 50; // штрихов на мм
+    let currentL_m = 1.0;
+    let currentK = 1;
+    let measuredX_cm = 0;
+    
+    let measurements = [];
+
+    const ui = {
+        colorInput: document.getElementById('color-input'),
+        gratingInput: document.getElementById('grating-input'),
+        lInput: document.getElementById('l-input'),
+        kInput: document.getElementById('k-input'),
+        lVal: document.getElementById('l-val'),
+        kVal: document.getElementById('k-val'),
+        xDisplay: document.getElementById('x-display'),
+        
+        screenGroup: document.getElementById('screen-group'),
+        screenMarks: document.getElementById('screen-marks'),
+        raysGroup: document.getElementById('rays-group'),
+        
+        mLine1: document.getElementById('m-line-1'),
+        mLine2: document.getElementById('m-line-2'),
+        mArrow: document.getElementById('m-arrow'),
+        mText: document.getElementById('m-text'),
+        
+        tbody: document.getElementById('tableBody')
+    };
+
+    function updateSim() {
+        currentColor = ui.colorInput.value;
+        currentN_mm = parseInt(ui.gratingInput.value);
+        currentL_m = parseFloat(ui.lInput.value);
+        currentK = parseInt(ui.kInput.value);
+
+        ui.lVal.innerText = currentL_m.toFixed(2);
+        ui.kVal.innerText = currentK;
+
+        // Физика
+        const lambda_nm = COLORS[currentColor].wave;
+        const lambda_m = lambda_nm * 1e-9;
+        
+        // d в метрах (1 мм = 1e-3 м)
+        const d_m = (1e-3) / currentN_mm;
+        
+        // sin(phi) = k * lambda / d
+        // x = L * tan(phi)
+        const sinPhi = (currentK * lambda_m) / d_m;
+        let x_ideal_m = 0;
+        
+        if (sinPhi < 1) { // Максимум существует
+            const phi = Math.asin(sinPhi);
+            x_ideal_m = currentL_m * Math.tan(phi);
+        } else {
+            // Теоретически невозможный максимум (для наших данных не наступит: max 200шт/мм, k=2 -> d=5um. 2*0.65/5 = 0.26 < 1)
+            x_ideal_m = 999;
+        }
+
+        // Шум
+        const pseudoRand = Math.sin(currentN_mm * 100 + currentL_m * 10 + currentK) * 0.1; // ±0.1 см
+        measuredX_cm = (x_ideal_m * 100) + pseudoRand;
+        
+        ui.xDisplay.innerText = measuredX_cm.toFixed(2);
+
+        // --- Визуализация (масштабирование) ---
+        // X-ось: Экран. Если L = 0.5..2.0 м. Пусть L=2m -> x=500 (разница 380px). ScaleX = 380/2 = 190 px/m
+        const scaleX = 190;
+        const screenX = X_GRATING + currentL_m * scaleX;
+        
+        ui.screenGroup.setAttribute('transform', `translate(${screenX}, 20)`);
+        
+        // Y-ось: x_m. Расстояния x_cm от 1.5 до 30 см.
+        // Визуально раздуем Y-масштаб, чтобы было красиво на экране. 30 см -> 150 px. scaleY = 5 px/cm
+        const scaleY = 5.0; 
+        
+        // Генерация лучей и точек на экране
+        let raysHtml = '';
+        let marksHtml = '';
+        const laserHex = COLORS[currentColor].hex;
+        const laserFilter = COLORS[currentColor].filter;
+
+        // Луч до решетки
+        raysHtml += `<line x1="45" y1="${Y_CENTER}" x2="${X_GRATING}" y2="${Y_CENTER}" stroke="${laserHex}" stroke-width="3" filter="${laserFilter}" />`;
+
+        // Центральный луч k=0
+        raysHtml += `<line x1="${X_GRATING}" y1="${Y_CENTER}" x2="${screenX}" y2="${Y_CENTER}" stroke="${laserHex}" stroke-width="2" filter="${laserFilter}" opacity="0.9" />`;
+        marksHtml += `<circle cx="4" cy="180" r="4" fill="${laserHex}" filter="${laserFilter}" />`;
+
+        // Боковые лучи (рисуем для k=1 и k=2 если они существуют в пределах экрана)
+        for (let k = 1; k <= 2; k++) {
+            const sPhi = (k * lambda_m) / d_m;
+            if (sPhi < 1) {
+                const x_m_k = currentL_m * Math.tan(Math.asin(sPhi));
+                const x_cm_k = x_m_k * 100;
+                const dy_px = x_cm_k * scaleY;
+
+                // Если вылезает за экран (высота экрана 360, от центра 180px)
+                if (dy_px <= 170) {
+                    // Вверх
+                    raysHtml += `<line x1="${X_GRATING}" y1="${Y_CENTER}" x2="${screenX}" y2="${Y_CENTER - dy_px}" stroke="${laserHex}" stroke-width="1.5" filter="${laserFilter}" opacity="${k===1 ? 0.7 : 0.4}" />`;
+                    marksHtml += `<circle cx="4" cy="${180 - dy_px}" r="3" fill="${laserHex}" filter="${laserFilter}" />`;
+                    marksHtml += `<text x="15" y="${183 - dy_px}" fill="#94a3b8" font-size="9" font-family="sans-serif">k=${k}</text>`;
+
+                    // Вниз
+                    raysHtml += `<line x1="${X_GRATING}" y1="${Y_CENTER}" x2="${screenX}" y2="${Y_CENTER + dy_px}" stroke="${laserHex}" stroke-width="1.5" filter="${laserFilter}" opacity="${k===1 ? 0.7 : 0.4}" />`;
+                    marksHtml += `<circle cx="4" cy="${180 + dy_px}" r="3" fill="${laserHex}" filter="${laserFilter}" />`;
+                    marksHtml += `<text x="15" y="${183 + dy_px}" fill="#94a3b8" font-size="9" font-family="sans-serif">k=${k}</text>`;
+                }
+            }
+        }
+        
+        ui.raysGroup.innerHTML = raysHtml;
+        ui.screenMarks.innerHTML = marksHtml;
+
+        // --- Выноска размера ---
+        const active_dy_px = measuredX_cm * scaleY;
+        const mx = screenX + 35; // Справа от экрана
+        
+        if (active_dy_px <= 170) {
+            ui.mLine1.setAttribute('x1', screenX + 15);
+            ui.mLine1.setAttribute('y1', Y_CENTER);
+            ui.mLine1.setAttribute('x2', mx + 10);
+            ui.mLine1.setAttribute('y2', Y_CENTER);
+
+            ui.mLine2.setAttribute('x1', screenX + 15);
+            ui.mLine2.setAttribute('y1', Y_CENTER - active_dy_px);
+            ui.mLine2.setAttribute('x2', mx + 10);
+            ui.mLine2.setAttribute('y2', Y_CENTER - active_dy_px);
+
+            ui.mArrow.setAttribute('x1', mx);
+            ui.mArrow.setAttribute('y1', Y_CENTER - 5);
+            ui.mArrow.setAttribute('x2', mx);
+            ui.mArrow.setAttribute('y2', Y_CENTER - active_dy_px + 5);
+
+            ui.mText.setAttribute('x', mx + 5);
+            ui.mText.setAttribute('y', Y_CENTER - active_dy_px/2 + 4);
+            
+            ui.mLine1.style.display = "block";
+            ui.mLine2.style.display = "block";
+            ui.mArrow.style.display = "block";
+            ui.mText.style.display = "block";
+        } else {
+            // Если максимум улетел за экран (бывает при больших L и k=2)
+            ui.mLine1.style.display = "none";
+            ui.mLine2.style.display = "none";
+            ui.mArrow.style.display = "none";
+            ui.mText.style.display = "none";
+        }
+    }
+
+    // --- ТАБЛИЦА ---
+    function recordData() {
+        const tr = translations[currentLang];
+        
+        if (measurements.length >= 5) {
+            alert(tr['err-limit']);
+            return;
+        }
+
+        const isDuplicate = measurements.some(m => 
+            m.col === currentColor && m.N === currentN_mm && m.L === currentL_m && m.k === currentK
+        );
+        if (isDuplicate) {
+            alert(tr['err-dup']);
+            return;
+        }
+
+        const expNum = measurements.length + 1;
+        
+        // Идеальные расчеты для проверки ученика
+        // d_mkm = (1 / N) * 1000  (т.к. 1 мм = 1000 мкм)
+        const d_mkm_calc = (1 / currentN_mm) * 1000;
+        
+        // lambda = d * x / (k * L)
+        // Если переводить все в СИ: d_m = d_mkm * 1e-6. x_m = measuredX_cm * 1e-2. L = currentL_m.
+        const d_m = d_mkm_calc * 1e-6;
+        const x_m = measuredX_cm * 1e-2;
+        
+        // Точная формула с синусом: sin(phi) = x / sqrt(x^2 + L^2). 
+        // Но в школе часто дают lambda = d*x / (k*L) для малых углов.
+        // Мы проверим по упрощенной формуле, так как она дана в описании!
+        const lambda_m_calc = (d_m * x_m) / (currentK * currentL_m);
+        const lambda_nm_calc = lambda_m_calc * 1e9;
+
+        measurements.push({
+            col: currentColor,
+            N: currentN_mm,
+            L: currentL_m,
+            k: currentK
+        });
+
+        // Цветная точка для колонки Опыта
+        const dotColor = COLORS[currentColor].hex;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="font-bold text-slate-500 flex justify-center items-center gap-2">
+                <span style="width:10px; height:10px; border-radius:50%; background-color:${dotColor}; display:inline-block;"></span>
+                ${expNum}
+            </td>
+            <td class="font-bold text-slate-700">${currentN_mm}</td>
+            <td class="text-slate-600">${currentL_m.toFixed(2)}</td>
+            <td class="text-slate-600">${currentK}</td>
+            <td class="text-slate-600">${measuredX_cm.toFixed(2)}</td>
+            <td>
+                <div class="flex items-center justify-center">
+                    <input type="number" step="0.1" class="calc-input" data-correct="${d_mkm_calc.toFixed(2)}">
+                    <span class="feedback-icon"></span>
+                </div>
+            </td>
+            <td>
+                <div class="flex items-center justify-center">
+                    <input type="number" step="1" class="calc-input" data-correct="${lambda_nm_calc.toFixed(0)}">
+                    <span class="feedback-icon"></span>
+                </div>
+            </td>
+        `;
+        ui.tbody.appendChild(row);
+    }
+
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        inputs.forEach(input => {
+            if(input.value === "") return;
+            const userVal = parseFloat(input.value);
+            const correctVal = parseFloat(input.dataset.correct);
+            
+            const step = parseFloat(input.getAttribute('step'));
+            // Допуск для d (мкм): 0.5. Для lambda (нм): 15 (из-за округления x и упрощенной формулы)
+            const tolerance = step === 1 ? 15 : 0.5; 
+            
+            const icon = input.nextElementSibling;
+
+            if (Math.abs(userVal - correctVal) <= tolerance) {
+                input.classList.add('correct');
+                input.classList.remove('incorrect');
+                icon.innerHTML = '✅';
+            } else {
+                input.classList.add('incorrect');
+                input.classList.remove('correct');
+                icon.innerHTML = '❌';
+            }
+        });
+    }
+
+    function clearTable() {
+        ui.tbody.innerHTML = '';
+        document.getElementById('t-conclusion-text').value = '';
+        measurements = [];
+        
+        const exBlock = document.getElementById('example-conclusion');
+        if (!exBlock.classList.contains('hidden')) {
+            toggleExampleConclusion();
+        }
+    }
+
+    // Инициализация
+    updateSim();
+
+</script>
+</body>
+</html>
