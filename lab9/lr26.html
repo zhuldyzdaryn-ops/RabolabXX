@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ЛЛабораторная работа: Выталкивающая сила</title>
+    <style>
+        :root {
+            --primary: #27ae60;
+            --accent: #2980b9;
+            --bg: #f5f6fa;
+            --panel: #ffffff;
+            --text: #2c3e50;
+            --radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh; /* Строго 100% высоты экрана */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Запрет общей прокрутки */
+        }
+
+        /* --- HEADER & THEORY --- */
+        .header-container {
+            flex-shrink: 0;
+            background: var(--panel);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .header-title-bar {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title-bar h1 { margin: 0; font-size: 1.3rem; }
+
+        .lang-switch {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .lang-switch:hover { background: rgba(255,255,255,0.4); }
+
+        .header-theory {
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            color: #34495e;
+            border-bottom: 1px solid #dcdcdc;
+        }
+        .header-theory p { margin: 5px 0; }
+        .theory-formula {
+            display: inline-block;
+            background: #e8f5e9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 1.05rem;
+            color: var(--primary);
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        /* --- MAIN LAYOUT --- */
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 10px;
+            gap: 10px;
+            min-height: 0; 
+        }
+
+        /* ВЕРХНЯЯ ЧАСТЬ: 80% высоты (Установка + Симуляция) */
+        .top-section {
+            display: flex;
+            flex: 4; 
+            gap: 10px;
+            min-height: 0;
+        }
+
+        /* Установка (~20% ширины) */
+        .left-column {
+            flex: 1; 
+            background: var(--panel);
+            border-radius: var(--radius);
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Симуляция (~60% ширины) */
+        .right-column {
+            flex: 3; 
+            background: radial-gradient(circle at center, #ffffff, #eef2f3);
+            border-radius: var(--radius);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+            border: 1px solid #dcdcdc;
+            overflow: hidden;
+        }
+
+        /* НИЖНЯЯ ЧАСТЬ: Таблица (20% высоты) */
+        .bottom-section {
+            flex: 1; 
+            background: var(--panel);
+            border-radius: var(--radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            padding: 10px 15px;
+            min-height: 150px;
+        }
+
+        /* --- STYLES FOR LEFT COLUMN (CONTROLS) --- */
+        .card-header {
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f1f2f6;
+            padding-bottom: 5px;
+        }
+        
+        .control-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem;}
+        
+        select, input[type="range"] { 
+            width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; 
+            font-family: inherit; font-size: 0.9rem; cursor: pointer; box-sizing: border-box;
+        }
+        input[type="range"] { accent-color: var(--primary); padding: 0; margin-top: 5px;}
+
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 15px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+        .checkbox-group input { cursor: pointer; width: 16px; height: 16px; }
+
+        .btn-record {
+            width: 100%; padding: 12px; border: none; border-radius: 4px;
+            cursor: pointer; font-weight: bold; transition: 0.2s; color: white;
+            background-color: var(--accent); margin-top: auto; font-size: 0.95rem;
+        }
+        .btn-record:hover:not(:disabled) { background-color: #1f6391; }
+        .btn-record:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+        /* --- STYLES FOR TABLE --- */
+        .table-wrapper { overflow-y: auto; flex: 1; border: 1px solid #eee; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
+        th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: center; }
+        th { background-color: #f8f9fa; position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 0 #ddd; }
+        .bottom-section h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.1rem; color: var(--primary); }
+
+        /* --- STYLES FOR SIMULATION --- */
+        svg { width: 100%; height: 100%; }
+
+        .liquid.water { fill: rgba(52, 152, 219, 0.45); }
+        .liquid.salt { fill: rgba(26, 188, 156, 0.5); }
+        .liquid.oil { fill: rgba(241, 196, 15, 0.45); }
+        .liquid.alcohol { fill: rgba(189, 195, 199, 0.35); }
+
+        .stand { fill: #7f8c8d; }
+        .stand-base { fill: #34495e; }
+        .dynamometer-body { fill: #ecf0f1; stroke: #95a5a6; stroke-width: 2; }
+        .spring { fill: none; stroke: #555; stroke-width: 2; stroke-linejoin: round; }
+        .scale-line { stroke: #333; stroke-width: 1; }
+        .scale-text { fill: #333; font-size: 12px; font-family: sans-serif; }
+        .indicator { fill: #e74c3c; }
+        
+        /* Новый стиль для металлического стержня динамометра */
+        .rod { stroke: #95a5a6; stroke-width: 3; }
+        
+        .body-rect { fill: #8e44ad; stroke: #732d91; stroke-width: 2; }
+        .beaker { fill: rgba(255,255,255,0.5); stroke: #bdc3c7; stroke-width: 3; }
+        
+        .vector-fa { stroke: #e74c3c; stroke-width: 3; marker-end: url(#arrow-red); }
+        .vector-mg { stroke: #2980b9; stroke-width: 3; marker-end: url(#arrow-blue); }
+        .vector-text { font-weight: bold; font-family: 'Times New Roman', serif; font-style: italic; font-size: 14px; }
+
+        .digital-display {
+            position: absolute; top: 15px; right: 15px;
+            background: #2c3e50; color: #f1c40f;
+            padding: 8px 12px; border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #555;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .display-val { font-size: 1.3rem; font-weight: bold; }
+        .display-label { color: #bdc3c7; font-size: 0.75rem; display: block; margin-bottom: 3px; }
+
+    </style>
+</head>
+<body>
+
+<div class="header-container">
+    <div class="header-title-bar">
+        <h1 id="lab-title">Лабораторная работа: Определение выталкивающей силы</h1>
+        <button class="lang-switch" onclick="toggleLang()">RU / KZ</button>
+    </div>
+    <div class="header-theory">
+        <p>
+            <strong id="th-goal-title">Цель работы:</strong> 
+            <span id="th-goal-text">На опыте обнаружить выталкивающее действие жидкости на погруженное в неё тело и определить величину выталкивающей силы.</span>
+        </p>
+        <p>
+            <strong id="th-law-title">Краткая теория:</strong> 
+            <span id="th-desc">Выталкивающая сила (сила Архимеда) равна разности веса тела в воздухе и в жидкости, а также зависит от плотности жидкости и объема погруженной части тела:</span>
+            <span class="theory-formula">F<sub>A</sub> = P<sub>1</sub> - P<sub>2</sub> = &rho; &middot; g &middot; V</span>
+        </p>
+    </div>
+</div>
+
+<div class="workspace">
+    
+    <div class="top-section">
+        
+        <div class="left-column">
+            <h3 class="card-header" id="setup-header">Установка</h3>
+            
+            <div class="control-group">
+                <label id="lbl-body">Исследуемое тело:</label>
+                <select id="body-select" onchange="updateSim()">
+                    <option value="1" id="opt-body1">Тело 1 (Малый объем)</option>
+                    <option value="2" id="opt-body2">Тело 2 (Большой объем)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-liquid">Жидкость в стакане:</label>
+                <select id="liquid-select" onchange="updateSim()">
+                    <option value="water" id="opt-water">Вода</option>
+                    <option value="salt" id="opt-salt">Насыщенная соленая вода</option>
+                    <option value="oil" id="opt-oil">Масло</option>
+                    <option value="alcohol" id="opt-alcohol">Спирт</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-depth">Опускание муфты:</label>
+                <input type="range" id="depth-slider" min="20" max="240" value="20" step="1" oninput="updateSim()">
+            </div>
+
+            <label class="checkbox-group">
+                <input type="checkbox" id="show-vectors" onchange="updateSim()">
+                <span id="lbl-vectors">Векторы сил</span>
+            </label>
+
+            <button class="btn-record" onclick="recordData()" id="btn-record">Записать результат</button>
+            <div id="record-warning" style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px; text-align: center; display: none;">
+                Для записи полностью погрузите тело!
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div class="digital-display">
+                <span class="display-label" id="disp-label">Показание (P):</span>
+                <span class="display-val"><span id="disp-p">0.00</span> Н</span>
+            </div>
+
+            <svg id="scene" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
+                        <path d="M0,0 L0,8 L8,4 z" fill="#e74c3c" />
+                    </marker>
+                    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
+                        <path d="M0,0 L0,8 L8,4 z" fill="#2980b9" />
+                    </marker>
+                </defs>
+
+                <g transform="translate(100, 0)">
+                    <rect x="50" y="550" width="120" height="20" class="stand-base" />
+                    <rect x="100" y="20" width="10" height="530" class="stand" />
+
+                    <g transform="translate(195, 350)">
+                        <rect x="15" y="30" width="120" height="170" id="svg-liquid" class="liquid water" />
+                        <path d="M 10 20 L 20 200 L 130 200 L 140 20 L 135 20 L 125 195 L 25 195 L 15 20 Z" class="beaker" />
+                    </g>
+
+                    <g id="clamp-group" transform="translate(100, 50)">
+                        <rect x="0" y="0" width="155" height="15" fill="#7f8c8d" />
+                        
+                        <g transform="translate(155, -10)">
+                            <rect x="0" y="0" width="30" height="130" class="dynamometer-body" rx="4" />
+                            
+                            <g transform="translate(5, 20)">
+                                <line x1="0" y1="0" x2="10" y2="0" class="scale-line" /> <text x="15" y="4" class="scale-text">0</text>
+                                <line x1="0" y1="20" x2="6" y2="20" class="scale-line" />
+                                <line x1="0" y1="40" x2="10" y2="40" class="scale-line" /> <text x="15" y="44" class="scale-text">2</text>
+                                <line x1="0" y1="60" x2="6" y2="60" class="scale-line" />
+                                <line x1="0" y1="80" x2="10" y2="80" class="scale-line" /> <text x="15" y="84" class="scale-text">4</text>
+                                <line x1="0" y1="100" x2="6" y2="100" class="scale-line" />
+                            </g>
+                            
+                            <path id="svg-spring" d="M 15 10 L 15 20 L 5 25 L 25 35 L 5 45 L 25 55 L 15 60 L 15 70" class="spring" />
+                            <polygon id="svg-indicator" points="5,70 15,65 15,75" class="indicator" />
+                            
+                            <g id="svg-rod-group">
+                                <line x1="15" y1="0" x2="15" y2="115" class="rod" />
+                                <path d="M 15 115 C 15 125, 25 125, 25 115" fill="none" class="rod" />
+                            </g>
+                            
+                            <g id="svg-body" transform="translate(0, 125)">
+                                <rect id="body-shape" x="0" y="0" width="50" height="50" class="body-rect" />
+                                
+                                <g id="svg-vectors" style="opacity: 0;">
+                                    <line id="vec-fa" x1="0" y1="0" x2="0" y2="0" class="vector-fa" />
+                                    <text id="txt-fa" x="0" y="0" fill="#e74c3c" class="vector-text">F<tspan dy="5" font-size="10">A</tspan></text>
+                                    
+                                    <line id="vec-mg" x1="0" y1="0" x2="0" y2="0" class="vector-mg" />
+                                    <text id="txt-mg" x="0" y="0" fill="#2980b9" class="vector-text">mg</text>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <div class="bottom-section">
+        <h3 id="th-journal-title">Журнал измерений</h3>
+        <div class="table-wrapper">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th id="th-1">№</th>
+                        <th id="th-2">Тело</th>
+                        <th id="th-3">Жидкость</th>
+                        <th id="th-4">P<sub>1</sub> (Н) в воздухе</th>
+                        <th id="th-5">P<sub>2</sub> (Н) в жидкости</th>
+                        <th id="th-6">F<sub>A</sub> (Н)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // === ФИЗИКА И ПАРАМЕТРЫ ===
+    const G = 10; 
+    
+    // Плотности (кг/м³)
+    const RHO = {
+        water: 1000,
+        salt: 1200,
+        oil: 900,
+        alcohol: 800
+    };
+
+    // Параметры тел (масса в кг, объем в м³)
+    const BODIES = {
+        1: { mass: 0.4, vol: 0.00005, width: 30, height: 40, color: '#8e44ad' }, // Вес=4Н, Архимед(вода)=0.5Н
+        2: { mass: 0.3, vol: 0.00010, width: 45, height: 60, color: '#e67e22' }  // Вес=3Н, Архимед(вода)=1.0Н
+    };
+
+    // Параметры SVG
+    const PIXELS_PER_N = 20; 
+    const SPRING_BASE_Y = 20; 
+    const Y_SURFACE = 380; 
+    const ROD_OFFSET = 125; // Расстояние от указателя до низа крючка
+
+    let currentP = 0;
+    let isSubmergedFully = false;
+
+    // Элементы
+    const ui = {
+        bodySel: document.getElementById('body-select'),
+        liqSel: document.getElementById('liquid-select'),
+        slider: document.getElementById('depth-slider'),
+        chkVec: document.getElementById('show-vectors'),
+        dispP: document.getElementById('disp-p'),
+        clampGrp: document.getElementById('clamp-group'),
+        svgSpring: document.getElementById('svg-spring'),
+        svgInd: document.getElementById('svg-indicator'),
+        svgRodGrp: document.getElementById('svg-rod-group'),
+        svgBody: document.getElementById('svg-body'),
+        bodyShape: document.getElementById('body-shape'),
+        svgLiquid: document.getElementById('svg-liquid'),
+        svgVectors: document.getElementById('svg-vectors'),
+        vecFA: document.getElementById('vec-fa'),
+        vecMG: document.getElementById('vec-mg'),
+        btnRecord: document.getElementById('btn-record'),
+        warning: document.getElementById('record-warning')
+    };
+
+    function init() {
+        updateSim();
+    }
+
+    function updateSim() {
+        const bId = ui.bodySel.value;
+        const lId = ui.liqSel.value;
+        const body = BODIES[bId];
+        const rho = RHO[lId];
+        const clampY = parseInt(ui.slider.value); 
+        const showVectors = ui.chkVec.checked;
+
+        // Обновление размеров тела и центровка ровно под крючком (крючок на x=20)
+        ui.bodyShape.setAttribute('width', body.width);
+        ui.bodyShape.setAttribute('height', body.height);
+        ui.bodyShape.setAttribute('x', 20 - body.width/2); 
+        ui.bodyShape.style.fill = body.color;
+        
+        ui.svgLiquid.className.baseVal = `liquid ${lId}`;
+
+        // Расчет физики (итеративно для учета сжатия пружины при погружении)
+        let p_curr = body.mass * G; 
+        let v_imm = 0;
+
+        for (let i = 0; i < 5; i++) {
+            let springStretch = p_curr * PIXELS_PER_N;
+            
+            // Глобальный Y верхней грани тела
+            let globalBodyTop = 50 + clampY - 10 + SPRING_BASE_Y + springStretch + ROD_OFFSET;
+            let globalBodyBottom = globalBodyTop + body.height;
+
+            let h_imm = globalBodyBottom - Y_SURFACE;
+            if (h_imm < 0) h_imm = 0;
+            if (h_imm > body.height) h_imm = body.height;
+            
+            let imm_fraction = h_imm / body.height;
+            v_imm = body.vol * imm_fraction;
+
+            let F_A = rho * G * v_imm;
+            p_curr = (body.mass * G) - F_A;
+            if (p_curr < 0) p_curr = 0;
+        }
+
+        currentP = p_curr;
+        isSubmergedFully = (v_imm >= body.vol * 0.99);
+
+        // Отрисовка динамических элементов
+        let stretch = currentP * PIXELS_PER_N;
+        let indY = SPRING_BASE_Y + stretch;
+        
+        // Пружина
+        let steps = 6;
+        let stepY = stretch / steps;
+        let d = `M 15 10 L 15 ${SPRING_BASE_Y}`;
+        for(let j=1; j<=steps; j++) {
+            let dx = (j%2 === 0) ? 5 : 25;
+            if(j === steps) dx = 15;
+            d += ` L ${dx} ${SPRING_BASE_Y + j*stepY}`;
+        }
+        ui.svgSpring.setAttribute('d', d);
+        
+        // Указатель и стержень с крючком
+        ui.svgInd.setAttribute('points', `5,${indY} 15,${indY-5} 15,${indY+5}`);
+        ui.svgRodGrp.setAttribute('transform', `translate(0, ${indY})`);
+        
+        // Тело крепится к низу крючка
+        ui.svgBody.setAttribute('transform', `translate(0, ${indY + ROD_OFFSET})`);
+        
+        // Муфта штатива
+        ui.clampGrp.setAttribute('transform', `translate(100, ${clampY})`);
+
+        // Цифровое табло
+        ui.dispP.innerText = currentP.toFixed(2);
+
+        // Векторы сил (центрируются по телу)
+        ui.svgVectors.style.opacity = showVectors ? 1 : 0;
+        
+        let cx = 20; // Центр крючка
+        let cy = body.height / 2;
+        
+        let fa_val = (body.mass * G) - currentP;
+        if (fa_val > 0) {
+            let vecLen = fa_val * 15; 
+            ui.vecFA.setAttribute('x1', cx - 5); ui.vecFA.setAttribute('x2', cx - 5);
+            ui.vecFA.setAttribute('y1', cy); ui.vecFA.setAttribute('y2', cy - vecLen);
+            ui.vecFA.style.display = 'block';
+            
+            let txtFA = document.getElementById('txt-fa');
+            txtFA.setAttribute('x', cx - 25); txtFA.setAttribute('y', cy - vecLen - 5);
+            txtFA.style.display = 'block';
+        } else {
+            ui.vecFA.style.display = 'none';
+            document.getElementById('txt-fa').style.display = 'none';
+        }
+        
+        let mgLen = (body.mass * G) * 15;
+        ui.vecMG.setAttribute('x1', cx + 5); ui.vecMG.setAttribute('x2', cx + 5);
+        ui.vecMG.setAttribute('y1', cy); ui.vecMG.setAttribute('y2', cy + mgLen);
+        
+        let txtMG = document.getElementById('txt-mg');
+        txtMG.setAttribute('x', cx + 10); txtMG.setAttribute('y', cy + mgLen + 15);
+
+        // Блокировка кнопки
+        if (isSubmergedFully) {
+            ui.btnRecord.disabled = false;
+            ui.warning.style.display = 'none';
+        } else {
+            ui.btnRecord.disabled = true;
+            ui.warning.style.display = 'block';
+        }
+    }
+
+    function recordData() {
+        if (!isSubmergedFully) return;
+
+        const bId = ui.bodySel.value;
+        const lId = ui.liqSel.value;
+        
+        const bodyName = (currentLang === 'ru') ? 
+            document.getElementById('opt-body' + bId).innerText : 
+            (bId === '1' ? '1-дене' : '2-дене');
+            
+        const liqName = (currentLang === 'ru') ? 
+            document.getElementById('opt-' + lId).innerText : 
+            (lId === 'water' ? 'Су' : 
+             lId === 'salt' ? 'Тұз ерітіндісі' : 
+             lId === 'oil' ? 'Май' : 'Спирт');
+
+        const P_air = BODIES[bId].mass * G;
+        const P_liq = currentP;
+        const F_A = P_air - P_liq;
+
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        const n = tbody.children.length + 1;
+
+        row.innerHTML = `
+            <td>${n}</td>
+            <td>${bodyName}</td>
+            <td>${liqName}</td>
+            <td>${P_air.toFixed(2)}</td>
+            <td>${P_liq.toFixed(2)}</td>
+            <td><strong style="color:var(--primary)">${F_A.toFixed(2)}</strong></td>
+        `;
+        tbody.appendChild(row);
+
+        const wrapper = document.querySelector('.table-wrapper');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    // === ЛОКАЛИЗАЦИЯ ===
+    let currentLang = 'ru';
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Определение выталкивающей силы",
+            setupH: "Установка",
+            lblB: "Исследуемое тело:", optB1: "Тело 1 (Малый объем)", optB2: "Тело 2 (Большой объем)",
+            lblL: "Жидкость в стакане:", optW: "Вода", optS: "Насыщенная соленая вода", optO: "Масло", optA: "Спирт",
+            lblD: "Опускание муфты:", lblV: "Векторы сил",
+            btnRec: "Записать результат", warn: "Для записи полностью погрузите тело!",
+            thGoal: "Цель работы:", thGoalTx: "На опыте обнаружить выталкивающее действие жидкости на погруженное в неё тело и определить величину выталкивающей силы.",
+            thLaw: "Краткая теория:", 
+            thDesc: "Выталкивающая сила (сила Архимеда) равна разности веса тела в воздухе и в жидкости, а также зависит от плотности жидкости и объема погруженной части тела:",
+            dispL: "Показание (P):",
+            tabJ: "Журнал измерений",
+            th1: "№", th2: "Тело", th3: "Жидкость", th4: "P<sub>1</sub> (Н) в воздухе", th5: "P<sub>2</sub> (Н) в жидкости", th6: "F<sub>A</sub> (Н)"
+        },
+        kz: {
+            title: "Зертхана №26: Ығыстырушы күшті анықтау",
+            setupH: "Қондырғы",
+            lblB: "Зерттелетін дене:", optB1: "1-дене (Кіші көлем)", optB2: "2-дене (Үлкен көлем)",
+            lblL: "Стакандағы сұйық:", optW: "Су", optS: "Қаныққан тұзды су", optO: "Май", optA: "Спирт",
+            lblD: "Муфтаны түсіру:", lblV: "Күш векторлары",
+            btnRec: "Нәтижені жазу", warn: "Жазу үшін денені толығымен батырыңыз!",
+            thGoal: "Жұмыс мақсаты:", thGoalTx: "Тәжірибеде сұйыққа батырылған денеге сұйықтың ығыстырушы әрекетін байқау және ығыстырушы күштің шамасын анықтау.",
+            thLaw: "Қысқаша теория:", 
+            thDesc: "Ығыстырушы күш (Архимед күші) дененің ауадағы және сұйықтағы салмақтарының айырымына тең, сондай-ақ сұйықтың тығыздығы мен батырылған бөліктің көлеміне тәуелді:",
+            dispL: "Көрсеткіш (P):",
+            tabJ: "Өлшеу журналы",
+            th1: "№", th2: "Дене", th3: "Сұйық", th4: "Ауадағы P<sub>1</sub> (Н)", th5: "Сұйықтағы P<sub>2</sub> (Н)", th6: "F<sub>A</sub> (Н)"
+        }
+    };
+
+    function toggleLang() {
+        currentLang = currentLang === 'ru' ? 'kz' : 'ru';
+        const t = dict[currentLang];
+        
+        document.getElementById('lab-title').innerText = t.title;
+        document.getElementById('setup-header').innerText = t.setupH;
+        
+        document.getElementById('lbl-body').innerText = t.lblB;
+        document.getElementById('opt-body1').innerText = t.optB1;
+        document.getElementById('opt-body2').innerText = t.optB2;
+        
+        document.getElementById('lbl-liquid').innerText = t.lblL;
+        document.getElementById('opt-water').innerText = t.optW;
+        document.getElementById('opt-salt').innerText = t.optS;
+        document.getElementById('opt-oil').innerText = t.optO;
+        document.getElementById('opt-alcohol').innerText = t.optA;
+        
+        document.getElementById('lbl-depth').innerText = t.lblD;
+        document.getElementById('lbl-vectors').innerText = t.lblV;
+        document.getElementById('btn-record').innerText = t.btnRec;
+        document.getElementById('record-warning').innerText = t.warn;
+        
+        document.getElementById('th-goal-title').innerText = t.thGoal;
+        document.getElementById('th-goal-text').innerText = t.thGoalTx;
+        document.getElementById('th-law-title').innerText = t.thLaw;
+        document.getElementById('th-desc').innerText = t.thDesc;
+        
+        document.getElementById('disp-label').innerText = t.dispL;
+        document.getElementById('th-journal-title').innerText = t.tabJ;
+        
+        for(let i=1; i<=6; i++) {
+            document.getElementById('th-'+i).innerHTML = t['th'+i];
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

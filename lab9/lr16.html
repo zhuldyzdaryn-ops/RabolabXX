@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Лабораторная работа: Неупругое столкновение (FIX)</title>
+    
+    <style>
+        :root { --primary: #2c3e50; --accent: #8e44ad; --bg: #fdfefe; --panel: #ffffff; --success: #27ae60; --text: #34495e; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Кнопка языка */
+        .lang-switch {
+            position: absolute; top: 20px; right: 20px;
+            background: #fff; border: 2px solid var(--primary); color: var(--primary);
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;
+            transition: 0.3s; z-index: 100;
+        }
+        .lang-switch:hover { background: var(--primary); color: #fff; }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+            margin-top: 40px;
+        }
+
+        .card { background: var(--panel); padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        h1 { color: var(--primary); border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-top: 0; font-size: 1.6rem; }
+        p { margin-bottom: 15px; line-height: 1.5; }
+
+        /* ФОРМУЛЫ */
+        .formula-row { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; margin: 15px 0; }
+        .formula-box { 
+            background: #f8f9fa; padding: 15px; text-align: center; border-radius: 8px; 
+            border: 1px solid #dfe6e9; min-width: 220px;
+            font-family: 'Times New Roman', serif; font-size: 1.3rem; font-style: italic;
+        }
+        .formula-desc { font-family: 'Segoe UI', sans-serif; font-size: 0.85rem; color: #7f8c8d; font-style: normal; margin-top: 8px; }
+
+        /* УПРАВЛЕНИЕ */
+        .control-group { margin-bottom: 20px; }
+        label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: var(--accent); }
+        .val-display { color: var(--accent); font-weight: bold; font-family: monospace; font-size: 1.1em; }
+        
+        /* Мониторы скорости */
+        .stopwatch {
+            background: #2c3e50; color: #f1c40f; font-family: 'Courier New', monospace; 
+            font-size: 1.5rem; text-align: center; padding: 10px; border-radius: 6px; margin: 20px 0;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            display: flex; justify-content: space-around;
+        }
+        .sw-item { display: flex; flex-direction: column; align-items: center; width: 30%; }
+        .sw-label { font-size: 0.5em; color: #bdc3c7; font-family: sans-serif; margin-bottom: 5px;}
+
+        .btn { border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; margin-top: 8px; color: white; font-size: 1rem; }
+        .btn-start { background: var(--success); }
+        .btn-start:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .btn-start:hover:not(:disabled) { background: #219150; }
+        .btn-record { background: var(--accent); }
+        .btn-record:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .btn-reset { background: #95a5a6; }
+
+        /* СИМУЛЯЦИЯ */
+        .simulation-card { grid-column: 2; grid-row: 2 / 3; height: 500px; display: flex; flex-direction: column; }
+        .svg-container { 
+            flex-grow: 1; border: 1px solid #dfe6e9; background: #fff; border-radius: 8px; 
+            position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+        
+        /* SVG Elements */
+        .rail-surface { stroke: #95a5a6; stroke-width: 2; }
+        .cart1 { fill: #3498db; stroke: #2980b9; stroke-width: 2; }
+        .cart2 { fill: #e74c3c; stroke: #c0392b; stroke-width: 2; }
+        .cart-wheel { fill: #2c3e50; }
+        .sensor { fill: #f1c40f; stroke: #f39c12; }
+        .magnet { fill: #2c3e50; }
+        .velocity-arrow { stroke-width: 3; marker-end: url(#arrowhead); }
+
+        /* ТАБЛИЦА */
+        .table-container { grid-column: 1 / -1; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { border: 1px solid #bdc3c7; padding: 10px; text-align: center; }
+        th { background-color: #ecf0f1; }
+    </style>
+</head>
+<body>
+
+<button class="lang-switch" onclick="toggleLanguage()" id="btn-lang">RU / KZ</button>
+
+<div class="grid-container">
+
+    <div class="card" style="grid-column: 1 / -1;">
+        <h1 id="title-text">Лабораторная работа: Неупругое столкновение (Общий случай)</h1>
+        <p id="goal-text">Цель: Исследовать неупругое соударение тележек при движении обеих тележек.</p>
+        <div class="formula-row">
+            <div class="formula-box" style="background: #eafaf1; border-color: #2ecc71;">
+                <div>m<sub>1</sub>v<sub>1</sub> + m<sub>2</sub>v<sub>2</sub> = (m<sub>1</sub> + m<sub>2</sub>)u</div>
+                <div class="formula-desc" id="form-desc-1">Общий закон (ЗСИ)</div>
+            </div>
+            <div class="formula-box">
+                <div>P<sub>до</sub> = P<sub>после</sub></div>
+                <div class="formula-desc" id="form-desc-2">Баланс импульсов</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 id="settings-title">Параметры</h2>
+
+        <div class="control-group">
+            <label><span id="label-m1">Масса m1</span>: <span class="val-display"><span id="m1-val">200</span> <span id="unit-g1">г</span></span></label>
+            <input type="range" id="m1-input" min="100" max="500" value="200" step="50" oninput="updateSetup()">
+        </div>
+
+        <div class="control-group">
+            <label><span id="label-m2">Масса m2</span>: <span class="val-display"><span id="m2-val">200</span> <span id="unit-g2">г</span></span></label>
+            <input type="range" id="m2-input" min="100" max="500" value="200" step="50" oninput="updateSetup()">
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+
+        <div class="control-group">
+            <label><span id="label-v1">Скорость v1 (синяя)</span>: <span class="val-display"><span id="v1-val">0.40</span> <span id="unit-ms1">м/с</span></span></label>
+            <input type="range" id="v1-input" min="0.2" max="0.8" value="0.40" step="0.05" oninput="updateSetup()">
+        </div>
+
+        <div class="control-group">
+            <label><span id="label-v2">Скорость v2 (красная)</span>: <span class="val-display"><span id="v2-val">0.00</span> <span id="unit-ms2">м/с</span></span></label>
+            <input type="range" id="v2-input" min="-0.4" max="0.3" value="0.00" step="0.05" oninput="updateSetup()">
+            <div style="font-size: 0.8em; color: #7f8c8d; display: flex; justify-content: space-between;">
+                <span id="txt-left">← Навстречу</span>
+                <span id="txt-stop">Стоп</span>
+                <span id="txt-right">Убегает →</span>
+            </div>
+        </div>
+        
+        <div class="stopwatch">
+            <div class="sw-item">
+                <span class="sw-label">v1</span>
+                <span id="display-v1">0.00</span>
+            </div>
+            <div class="sw-item">
+                <span class="sw-label">v2</span>
+                <span id="display-v2">0.00</span>
+            </div>
+            <div style="border-right: 1px solid #555; height: 30px;"></div>
+            <div class="sw-item">
+                <span class="sw-label">U (final)</span>
+                <span id="display-u" style="color: #27ae60;">0.00</span>
+            </div>
+        </div>
+
+        <button class="btn btn-start" id="btn-start" onclick="startSimulation()">▶ <span id="btn-text-start">ЗАПУСК</span></button>
+        <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>⬇ <span id="btn-text-record">ЗАПИСАТЬ</span></button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ <span id="btn-text-reset">СБРОС</span></button>
+    </div>
+
+    <div class="card simulation-card">
+        <div class="svg-container">
+            <svg id="sim-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%;">
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+                    </pattern>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#7f8c8d" />
+                    </marker>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <line x1="0" y1="200" x2="800" y2="200" class="rail-surface" />
+                
+                <g id="ruler-group"></g>
+
+                <line id="arrow-v1" x1="100" y1="140" x2="150" y2="140" class="velocity-arrow" stroke="#3498db" />
+                <line id="arrow-v2" x1="400" y1="140" x2="400" y2="140" class="velocity-arrow" stroke="#e74c3c" visibility="hidden" />
+
+                <g id="cart1-group" transform="translate(100, 175)">
+                    <rect x="-40" y="-15" width="80" height="30" class="cart1" />
+                    <text x="0" y="5" font-size="12" fill="white" text-anchor="middle" id="cart1-text">m1</text>
+                    <circle cx="-25" cy="15" r="8" class="cart-wheel" />
+                    <circle cx="25" cy="15" r="8" class="cart-wheel" />
+                    <rect x="40" y="-10" width="5" height="20" class="magnet" />
+                </g>
+
+                <g id="cart2-group" transform="translate(400, 175)">
+                    <rect x="-40" y="-15" width="80" height="30" class="cart2" />
+                    <text x="0" y="5" font-size="12" fill="white" text-anchor="middle" id="cart2-text">m2</text>
+                    <circle cx="-25" cy="15" r="8" class="cart-wheel" />
+                    <circle cx="25" cy="15" r="8" class="cart-wheel" />
+                    <rect x="-45" y="-10" width="5" height="20" class="magnet" />
+                </g>
+
+            </svg>
+        </div>
+        <div style="padding: 10px; background: #ecf0f1; border-top: 1px solid #ddd;">
+            <strong>Status:</strong> <span id="status-text">Готов к запуску.</span>
+        </div>
+    </div>
+
+    <div class="card table-container">
+        <div style="display: flex; justify-content: space-between;">
+            <h2 id="table-title">Журнал измерений</h2>
+            <button class="btn" style="width: auto; background: #e74c3c; padding: 5px 15px;" onclick="clearTable()" id="btn-clear">Очистить</button>
+        </div>
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>№</th>
+                    <th>m1 (кг)</th>
+                    <th>m2 (кг)</th>
+                    <th>v1<sub>нач</sub> (м/с)</th>
+                    <th>v2<sub>нач</sub> (м/с)</th>
+                    <th>u<sub>кон</sub> (м/с)</th>
+                    <th>P<sub>до</sub> (кг·м/с)</th>
+                    <th>P<sub>после</sub> (кг·м/с)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    // === ЛОКАЛИЗАЦИЯ (RU / KZ) ===
+    const translations = {
+        ru: {
+            title: "Лабораторная работа: Неупругое столкновение",
+            goal: "Цель: Исследовать неупругое соударение тележек при движении обеих тележек.",
+            desc1: "Общий закон (ЗСИ)",
+            desc2: "Баланс импульсов",
+            settings: "Параметры",
+            labelm1: "Масса m1",
+            labelm2: "Масса m2",
+            labelv1: "Скорость v1 (синяя)",
+            labelv2: "Скорость v2 (красная)",
+            txtLeft: "← Навстречу",
+            txtStop: "Стоп",
+            txtRight: "Убегает →",
+            btnStart: "ЗАПУСК",
+            btnRecord: "ЗАПИСАТЬ",
+            btnReset: "СБРОС",
+            statusReady: "Готов к запуску.",
+            statusRun: "Движение...",
+            statusCollision: "Столкновение!",
+            statusDone: "Готово. Запишите данные.",
+            tableTitle: "Журнал измерений",
+            btnClear: "Очистить",
+            unitG: "г",
+            unitMs: "м/с"
+        },
+        kz: {
+            title: "Зертханалық жұмыс №16: Серпімсіз соқтығысу",
+            goal: "Мақсаты: Екі арба қозғалған кезде серпімсіз соқтығысуды зерттеу.",
+            desc1: "Жалпы заң (ИCЗ)",
+            desc2: "Импульс теңгерімі",
+            settings: "Параметрлер",
+            labelm1: "Масса m1",
+            labelm2: "Масса m2",
+            labelv1: "Жылдамдық v1 (көк)",
+            labelv2: "Жылдамдық v2 (қызыл)",
+            txtLeft: "← Қарсы",
+            txtStop: "Тоқтау",
+            txtRight: "Қашу →",
+            btnStart: "БАСТАУ",
+            btnRecord: "ЖАЗУ",
+            btnReset: "ҚАЙТАРУ",
+            statusReady: "Іске қосуға дайын.",
+            statusRun: "Қозғалыс...",
+            statusCollision: "Соқтығысу!",
+            statusDone: "Дайын. Мәліметтерді жазыңыз.",
+            tableTitle: "Өлшеу журналы",
+            btnClear: "Тазалау",
+            unitG: "г",
+            unitMs: "м/с"
+        }
+    };
+
+    let curLang = 'ru';
+
+    function toggleLanguage() {
+        curLang = (curLang === 'ru') ? 'kz' : 'ru';
+        updateTexts();
+    }
+
+    function updateTexts() {
+        const t = translations[curLang];
+        document.getElementById('title-text').innerText = t.title;
+        document.getElementById('goal-text').innerText = t.goal;
+        document.getElementById('form-desc-1').innerText = t.desc1;
+        document.getElementById('form-desc-2').innerText = t.desc2;
+        document.getElementById('settings-title').innerText = t.settings;
+        document.getElementById('label-m1').innerText = t.labelm1;
+        document.getElementById('label-m2').innerText = t.labelm2;
+        document.getElementById('label-v1').innerText = t.labelv1;
+        document.getElementById('label-v2').innerText = t.labelv2;
+        document.getElementById('txt-left').innerText = t.txtLeft;
+        document.getElementById('txt-stop').innerText = t.txtStop;
+        document.getElementById('txt-right').innerText = t.txtRight;
+        document.getElementById('btn-text-start').innerText = t.btnStart;
+        document.getElementById('btn-text-record').innerText = t.btnRecord;
+        document.getElementById('btn-text-reset').innerText = t.btnReset;
+        document.getElementById('table-title').innerText = t.tableTitle;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        
+        document.getElementById('unit-g1').innerText = t.unitG;
+        document.getElementById('unit-g2').innerText = t.unitG;
+        document.getElementById('unit-ms1').innerText = t.unitMs;
+        document.getElementById('unit-ms2').innerText = t.unitMs;
+        
+        if(!isRunning) document.getElementById('status-text').innerText = t.statusReady;
+    }
+
+    // === ФИЗИКА И ПЕРЕМЕННЫЕ ===
+    const PIXELS_PER_METER = 500; 
+    const CART1_START_X = 100;
+    const CART2_START_X = 500; 
+    const COLLISION_DIST = 90; // Расстояние между центрами при контакте
+
+    let m1 = 200, m2 = 200;
+    let v1_init = 0.4;
+    let v2_init = 0.0;
+    
+    let u_final = 0;
+    let P_before = 0;
+    let P_after = 0;
+
+    let isRunning = false;
+    let isCollided = false; // Флаг столкновения для исправления бага
+    let animFrame = null;
+
+    // UI Elements
+    const ui = {
+        m1In: document.getElementById('m1-input'),
+        m2In: document.getElementById('m2-input'),
+        v1In: document.getElementById('v1-input'),
+        v2In: document.getElementById('v2-input'),
+        
+        m1Val: document.getElementById('m1-val'),
+        m2Val: document.getElementById('m2-val'),
+        v1Val: document.getElementById('v1-val'),
+        v2Val: document.getElementById('v2-val'),
+        
+        dispV1: document.getElementById('display-v1'),
+        dispV2: document.getElementById('display-v2'),
+        dispU: document.getElementById('display-u'),
+        status: document.getElementById('status-text'),
+        
+        cart1: document.getElementById('cart1-group'),
+        cart2: document.getElementById('cart2-group'),
+        cart1Text: document.getElementById('cart1-text'),
+        cart2Text: document.getElementById('cart2-text'),
+        arrowV1: document.getElementById('arrow-v1'),
+        arrowV2: document.getElementById('arrow-v2'),
+        
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody')
+    };
+
+    function initRuler() {
+        const g = document.getElementById('ruler-group');
+        let html = '';
+        for(let i=0; i<=16; i++) {
+            let x = i * 50;
+            let h = (i%2===0) ? 15 : 10;
+            html += `<line x1="${x}" y1="200" x2="${x}" y2="${200+h}" stroke="#95a5a6" stroke-width="1"/>`;
+        }
+        g.innerHTML = html;
+    }
+
+    function updateSetup() {
+        if(isRunning) return;
+        m1 = parseInt(ui.m1In.value);
+        m2 = parseInt(ui.m2In.value);
+        v1_init = parseFloat(ui.v1In.value);
+        v2_init = parseFloat(ui.v2In.value);
+        
+        ui.m1Val.innerText = m1;
+        ui.m2Val.innerText = m2;
+        ui.v1Val.innerText = v1_init.toFixed(2);
+        ui.v2Val.innerText = v2_init.toFixed(2);
+        
+        ui.cart1Text.innerText = m1;
+        ui.cart2Text.innerText = m2;
+        
+        ui.cart1.setAttribute('transform', `translate(${CART1_START_X}, 175)`);
+        ui.cart2.setAttribute('transform', `translate(${CART2_START_X}, 175)`);
+        
+        // Визуализация векторов
+        const scaleArrow = 100;
+        ui.arrowV1.setAttribute('x1', CART1_START_X);
+        ui.arrowV1.setAttribute('x2', CART1_START_X + v1_init * scaleArrow);
+        
+        if (Math.abs(v2_init) < 0.01) {
+            ui.arrowV2.setAttribute('visibility', 'hidden');
+        } else {
+            ui.arrowV2.setAttribute('visibility', 'visible');
+            ui.arrowV2.setAttribute('x1', CART2_START_X);
+            ui.arrowV2.setAttribute('x2', CART2_START_X + v2_init * scaleArrow);
+        }
+        
+        ui.dispV1.innerText = v1_init.toFixed(2);
+        ui.dispV2.innerText = v2_init.toFixed(2);
+        ui.dispU.innerText = "0.00";
+        
+        ui.btnRecord.disabled = true;
+        ui.status.innerText = translations[curLang].statusReady;
+    }
+
+    function startSimulation() {
+        if(isRunning) return;
+        isRunning = true;
+        isCollided = false; // Сброс флага
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+        
+        const m1_kg = m1 / 1000;
+        const m2_kg = m2 / 1000;
+        
+        const P_total = (m1_kg * v1_init) + (m2_kg * v2_init);
+        u_final = P_total / (m1_kg + m2_kg);
+        
+        P_before = P_total;
+        P_after = (m1_kg + m2_kg) * u_final;
+
+        const v1_px = v1_init * PIXELS_PER_METER;
+        const v2_px = v2_init * PIXELS_PER_METER;
+        const u_px = u_final * PIXELS_PER_METER;
+        
+        let lastTime = null;
+        let x1 = CART1_START_X;
+        let x2 = CART2_START_X;
+        
+        ui.status.innerText = translations[curLang].statusRun;
+        ui.arrowV1.setAttribute('visibility', 'hidden');
+        ui.arrowV2.setAttribute('visibility', 'hidden');
+
+        function animate(timestamp) {
+            if(!lastTime) lastTime = timestamp;
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            // Логика движения без залипания
+            if (!isCollided) {
+                // Двигаем раздельно
+                x1 += v1_px * dt;
+                x2 += v2_px * dt;
+
+                // Проверка столкновения
+                // Дистанция между центрами <= 90
+                if (x2 - x1 <= COLLISION_DIST) {
+                    isCollided = true;
+                    // Корректировка позиций, чтобы не провалились друг в друга визуально
+                    // Считаем точку встречи как среднее или просто подтягиваем
+                    // Проще: x2 ставим ровно на x1 + 90
+                    x2 = x1 + COLLISION_DIST;
+                    
+                    ui.status.innerText = translations[curLang].statusCollision;
+                    ui.dispV1.innerText = u_final.toFixed(2);
+                    ui.dispV2.innerText = u_final.toFixed(2);
+                    ui.dispU.innerText = u_final.toFixed(2);
+                }
+            } else {
+                // Движемся вместе со скоростью U
+                const move = u_px * dt;
+                x1 += move;
+                x2 = x1 + COLLISION_DIST;
+            }
+            
+            // Отрисовка
+            ui.cart1.setAttribute('transform', `translate(${x1}, 175)`);
+            ui.cart2.setAttribute('transform', `translate(${x2}, 175)`);
+            
+            // Выход за границы
+            if (x1 > 750 || x2 > 750 || x1 < 0 || x2 < 0) {
+                finishRun();
+                return;
+            }
+            
+            // Если убегает и никогда не догонит
+            if (!isCollided && v2_init >= v1_init && (x2 - x1) > COLLISION_DIST) {
+                 ui.status.innerText = (curLang === 'ru') ? "Не догонит" : "Қуып жете алмайды";
+                 if (x2 > 700) finishRun();
+            }
+
+            if(isRunning) animFrame = requestAnimationFrame(animate);
+        }
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishRun() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = false;
+        ui.status.innerText = translations[curLang].statusDone;
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        ui.btnStart.disabled = false;
+        updateSetup();
+    }
+
+    function recordData() {
+        ui.btnRecord.disabled = true;
+        const tbody = ui.tableBody;
+        const row = document.createElement('tr');
+        const num = tbody.children.length + 1;
+        
+        const m1_kg = m1/1000;
+        const m2_kg = m2/1000;
+
+        row.innerHTML = `
+            <td>${num}</td>
+            <td>${m1_kg.toFixed(2)}</td>
+            <td>${m2_kg.toFixed(2)}</td>
+            <td>${v1_init.toFixed(2)}</td>
+            <td>${v2_init.toFixed(2)}</td>
+            <td><strong>${u_final.toFixed(2)}</strong></td>
+            <td>${P_before.toFixed(3)}</td>
+            <td>${P_after.toFixed(3)}</td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+    }
+
+    initRuler();
+    updateSetup();
+    updateTexts();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Лабораторная работа: Расталкивание тележек</title>
+    
+    <style>
+        :root { --primary: #2c3e50; --accent: #e74c3c; --bg: #fdfefe; --panel: #ffffff; --success: #27ae60; --text: #34495e; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Кнопка языка */
+        .lang-switch {
+            position: absolute; top: 20px; right: 20px;
+            background: #fff; border: 2px solid var(--primary); color: var(--primary);
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;
+            transition: 0.3s; z-index: 100;
+        }
+        .lang-switch:hover { background: var(--primary); color: #fff; }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+            margin-top: 40px;
+        }
+
+        .card { background: var(--panel); padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        h1 { color: var(--primary); border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-top: 0; font-size: 1.6rem; }
+        p { margin-bottom: 15px; line-height: 1.5; }
+
+        /* ФОРМУЛЫ */
+        .formula-row { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; margin: 15px 0; }
+        .formula-box { 
+            background: #f8f9fa; padding: 15px; text-align: center; border-radius: 8px; 
+            border: 1px solid #dfe6e9; min-width: 220px;
+            font-family: 'Times New Roman', serif; font-size: 1.3rem; font-style: italic;
+        }
+        .formula-desc { font-family: 'Segoe UI', sans-serif; font-size: 0.85rem; color: #7f8c8d; font-style: normal; margin-top: 8px; }
+
+        /* УПРАВЛЕНИЕ */
+        .control-group { margin-bottom: 20px; }
+        label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: var(--accent); }
+        .val-display { color: var(--accent); font-weight: bold; font-family: monospace; font-size: 1.1em; }
+        
+        /* Мониторы скорости */
+        .stopwatch {
+            background: #2c3e50; color: #f1c40f; font-family: 'Courier New', monospace; 
+            font-size: 1.5rem; text-align: center; padding: 10px; border-radius: 6px; margin: 20px 0;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            display: flex; justify-content: space-around;
+        }
+        .sw-item { display: flex; flex-direction: column; align-items: center; width: 45%; }
+        .sw-label { font-size: 0.5em; color: #bdc3c7; font-family: sans-serif; margin-bottom: 5px;}
+
+        .btn { border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; margin-top: 8px; color: white; font-size: 1rem; }
+        .btn-start { background: var(--success); }
+        .btn-start:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .btn-start:hover:not(:disabled) { background: #219150; }
+        .btn-record { background: #2980b9; }
+        .btn-record:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .btn-reset { background: #95a5a6; }
+
+        /* СИМУЛЯЦИЯ */
+        .simulation-card { grid-column: 2; grid-row: 2 / 3; height: 500px; display: flex; flex-direction: column; }
+        .svg-container { 
+            flex-grow: 1; border: 1px solid #dfe6e9; background: #fff; border-radius: 8px; 
+            position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+        
+        /* SVG Elements */
+        .rail-surface { stroke: #95a5a6; stroke-width: 2; }
+        .cart1 { fill: #3498db; stroke: #2980b9; stroke-width: 2; }
+        .cart2 { fill: #e74c3c; stroke: #c0392b; stroke-width: 2; }
+        .cart-wheel { fill: #2c3e50; }
+        .sensor { fill: #f1c40f; stroke: #f39c12; }
+        .spring { fill: none; stroke: #2c3e50; stroke-width: 2; }
+
+        /* ТАБЛИЦА */
+        .table-container { grid-column: 1 / -1; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { border: 1px solid #bdc3c7; padding: 10px; text-align: center; }
+        th { background-color: #ecf0f1; }
+    </style>
+</head>
+<body>
+
+<button class="lang-switch" onclick="toggleLanguage()" id="btn-lang">RU / KZ</button>
+
+<div class="grid-container">
+
+    <div class="card" style="grid-column: 1 / -1;">
+        <h1 id="title-text">Лабораторная работа: Расталкивание тележек</h1>
+        <p id="goal-text">Цель: Продемонстрировать закон сохранения импульса при расталкивании покоящихся тел.</p>
+        <div class="formula-row">
+            <div class="formula-box">
+                <div>0 = P<sub>1</sub> + P<sub>2</sub></div>
+                <div class="formula-desc" id="form-desc-1">Начальный импульс = 0</div>
+            </div>
+            <div class="formula-box" style="background: #eafaf1; border-color: #2ecc71;">
+                <div>|m<sub>1</sub>v<sub>1</sub>| = |m<sub>2</sub>v<sub>2</sub>|</div>
+                <div class="formula-desc" id="form-desc-2">Модули импульсов равны</div>
+            </div>
+             <div class="formula-box">
+                <div>P = m &middot; v</div>
+                <div class="formula-desc" id="form-desc-3">Формула импульса</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 id="settings-title">Параметры</h2>
+
+        <div class="control-group">
+            <label><span id="label-m1">Масса m1 (синяя)</span>: <span class="val-display"><span id="m1-val">200</span> <span id="unit-g1">г</span></span></label>
+            <input type="range" id="m1-input" min="100" max="600" value="200" step="50" oninput="updateSetup()">
+        </div>
+
+        <div class="control-group">
+            <label><span id="label-m2">Масса m2 (красная)</span>: <span class="val-display"><span id="m2-val">200</span> <span id="unit-g2">г</span></span></label>
+            <input type="range" id="m2-input" min="100" max="600" value="200" step="50" oninput="updateSetup()">
+        </div>
+        
+        <div class="stopwatch">
+            <div class="sw-item">
+                <span class="sw-label">V1 (left)</span>
+                <span id="display-v1">0.00</span>
+            </div>
+            <div style="border-right: 1px solid #555; height: 30px;"></div>
+            <div class="sw-item">
+                <span class="sw-label">V2 (right)</span>
+                <span id="display-v2">0.00</span>
+            </div>
+        </div>
+
+        <button class="btn btn-start" id="btn-start" onclick="startSimulation()">▶ <span id="btn-text-start">ПУСК (Расталкивание)</span></button>
+        <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>⬇ <span id="btn-text-record">ЗАПИСАТЬ</span></button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ <span id="btn-text-reset">СБРОС</span></button>
+    </div>
+
+    <div class="card simulation-card">
+        <div class="svg-container">
+            <svg id="sim-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%;">
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <line x1="0" y1="200" x2="800" y2="200" class="rail-surface" />
+                
+                <g id="ruler-group"></g>
+
+                <g transform="translate(150, 0)">
+                    <rect x="-5" y="160" width="10" height="30" class="sensor" /> 
+                    <text x="0" y="220" font-size="12" fill="#7f8c8d" text-anchor="middle">Gate 1</text>
+                </g>
+
+                <g transform="translate(650, 0)">
+                    <rect x="-5" y="160" width="10" height="30" class="sensor" /> 
+                    <text x="0" y="220" font-size="12" fill="#7f8c8d" text-anchor="middle">Gate 2</text>
+                </g>
+
+                <g id="cart1-group" transform="translate(360, 175)">
+                    <rect x="-40" y="-15" width="80" height="30" class="cart1" />
+                    <text x="0" y="5" font-size="12" fill="white" text-anchor="middle" id="cart1-text">m1</text>
+                    <circle cx="-25" cy="15" r="8" class="cart-wheel" />
+                    <circle cx="25" cy="15" r="8" class="cart-wheel" />
+                </g>
+
+                <g id="cart2-group" transform="translate(440, 175)">
+                    <rect x="-40" y="-15" width="80" height="30" class="cart2" />
+                    <text x="0" y="5" font-size="12" fill="white" text-anchor="middle" id="cart2-text">m2</text>
+                    <circle cx="-25" cy="15" r="8" class="cart-wheel" />
+                    <circle cx="25" cy="15" r="8" class="cart-wheel" />
+                </g>
+
+                <path id="spring-path" d="M 400 175 L 400 175" class="spring" stroke-dasharray="2,2"/>
+
+            </svg>
+        </div>
+        <div style="padding: 10px; background: #ecf0f1; border-top: 1px solid #ddd;">
+            <strong>Status:</strong> <span id="status-text">Готов к запуску.</span>
+        </div>
+    </div>
+
+    <div class="card table-container">
+        <div style="display: flex; justify-content: space-between;">
+            <h2 id="table-title">Журнал измерений</h2>
+            <button class="btn" style="width: auto; background: #e74c3c; padding: 5px 15px;" onclick="clearTable()" id="btn-clear">Очистить</button>
+        </div>
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>№</th>
+                    <th>m1 (кг)</th>
+                    <th>m2 (кг)</th>
+                    <th>|v1| (м/с)</th>
+                    <th>|v2| (м/с)</th>
+                    <th>P1 (кг·м/с)</th>
+                    <th>P2 (кг·м/с)</th>
+                    <th>P1/P2</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    // === ЛОКАЛИЗАЦИЯ (RU / KZ) ===
+    const translations = {
+        ru: {
+            title: "Лабораторная работа: Расталкивание тележек",
+            goal: "Цель: Продемонстрировать закон сохранения импульса при расталкивании покоящихся тел.",
+            desc1: "Начальный импульс = 0",
+            desc2: "Модули импульсов равны",
+            desc3: "Формула импульса",
+            settings: "Параметры",
+            labelm1: "Масса m1 (синяя)",
+            labelm2: "Масса m2 (красная)",
+            btnStart: "ПУСК (Расталкивание)",
+            btnRecord: "ЗАПИСАТЬ",
+            btnReset: "СБРОС",
+            statusReady: "Готов к запуску. Пружина сжата.",
+            statusRun: "Движение...",
+            statusDone: "Измерение завершено.",
+            tableTitle: "Журнал измерений",
+            btnClear: "Очистить",
+            unitG: "г",
+            unitMs: "м/с"
+        },
+        kz: {
+            title: "Зертханалық жұмыс №17: Арбаларды итеру",
+            goal: "Мақсаты: Тыныштықтағы денелерді итеру кезінде импульстің сақталу заңын көрсету.",
+            desc1: "Бастапқы импульс = 0",
+            desc2: "Импульс модульдері тең",
+            desc3: "Импульс формуласы",
+            settings: "Параметрлер",
+            labelm1: "Масса m1 (көк)",
+            labelm2: "Масса m2 (қызыл)",
+            btnStart: "ІСКЕ ҚОСУ (Итеру)",
+            btnRecord: "ЖАЗУ",
+            btnReset: "ҚАЙТАРУ",
+            statusReady: "Дайын. Серіппе сығылған.",
+            statusRun: "Қозғалыс...",
+            statusDone: "Өлшеу аяқталды.",
+            tableTitle: "Өлшеу журналы",
+            btnClear: "Тазалау",
+            unitG: "г",
+            unitMs: "м/с"
+        }
+    };
+
+    let curLang = 'ru';
+
+    function toggleLanguage() {
+        curLang = (curLang === 'ru') ? 'kz' : 'ru';
+        updateTexts();
+    }
+
+    function updateTexts() {
+        const t = translations[curLang];
+        document.getElementById('title-text').innerText = t.title;
+        document.getElementById('goal-text').innerText = t.goal;
+        document.getElementById('form-desc-1').innerText = t.desc1;
+        document.getElementById('form-desc-2').innerText = t.desc2;
+        document.getElementById('form-desc-3').innerText = t.desc3;
+        document.getElementById('settings-title').innerText = t.settings;
+        document.getElementById('label-m1').innerText = t.labelm1;
+        document.getElementById('label-m2').innerText = t.labelm2;
+        document.getElementById('btn-text-start').innerText = t.btnStart;
+        document.getElementById('btn-text-record').innerText = t.btnRecord;
+        document.getElementById('btn-text-reset').innerText = t.btnReset;
+        document.getElementById('table-title').innerText = t.tableTitle;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        
+        document.getElementById('unit-g1').innerText = t.unitG;
+        document.getElementById('unit-g2').innerText = t.unitG;
+        
+        if(!isRunning) document.getElementById('status-text').innerText = t.statusReady;
+    }
+
+    // === ФИЗИКА И ПЕРЕМЕННЫЕ ===
+    const PIXELS_PER_METER = 500; 
+    const CENTER_X = 400; // Центр, где стоят тележки
+    
+    // Энергия пружины (условная величина, чтобы скорости были разумными)
+    // K = P^2 / 2m_red. Пусть P_const ~ 0.2 кг*м/с при m=0.2.
+    // Тогда v = 1 м/с.
+    // Зафиксируем "Импульс взрыва" P_explode, который зависит от энергии пружины? 
+    // В реальности E_potential = const.
+    // E = p^2 / 2m1 + p^2 / 2m2 = p^2 * (m1+m2) / (2*m1*m2)
+    // p = sqrt( 2 * E * m1 * m2 / (m1+m2) )
+    const E_SPRING = 0.05; // Джоули (условное значение для симуляции)
+
+    let m1 = 200, m2 = 200; // г
+    let v1 = 0, v2 = 0; // м/с
+    let p_calc = 0; // Импульс
+
+    let isRunning = false;
+    let animFrame = null;
+
+    // UI Elements
+    const ui = {
+        m1In: document.getElementById('m1-input'),
+        m2In: document.getElementById('m2-input'),
+        m1Val: document.getElementById('m1-val'),
+        m2Val: document.getElementById('m2-val'),
+        
+        dispV1: document.getElementById('display-v1'),
+        dispV2: document.getElementById('display-v2'),
+        status: document.getElementById('status-text'),
+        
+        cart1: document.getElementById('cart1-group'),
+        cart2: document.getElementById('cart2-group'),
+        cart1Text: document.getElementById('cart1-text'),
+        cart2Text: document.getElementById('cart2-text'),
+        springPath: document.getElementById('spring-path'),
+        
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody')
+    };
+
+    function initRuler() {
+        const g = document.getElementById('ruler-group');
+        let html = '';
+        for(let i=0; i<=16; i++) {
+            let x = i * 50;
+            let h = (i%2===0) ? 15 : 10;
+            html += `<line x1="${x}" y1="200" x2="${x}" y2="${200+h}" stroke="#95a5a6" stroke-width="1"/>`;
+        }
+        g.innerHTML = html;
+    }
+
+    function updateSetup() {
+        if(isRunning) return;
+        m1 = parseInt(ui.m1In.value);
+        m2 = parseInt(ui.m2In.value);
+        
+        ui.m1Val.innerText = m1;
+        ui.m2Val.innerText = m2;
+        
+        ui.cart1Text.innerText = m1;
+        ui.cart2Text.innerText = m2;
+        
+        // Начальные позиции: в центре, касаясь друг друга
+        // m1 (синяя) слева, m2 (красная) справа
+        // Центр m1: 400 - 45 = 355
+        // Центр m2: 400 + 45 = 445
+        ui.cart1.setAttribute('transform', `translate(355, 175)`);
+        ui.cart2.setAttribute('transform', `translate(445, 175)`);
+        
+        // Рисуем сжатую пружину между ними
+        // X1_right = 355 + 40 = 395
+        // X2_left = 445 - 40 = 405
+        // Пружина между 395 и 405 (сжата)
+        drawSpring(395, 405);
+        
+        ui.dispV1.innerText = "0.00";
+        ui.dispV2.innerText = "0.00";
+        
+        ui.btnRecord.disabled = true;
+        ui.status.innerText = translations[curLang].statusReady;
+    }
+
+    function drawSpring(x1, x2) {
+        // Простая зигзаг линия
+        const midY = 175;
+        const dist = x2 - x1;
+        if (dist <= 0) {
+            ui.springPath.setAttribute('d', '');
+            return;
+        }
+        // Генерируем путь
+        let d = `M ${x1} ${midY}`;
+        const steps = 5;
+        const stepX = dist / steps;
+        for(let i=0; i<steps; i++) {
+            const currX = x1 + i*stepX;
+            const yOffset = (i%2===0) ? -5 : 5;
+            d += ` L ${currX + stepX/2} ${midY + yOffset}`;
+        }
+        d += ` L ${x2} ${midY}`;
+        ui.springPath.setAttribute('d', d);
+    }
+
+    function startSimulation() {
+        if(isRunning) return;
+        isRunning = true;
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+        
+        const m1_kg = m1 / 1000;
+        const m2_kg = m2 / 1000;
+        
+        // Расчет импульса из энергии
+        // p = sqrt( 2 * E * m1 * m2 / (m1+m2) )
+        p_calc = Math.sqrt( (2 * E_SPRING * m1_kg * m2_kg) / (m1_kg + m2_kg) );
+        
+        v1 = p_calc / m1_kg; // Влево
+        v2 = p_calc / m2_kg; // Вправо
+        
+        // Скорости в пикселях
+        const v1_px = v1 * PIXELS_PER_METER;
+        const v2_px = v2 * PIXELS_PER_METER;
+        
+        let lastTime = null;
+        let x1 = 355;
+        let x2 = 445;
+        
+        ui.status.innerText = translations[curLang].statusRun;
+
+        function animate(timestamp) {
+            if(!lastTime) lastTime = timestamp;
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            // Движение в разные стороны
+            x1 -= v1_px * dt;
+            x2 += v2_px * dt;
+            
+            // Отрисовка тележек
+            ui.cart1.setAttribute('transform', `translate(${x1}, 175)`);
+            ui.cart2.setAttribute('transform', `translate(${x2}, 175)`);
+            
+            // Пружина исчезает или разжимается (сделаем, что падает/исчезает сразу после старта)
+            ui.springPath.setAttribute('d', ''); 
+
+            // Обновление дисплеев при прохождении датчиков
+            // Датчик 1 (слева) на 150. Центр тележки x1.
+            if (x1 <= 150) ui.dispV1.innerText = v1.toFixed(3);
+            
+            // Датчик 2 (справа) на 650. Центр тележки x2.
+            if (x2 >= 650) ui.dispV2.innerText = v2.toFixed(3);
+
+            // Остановка
+            if (x1 < 50 || x2 > 750) {
+                finishRun();
+                return;
+            }
+
+            if(isRunning) animFrame = requestAnimationFrame(animate);
+        }
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishRun() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = false;
+        
+        // Финальное отображение скоростей (идеальное)
+        ui.dispV1.innerText = v1.toFixed(3);
+        ui.dispV2.innerText = v2.toFixed(3);
+        
+        ui.status.innerText = translations[curLang].statusDone;
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        ui.btnStart.disabled = false;
+        updateSetup();
+    }
+
+    function recordData() {
+        ui.btnRecord.disabled = true;
+        const tbody = ui.tableBody;
+        const row = document.createElement('tr');
+        const num = tbody.children.length + 1;
+        
+        const m1_kg = m1/1000;
+        const m2_kg = m2/1000;
+        
+        const P1 = m1_kg * v1;
+        const P2 = m2_kg * v2;
+        const ratio = P1 / P2;
+
+        row.innerHTML = `
+            <td>${num}</td>
+            <td>${m1_kg.toFixed(2)}</td>
+            <td>${m2_kg.toFixed(2)}</td>
+            <td>${v1.toFixed(3)}</td>
+            <td>${v2.toFixed(3)}</td>
+            <td>${P1.toFixed(4)}</td>
+            <td>${P2.toFixed(4)}</td>
+            <td>${ratio.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+    }
+
+    initRuler();
+    updateSetup();
+    updateTexts();
+
+</script>
+</body>
+</html>

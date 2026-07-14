@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лабораторная работа: Сохранение энергии (Маятник)</title>
+    <style>
+        :root {
+            --primary: #8e44ad;
+            --accent: #f39c12;
+            --bg: #fdfefe;
+            --panel: #ffffff;
+            --text: #2c3e50;
+            --radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; }
+
+        .lang-switch {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .lang-switch:hover { background: rgba(255,255,255,0.3); }
+
+        /* --- MAIN LAYOUT --- */
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 10px;
+            gap: 15px;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 380px;
+            background: var(--panel);
+            border-radius: var(--radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tabs { display: flex; background: #ecf0f1; }
+        .tab-btn {
+            flex: 1; padding: 12px; border: none; background: none;
+            cursor: pointer; font-weight: 600; color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active {
+            background: #fff; color: var(--primary); border-bottom-color: var(--primary);
+        }
+
+        .tab-content { padding: 20px; overflow-y: auto; flex: 1; display: none; }
+        .tab-content.active { display: block; }
+
+        /* --- CONTROLS --- */
+        .control-group { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+        
+        .val-display { float: right; font-weight: bold; color: var(--primary); }
+
+        .btn {
+            width: 100%; padding: 12px; border: none; border-radius: 4px;
+            cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white;
+        }
+        .btn-reset { background-color: #c0392b; }
+        .btn-reset:hover { background-color: #a93226; }
+        .btn-record { background-color: var(--primary); }
+        .btn-record:hover { background-color: #71368a; }
+
+        /* --- SIMULATION --- */
+        .sim-container {
+            flex: 1;
+            background: radial-gradient(circle at center, #ffffff, #f0f3f4);
+            border-radius: var(--radius);
+            border: 1px solid #dcdcdc;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        svg { width: 100%; height: 100%; cursor: default; }
+
+        /* SVG Elements */
+        .thread { stroke: #2c3e50; stroke-width: 2; }
+        .ball { fill: url(#grad-ball); stroke: #2c3e50; stroke-width: 1; cursor: grab; }
+        .ball:active { cursor: grabbing; }
+        .pivot { fill: #34495e; }
+        .sensor { fill: #f39c12; stroke: #e67e22; stroke-width: 2; opacity: 0.8; }
+        .sensor-beam { stroke: #e74c3c; stroke-width: 2; stroke-dasharray: 4; opacity: 0.5; }
+        .ruler-line { stroke: #bdc3c7; stroke-width: 1; stroke-dasharray: 5; }
+        .h-indicator { stroke: #2980b9; stroke-width: 2; marker-end: url(#arrow); marker-start: url(#arrow); }
+        
+        /* Digital Display */
+        .digital-display {
+            position: absolute; top: 20px; right: 20px;
+            background: #2c3e50; color: #e74c3c;
+            padding: 15px; border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #555;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            min-width: 150px;
+        }
+        .display-label { color: #bdc3c7; font-size: 0.8rem; display: block; }
+        .display-val { font-size: 1.5rem; font-weight: bold; }
+
+        /* Hint */
+        .hint {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); color: white; padding: 8px 16px;
+            border-radius: 20px; pointer-events: none; opacity: 1; font-size: 0.9rem; transition: opacity 0.5s;
+        }
+
+        /* Journal Table */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        th { background-color: #f8f9fa; }
+        .result-good { color: green; font-weight: bold; }
+        .result-bad { color: red; }
+
+        /* Formula box */
+        .formula-box {
+            background: #e8f6f3; border-left: 4px solid var(--primary);
+            padding: 10px; margin: 10px 0; font-family: monospace; text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="lab-title">Лабораторная работа: Сохранение энергии (Маятник)</h1>
+    <button class="lang-switch" onclick="toggleLang()">RU / KZ</button>
+</header>
+
+<div class="main-wrapper">
+    
+    <div class="sidebar">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="setTab('setup')" id="tab-setup">Установка</button>
+            <button class="tab-btn" onclick="setTab('theory')" id="tab-theory">Теория</button>
+            <button class="tab-btn" onclick="setTab('journal')" id="tab-journal">Журнал</button>
+        </div>
+
+        <div id="setup" class="tab-content active">
+            <div class="control-group">
+                <label id="lbl-mass">Масса груза m (г): <span class="val-display" id="val-m">100</span></label>
+                <input type="range" id="mass-range" min="50" max="500" value="100" step="10" oninput="updateSettings()">
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-len">Длина нити L (см): <span class="val-display" id="val-l">50</span></label>
+                <input type="range" id="len-range" min="30" max="70" value="50" step="1" oninput="updateSettings()">
+            </div>
+
+            <div style="background: #fff3cd; padding: 10px; border-radius: 4px; font-size: 0.9rem; margin-bottom: 20px;">
+                <strong id="lbl-instr">Инструкция:</strong>
+                <ol style="padding-left: 20px; margin: 5px 0;">
+                    <li id="instr-1">Оттяните шар в сторону (измените высоту h).</li>
+                    <li id="instr-2">Отпустите шар.</li>
+                    <li id="instr-3">Смотрите скорость на табло в нижней точке.</li>
+                    <li id="instr-4">Запишите результат.</li>
+                </ol>
+            </div>
+
+            <button class="btn btn-record" onclick="recordData()" id="btn-record">ЗАПИСАТЬ РЕЗУЛЬТАТ</button>
+            <button class="btn btn-reset" onclick="resetSim()" id="btn-reset">СБРОС / СТОП</button>
+        </div>
+
+        <div id="theory" class="tab-content">
+            <h3 id="th-goal">Цель работы</h3>
+            <p id="th-goal-text">Проверить закон сохранения энергии для колебательного движения маятника.</p>
+            
+            <h3 id="th-law">Закон сохранения</h3>
+            <div class="formula-box">
+                E = E_k + E_p = const
+            </div>
+            <p id="th-desc">
+                В верхней точке отклонения скорость равна нулю, энергия только потенциальная:
+            </p>
+            <div class="formula-box">
+                E_p = mgh
+            </div>
+            <p id="th-desc-2">
+                В нижней точке (положение равновесия) высота равна нулю, энергия только кинетическая:
+            </p>
+            <div class="formula-box">
+                E_k = mv²/2
+            </div>
+            <p id="th-concl">
+                Теоретически должно выполняться равенство: <strong>mgh = mv²/2</strong>.
+            </p>
+        </div>
+
+        <div id="journal" class="tab-content">
+            <h3 id="th-journal">Результаты измерений</h3>
+            <div style="overflow-x: auto;">
+                <table id="data-table">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>h (м)</th>
+                            <th>E_p (Дж)</th>
+                            <th>v (м/с)</th>
+                            <th>E_k (Дж)</th>
+                            <th>&Delta;%</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div style="margin-top: 15px; font-size: 0.85rem; color: #7f8c8d;">
+                * &Delta;% - расхождение между Ep и Ek.
+            </div>
+        </div>
+    </div>
+
+    <div class="sim-container">
+        
+        <div class="digital-display">
+            <span class="display-label" id="disp-lbl">SPEED (v):</span>
+            <span class="display-val" id="disp-v">0.00</span> m/s
+        </div>
+
+        <svg id="scene" viewBox="0 0 400 500" preserveAspectRatio="xMidYMax meet">
+            <defs>
+                <radialGradient id="grad-ball" cx="30%" cy="30%" r="70%">
+                    <stop offset="0%" style="stop-color: #fff" />
+                    <stop offset="100%" style="stop-color: #5dade2" />
+                </radialGradient>
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                    <path d="M0,0 L0,10 L10,5 z" fill="#2980b9" />
+                </marker>
+            </defs>
+
+            <rect x="150" y="10" width="100" height="10" class="pivot" rx="5" />
+
+            <g transform="translate(200, 350)" id="sensor-group">
+                <rect x="-30" y="-20" width="60" height="40" class="sensor" fill-opacity="0.3" rx="5" />
+                <line x1="0" y1="-20" x2="0" y2="20" class="sensor-beam" />
+                <text x="35" y="5" font-size="10" fill="#f39c12">Sensor</text>
+            </g>
+
+            <g id="grid-lines" opacity="0.3"></g>
+
+            <g id="h-indicator-group" visibility="hidden">
+                <line id="h-line-ref" x1="50" y1="0" x2="350" y2="0" class="ruler-line" stroke="#999" />
+                <line id="h-line-cur" x1="50" y1="0" x2="350" y2="0" class="ruler-line" stroke="#999" />
+                <line id="h-arrow" x1="100" y1="0" x2="100" y2="0" class="h-indicator" />
+                <text id="h-text" x="110" y="0" fill="#2980b9" font-weight="bold" font-size="14">h = 0.10 m</text>
+            </g>
+
+            <g id="pendulum">
+                <line id="string" x1="0" y1="0" x2="0" y2="300" class="thread" />
+                <circle id="ball" cx="0" cy="300" r="15" class="ball" />
+            </g>
+
+        </svg>
+        
+        <div class="hint" id="hint-text">Потяните шар в сторону и отпустите</div>
+    </div>
+</div>
+
+<script>
+    // === CONFIGURATION ===
+    const PIXELS_PER_METER = 500; // 500px = 1m visually
+    const PIVOT_X = 200;
+    const PIVOT_Y = 20;
+    const G = 9.81;
+
+    // State
+    let mass = 0.1; // kg
+    let lengthM = 0.5; // meters
+    let angle = 0; // radians
+    let velocity = 0; // angular velocity
+    let isDragging = false;
+    let isRunning = false;
+    
+    // Measurement
+    let startH = 0; // Initial height
+    let measuredV = 0; // Velocity at bottom
+    let justPassedSensor = false;
+
+    // DOM Elements
+    const ui = {
+        pendulum: document.getElementById('pendulum'),
+        string: document.getElementById('string'),
+        ball: document.getElementById('ball'),
+        sensor: document.getElementById('sensor-group'),
+        dispV: document.getElementById('disp-v'),
+        valM: document.getElementById('val-m'),
+        valL: document.getElementById('val-l'),
+        hGroup: document.getElementById('h-indicator-group'),
+        hLineRef: document.getElementById('h-line-ref'),
+        hLineCur: document.getElementById('h-line-cur'),
+        hArrow: document.getElementById('h-arrow'),
+        hText: document.getElementById('h-text'),
+        hint: document.getElementById('hint-text'),
+        svg: document.getElementById('scene')
+    };
+
+    // === INIT ===
+    function init() {
+        createGrid();
+        updateSettings();
+        ui.pendulum.setAttribute('transform', `translate(${PIVOT_X}, ${PIVOT_Y})`);
+        renderPendulum();
+    }
+
+    // === TABS ===
+    function setTab(id) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + id).classList.add('active');
+        document.getElementById(id).classList.add('active');
+    }
+
+    // === SETTINGS ===
+    function updateSettings() {
+        mass = parseFloat(document.getElementById('mass-range').value) / 1000;
+        lengthM = parseFloat(document.getElementById('len-range').value) / 100;
+        
+        ui.valM.innerText = (mass * 1000).toFixed(0);
+        ui.valL.innerText = (lengthM * 100).toFixed(0);
+        
+        // Update Sensor Position based on length
+        const sensorY = PIVOT_Y + lengthM * PIXELS_PER_METER;
+        ui.sensor.setAttribute('transform', `translate(${PIVOT_X}, ${sensorY})`);
+        
+        if (!isRunning && !isDragging) {
+            angle = 0;
+            velocity = 0;
+            renderPendulum();
+        }
+    }
+
+    function createGrid() {
+        const g = document.getElementById('grid-lines');
+        for(let i=100; i<=500; i+=50) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", 0); line.setAttribute("y1", i);
+            line.setAttribute("x2", 400); line.setAttribute("y2", i);
+            line.setAttribute("stroke", "#eee");
+            line.setAttribute("stroke-width", 1);
+            g.appendChild(line);
+        }
+    }
+
+    // === SIMULATION LOOP ===
+    function startSim() {
+        if (isRunning) return;
+        isRunning = true;
+        ui.hint.style.opacity = 0;
+        ui.hGroup.setAttribute('visibility', 'hidden');
+        
+        // Initial Energy
+        startH = lengthM * (1 - Math.cos(angle));
+        measuredV = 0;
+        justPassedSensor = false;
+
+        let lastTime = performance.now();
+
+        function animate(time) {
+            if (!isRunning && !isDragging) return;
+            const dt = (time - lastTime) / 1000; // seconds
+            lastTime = time;
+
+            if (!isDragging) {
+                // Physics: Simple Pendulum with Damping
+                // Acc = -(g/L) * sin(theta)
+                const acc = -(G / lengthM) * Math.sin(angle);
+                velocity += acc * dt;
+                
+                // Damping (air resistance)
+                velocity *= 0.999; 
+                
+                angle += velocity * dt;
+
+                // Sensor Check
+                // Check if angle crossed 0
+                // Simple check: if angle sign changed or is very close to 0
+                if (Math.abs(angle) < 0.05 && !justPassedSensor) {
+                    // Calculate velocity at bottom
+                    // V_linear = L * omega
+                    const v_lin = Math.abs(lengthM * velocity);
+                    measuredV = v_lin;
+                    ui.dispV.innerText = measuredV.toFixed(2);
+                    justPassedSensor = true; // prevent multi-trigger
+                    
+                    // Highlight sensor
+                    ui.sensor.querySelector('rect').setAttribute('fill', '#e74c3c');
+                    setTimeout(() => ui.sensor.querySelector('rect').setAttribute('fill', '#f39c12'), 200);
+                }
+                
+                if (Math.abs(angle) > 0.1) justPassedSensor = false;
+            }
+
+            renderPendulum();
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+    }
+
+    function renderPendulum() {
+        const lenPx = lengthM * PIXELS_PER_METER;
+        const x = lenPx * Math.sin(angle);
+        const y = lenPx * Math.cos(angle);
+        
+        ui.string.setAttribute('x2', x);
+        ui.string.setAttribute('y2', y);
+        ui.ball.setAttribute('cx', x);
+        ui.ball.setAttribute('cy', y);
+    }
+
+    function resetSim() {
+        isRunning = false;
+        angle = 0;
+        velocity = 0;
+        measuredV = 0;
+        ui.dispV.innerText = "0.00";
+        ui.hint.style.opacity = 1;
+        renderPendulum();
+    }
+
+    // === DRAG & DROP ===
+    ui.ball.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        isRunning = false;
+        velocity = 0;
+        ui.dispV.innerText = "0.00";
+        ui.hGroup.setAttribute('visibility', 'visible');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const pt = ui.svg.createSVGPoint();
+        pt.x = e.clientX; pt.y = e.clientY;
+        const svgP = pt.matrixTransform(ui.svg.getScreenCTM().inverse());
+        
+        const dx = svgP.x - PIVOT_X;
+        const dy = svgP.y - PIVOT_Y;
+        
+        angle = Math.atan2(dx, dy);
+        
+        // Limit angle to +/- 90 degrees
+        if (angle > 1.5) angle = 1.5;
+        if (angle < -1.5) angle = -1.5;
+
+        renderPendulum();
+        updateHeightIndicator();
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            startSim();
+        }
+    });
+
+    function updateHeightIndicator() {
+        const lenPx = lengthM * PIXELS_PER_METER;
+        const bottomY = PIVOT_Y + lenPx;
+        const currentY = PIVOT_Y + lenPx * Math.cos(angle);
+        
+        ui.hLineRef.setAttribute('y1', bottomY);
+        ui.hLineRef.setAttribute('y2', bottomY);
+        
+        ui.hLineCur.setAttribute('y1', currentY);
+        ui.hLineCur.setAttribute('y2', currentY);
+        
+        ui.hArrow.setAttribute('y1', bottomY);
+        ui.hArrow.setAttribute('y2', currentY);
+        
+        const h_val = lengthM * (1 - Math.cos(angle));
+        ui.hText.setAttribute('y', (bottomY + currentY)/2);
+        ui.hText.textContent = "h = " + h_val.toFixed(3) + " m";
+        
+        startH = h_val;
+    }
+
+    // === JOURNAL ===
+    function recordData() {
+        if (measuredV === 0) return;
+        
+        const Ep = mass * G * startH;
+        const Ek = 0.5 * mass * measuredV * measuredV;
+        
+        const diff = Math.abs(Ep - Ek);
+        const diffPercent = (diff / Ep) * 100;
+        
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        const n = tbody.children.length + 1;
+        
+        const styleClass = diffPercent < 5 ? 'result-good' : 'result-bad';
+        
+        row.innerHTML = `
+            <td>${n}</td>
+            <td>${startH.toFixed(3)}</td>
+            <td>${Ep.toFixed(4)}</td>
+            <td>${measuredV.toFixed(2)}</td>
+            <td>${Ek.toFixed(4)}</td>
+            <td class="${styleClass}">${diffPercent.toFixed(1)}%</td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    // === LOCALIZATION ===
+    let currentLang = 'ru';
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Сохранение энергии (Маятник)",
+            tab1: "Установка", tab2: "Теория", tab3: "Журнал",
+            lblM: "Масса груза m (г):", lblL: "Длина нити L (см):",
+            lblInstr: "Инструкция:",
+            i1: "Оттяните шар в сторону (измените высоту h).",
+            i2: "Отпустите шар.",
+            i3: "Смотрите скорость на табло в нижней точке.",
+            i4: "Запишите результат.",
+            btnRec: "ЗАПИСАТЬ РЕЗУЛЬТАТ", btnRes: "СБРОС / СТОП",
+            thGoal: "Цель работы", thGoalTx: "Проверить закон сохранения энергии для колебательного движения маятника.",
+            thLaw: "Закон сохранения", thDesc: "В верхней точке отклонения скорость равна нулю:",
+            thDesc2: "В нижней точке (равновесие) высота равна нулю:", thConcl: "Теоретически: mgh = mv²/2",
+            thJ: "Результаты измерений", hint: "Потяните шар в сторону и отпустите",
+            dispLbl: "СКОРОСТЬ (v):"
+        },
+        kz: {
+            title: "Зертхана №22: Энергияның сақталуы (Маятник)",
+            tab1: "Қондырғы", tab2: "Теория", tab3: "Журнал",
+            lblM: "Жүк массасы m (г):", lblL: "Жіп ұзындығы L (см):",
+            lblInstr: "Нұсқаулық:",
+            i1: "Шарды шетке тартыңыз (h биіктігін өзгертіңіз).",
+            i2: "Шарды жіберіңіз.",
+            i3: "Төменгі нүктедегі жылдамдықты таблодан қараңыз.",
+            i4: "Нәтижені жазыңыз.",
+            btnRec: "НӘТИЖЕНІ ЖАЗУ", btnRes: "ҚАЙТАРУ / ТОҚТАТУ",
+            thGoal: "Жұмыс мақсаты", thGoalTx: "Маятниктің тербелмелі қозғалысы үшін энергияның сақталу заңын тексеру.",
+            thLaw: "Сақталу заңы", thDesc: "Жоғарғы ауытқу нүктесінде жылдамдық нөлге тең:",
+            thDesc2: "Төменгі нүктеде (тепе-теңдік) биіктік нөлге тең:", thConcl: "Теориялық түрде: mgh = mv²/2",
+            thJ: "Өлшеу нәтижелері", hint: "Шарды шетке тартып, жіберіңіз",
+            dispLbl: "ЖЫЛДАМДЫҚ (v):"
+        }
+    };
+
+    function toggleLang() {
+        currentLang = currentLang === 'ru' ? 'kz' : 'ru';
+        const t = dict[currentLang];
+        document.getElementById('lab-title').innerText = t.title;
+        document.getElementById('tab-setup').innerText = t.tab1;
+        document.getElementById('tab-theory').innerText = t.tab2;
+        document.getElementById('tab-journal').innerText = t.tab3;
+        document.getElementById('lbl-mass').childNodes[0].nodeValue = t.lblM + " ";
+        document.getElementById('lbl-len').childNodes[0].nodeValue = t.lblL + " ";
+        document.getElementById('lbl-instr').innerText = t.lblInstr;
+        document.getElementById('instr-1').innerText = t.i1;
+        document.getElementById('instr-2').innerText = t.i2;
+        document.getElementById('instr-3').innerText = t.i3;
+        document.getElementById('instr-4').innerText = t.i4;
+        document.getElementById('btn-record').innerText = t.btnRec;
+        document.getElementById('btn-reset').innerText = t.btnRes;
+        document.getElementById('th-goal').innerText = t.thGoal;
+        document.getElementById('th-goal-text').innerText = t.thGoalTx;
+        document.getElementById('th-law').innerText = t.thLaw;
+        document.getElementById('th-desc').innerText = t.thDesc;
+        document.getElementById('th-desc-2').innerText = t.thDesc2;
+        document.getElementById('th-concl').innerHTML = t.thConcl;
+        document.getElementById('th-journal').innerText = t.thJ;
+        document.getElementById('hint-text').innerText = t.hint;
+        document.getElementById('disp-lbl').innerText = t.dispLbl;
+    }
+
+    init();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Лабораторная работа: Столкновение шаров</title>
+    
+    <style>
+        :root { --primary: #34495e; --accent: #e67e22; --bg: #fdfefe; --panel: #ffffff; --success: #27ae60; --text: #2c3e50; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Кнопка языка */
+        .lang-switch {
+            position: absolute; top: 20px; right: 20px;
+            background: #fff; border: 2px solid var(--primary); color: var(--primary);
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;
+            transition: 0.3s; z-index: 100;
+        }
+        .lang-switch:hover { background: var(--primary); color: #fff; }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+            margin-top: 40px;
+        }
+
+        .card { background: var(--panel); padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        h1 { color: var(--primary); border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-top: 0; font-size: 1.6rem; }
+        p { margin-bottom: 15px; line-height: 1.5; }
+
+        /* ФОРМУЛЫ */
+        .formula-row { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; margin: 15px 0; }
+        .formula-box { 
+            background: #f8f9fa; padding: 15px; text-align: center; border-radius: 8px; 
+            border: 1px solid #dfe6e9; min-width: 220px;
+            font-family: 'Times New Roman', serif; font-size: 1.3rem; font-style: italic;
+        }
+        .formula-desc { font-family: 'Segoe UI', sans-serif; font-size: 0.85rem; color: #7f8c8d; font-style: normal; margin-top: 8px; }
+
+        /* УПРАВЛЕНИЕ */
+        .control-group { margin-bottom: 20px; }
+        label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: var(--accent); }
+        select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #bdc3c7; margin-top: 5px; font-size: 1rem; }
+
+        .val-display { color: var(--accent); font-weight: bold; font-family: monospace; font-size: 1.1em; }
+        
+        /* Мониторы */
+        .stopwatch {
+            background: #2c3e50; color: #f1c40f; font-family: 'Courier New', monospace; 
+            font-size: 1.3rem; text-align: center; padding: 10px; border-radius: 6px; margin: 20px 0;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            display: flex; justify-content: space-around;
+        }
+        .sw-item { display: flex; flex-direction: column; align-items: center; width: 45%; }
+        .sw-label { font-size: 0.6em; color: #bdc3c7; font-family: sans-serif; margin-bottom: 5px;}
+
+        .btn { border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; margin-top: 8px; color: white; font-size: 1rem; }
+        .btn-start { background: var(--success); }
+        .btn-start:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .btn-start:hover:not(:disabled) { background: #219150; }
+        .btn-record { background: #8e44ad; }
+        .btn-record:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .btn-reset { background: #95a5a6; }
+
+        /* СИМУЛЯЦИЯ */
+        .simulation-card { grid-column: 2; grid-row: 2 / 3; height: 500px; display: flex; flex-direction: column; }
+        .svg-container { 
+            flex-grow: 1; border: 1px solid #dfe6e9; background: #fff; border-radius: 8px; 
+            position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+        
+        /* SVG Elements */
+        .ball { stroke: #2c3e50; stroke-width: 2; }
+        .ball-1 { fill: #3498db; }
+        .ball-2 { fill: #95a5a6; }
+        .string { stroke: #bdc3c7; stroke-width: 2; }
+        .roof { stroke: #2c3e50; stroke-width: 4; }
+        .plasticine { fill: #e74c3c; visibility: hidden; } 
+        /* Пунктирная дуга угла */
+        .angle-arc { fill: none; stroke: #e67e22; stroke-width: 2.5; stroke-dasharray: 6, 4; }
+        .impact-wave { fill: none; stroke: #f39c12; stroke-width: 3; opacity: 0; }
+
+        /* ТАБЛИЦА */
+        .table-container { grid-column: 1 / -1; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { border: 1px solid #bdc3c7; padding: 10px; text-align: center; }
+        th { background-color: #ecf0f1; }
+    </style>
+</head>
+<body>
+
+<button class="lang-switch" onclick="toggleLanguage()" id="btn-lang">RU / KZ</button>
+
+<div class="grid-container">
+
+    <div class="card" style="grid-column: 1 / -1;">
+        <h1 id="title-text">Лабораторная работа: Столкновение шаров (Маятник)</h1>
+        <p id="goal-text">Цель: Сравнить упругий и неупругий удар шаров равной массы, проверив закон сохранения импульса.</p>
+        <div class="formula-row">
+            <div class="formula-box">
+                <div>m v = m u<sub>1</sub> + m u<sub>2</sub></div>
+                <div class="formula-desc" id="form-desc-1">Упругий (обмен скоростями, синий останавливается)</div>
+            </div>
+             <div class="formula-box" style="background: #eafaf1; border-color: #2ecc71;">
+                <div>m v = (m + m) u</div>
+                <div class="formula-desc" id="form-desc-2">Неупругий (движутся вместе u = v/2)</div>
+            </div>
+             <div class="formula-box">
+                <div>h = L(1 - cos&alpha;)</div>
+                <div class="formula-desc" id="form-desc-3">Высота подъема</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 id="settings-title">Параметры</h2>
+
+        <div class="control-group">
+            <label id="label-type">Тип удара:</label>
+            <select id="collision-type" onchange="updateSetup()">
+                <option value="elastic">Упругий (Стальные шары)</option>
+                <option value="inelastic">Неупругий (С пластилином)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label><span id="label-angle">Угол отклонения (град)</span>: <span class="val-display"><span id="angle-val">30</span>&deg;</span></label>
+            <input type="range" id="angle-input" min="10" max="60" value="30" step="5" oninput="updateSetup()">
+        </div>
+        
+        <div class="control-group">
+            <label><span id="label-len">Длина нити L</span>: <span class="val-display">0.50 м</span></label>
+        </div>
+
+        <div class="stopwatch">
+            <div class="sw-item">
+                <span class="sw-label" id="lbl-h1">h1 (нач)</span>
+                <span id="display-h1">0.00 см</span>
+            </div>
+            <div class="sw-item">
+                <span class="sw-label" id="lbl-h2">h2 (кон)</span>
+                <span id="display-h2">0.00 см</span>
+            </div>
+        </div>
+
+        <button class="btn btn-start" id="btn-start" onclick="startSimulation()">▶ <span id="btn-text-start">ПУСК</span></button>
+        <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>⬇ <span id="btn-text-record">ЗАПИСАТЬ</span></button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ <span id="btn-text-reset">СБРОС</span></button>
+    </div>
+
+    <div class="card simulation-card">
+        <div class="svg-container">
+            <svg id="sim-svg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%;">
+                
+                <line x1="100" y1="20" x2="300" y2="20" class="roof" />
+                
+                <g transform="translate(200, 20)">
+                    
+                    <path id="angle-arc" d="" class="angle-arc" />
+                    <text id="angle-text" x="-30" y="80" font-size="14" font-weight="bold" fill="#e67e22" text-anchor="middle">30°</text>
+
+                    <g id="pendulum-1">
+                        <line x1="0" y1="0" x2="0" y2="300" class="string" />
+                        <circle cx="0" cy="300" r="20" class="ball ball-1" />
+                    </g>
+
+                    <g id="pendulum-2">
+                        <line x1="0" y1="0" x2="0" y2="300" class="string" />
+                        <circle cx="0" cy="300" r="20" class="ball ball-2" />
+                        <circle cx="-18" cy="300" r="8" class="plasticine" id="plasticine-blob" />
+                    </g>
+
+                    <circle id="impact-wave" cx="-10" cy="300" r="10" class="impact-wave" />
+
+                </g>
+
+                <line x1="350" y1="320" x2="350" y2="200" stroke="#bdc3c7" stroke-width="1" />
+                <text x="360" y="325" font-size="10" fill="#7f8c8d">0</text>
+                <text x="360" y="220" font-size="10" fill="#7f8c8d">h</text>
+
+            </svg>
+        </div>
+        <div style="padding: 10px; background: #ecf0f1; border-top: 1px solid #ddd;">
+            <strong>Status:</strong> <span id="status-text">Выберите параметры и запустите.</span>
+        </div>
+    </div>
+
+    <div class="card table-container">
+        <div style="display: flex; justify-content: space-between;">
+            <h2 id="table-title">Журнал наблюдений</h2>
+            <button class="btn" style="width: auto; background: #e74c3c; padding: 5px 15px;" onclick="clearTable()" id="btn-clear">Очистить</button>
+        </div>
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>№</th>
+                    <th><span id="th-type">Тип удара</span></th>
+                    <th>&alpha;<sub>нач</sub> (&deg;)</th>
+                    <th>h<sub>нач</sub> (см)</th>
+                    <th>h<sub>кон</sub> (см)</th>
+                    <th>&alpha;<sub>кон</sub> (&deg;)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    // === АУДИО API (ГЕНЕРАЦИЯ ЗВУКА СТОЛКНОВЕНИЯ) ===
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playImpactSound(isElastic) {
+        if (!audioCtx) return;
+        
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (isElastic) {
+            // Звонкий металлический звук (упругий удар)
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1500, t);
+            osc.frequency.exponentialRampToValueAtTime(3000, t + 0.1);
+            
+            gainNode.gain.setValueAtTime(0, t);
+            gainNode.gain.linearRampToValueAtTime(0.8, t + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            
+            osc.start(t);
+            osc.stop(t + 0.2);
+            
+            // Добавим немного гармоник для "металличности"
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(3500, t);
+            gain2.gain.setValueAtTime(0.5, t);
+            gain2.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.start(t);
+            osc2.stop(t + 0.1);
+            
+        } else {
+            // Глухой удар (пластилин)
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, t);
+            osc.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+            
+            gainNode.gain.setValueAtTime(0, t);
+            gainNode.gain.linearRampToValueAtTime(0.6, t + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            
+            osc.start(t);
+            osc.stop(t + 0.1);
+        }
+    }
+
+
+    // === ЛОКАЛИЗАЦИЯ (RU / KZ) ===
+    const translations = {
+        ru: {
+            title: "Лабораторная работа: Столкновение шаров (Маятник)",
+            goal: "Цель: Сравнить упругий и неупругий удар шаров равной массы, проверив закон сохранения импульса.",
+            desc1: "Упругий (обмен скоростями, синий останавливается)",
+            desc2: "Неупругий (движутся вместе u = v/2)",
+            desc3: "Высота подъема",
+            settings: "Параметры",
+            labelType: "Тип удара:",
+            optElastic: "Упругий (Стальные шары)",
+            optInelastic: "Неупругий (С пластилином)",
+            labelAngle: "Угол отклонения (град)",
+            labelLen: "Длина нити L",
+            lblH1: "h1 (нач)",
+            lblH2: "h2 (кон)",
+            btnStart: "ПУСК",
+            btnRecord: "ЗАПИСАТЬ",
+            btnReset: "СБРОС",
+            statusReady: "Готов к запуску.",
+            statusRun: "Движение...",
+            statusImpact: "Удар!",
+            statusDone: "Готово. Запишите данные.",
+            tableTitle: "Журнал наблюдений",
+            thType: "Тип удара",
+            btnClear: "Очистить"
+        },
+        kz: {
+            title: "Зертханалық жұмыс №19: Шарлардың соқтығысуы",
+            goal: "Мақсаты: Импульстің сақталу заңын тексере отырып, бірдей массалы шарлардың соқтығысуын салыстыру.",
+            desc1: "Серпімді (жылдамдық алмасу, көк тоқтайды)",
+            desc2: "Серпімсіз (бірге қозғалады u = v/2)",
+            desc3: "Көтерілу биіктігі",
+            settings: "Параметрлер",
+            labelType: "Соққы түрі:",
+            optElastic: "Серпімді (Болат шарлар)",
+            optInelastic: "Серпімсіз (Ермексазбен)",
+            labelAngle: "Ауытқу бұрышы (град)",
+            labelLen: "Жіптің ұзындығы L",
+            lblH1: "h1 (баст)",
+            lblH2: "h2 (соң)",
+            btnStart: "ІСКЕ ҚОСУ",
+            btnRecord: "ЖАЗУ",
+            btnReset: "ҚАЙТАРУ",
+            statusReady: "Іске қосуға дайын.",
+            statusRun: "Қозғалыс...",
+            statusImpact: "Соққы!",
+            statusDone: "Дайын. Мәліметтерді жазыңыз.",
+            tableTitle: "Бақылау журналы",
+            thType: "Соққы түрі",
+            btnClear: "Тазалау"
+        }
+    };
+
+    let curLang = 'ru';
+
+    function toggleLanguage() {
+        curLang = (curLang === 'ru') ? 'kz' : 'ru';
+        updateTexts();
+    }
+
+    function updateTexts() {
+        const t = translations[curLang];
+        document.getElementById('title-text').innerText = t.title;
+        document.getElementById('goal-text').innerText = t.goal;
+        document.getElementById('form-desc-1').innerText = t.desc1;
+        document.getElementById('form-desc-2').innerText = t.desc2;
+        document.getElementById('form-desc-3').innerText = t.desc3;
+        document.getElementById('settings-title').innerText = t.settings;
+        document.getElementById('label-type').innerText = t.labelType;
+        document.getElementById('collision-type').options[0].text = t.optElastic;
+        document.getElementById('collision-type').options[1].text = t.optInelastic;
+        document.getElementById('label-angle').innerText = t.labelAngle;
+        document.getElementById('label-len').innerText = t.labelLen;
+        document.getElementById('lbl-h1').innerText = t.lblH1;
+        document.getElementById('lbl-h2').innerText = t.lblH2;
+        document.getElementById('btn-text-start').innerText = t.btnStart;
+        document.getElementById('btn-text-record').innerText = t.btnRecord;
+        document.getElementById('btn-text-reset').innerText = t.btnReset;
+        document.getElementById('table-title').innerText = t.tableTitle;
+        document.getElementById('th-type').innerText = t.thType;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        
+        if(!isRunning) document.getElementById('status-text').innerText = t.statusReady;
+    }
+
+    // === ФИЗИКА И ПЕРЕМЕННЫЕ ===
+    const STRING_LEN_PX = 300; 
+    const STRING_LEN_M = 0.5;  
+    
+    let startAngleDeg = 30;
+    let isElastic = true;
+
+    let h1_cm = 0;
+    let h2_cm = 0;
+    let endAngleDeg = 0;
+
+    let isRunning = false;
+    let animFrame = null;
+
+    // UI Elements
+    const ui = {
+        typeSelect: document.getElementById('collision-type'),
+        angleInput: document.getElementById('angle-input'),
+        angleVal: document.getElementById('angle-val'),
+        
+        displayH1: document.getElementById('display-h1'),
+        displayH2: document.getElementById('display-h2'),
+        status: document.getElementById('status-text'),
+        
+        pendulum1: document.getElementById('pendulum-1'),
+        pendulum2: document.getElementById('pendulum-2'),
+        plasticine: document.getElementById('plasticine-blob'),
+        angleArc: document.getElementById('angle-arc'),
+        angleText: document.getElementById('angle-text'),
+        impactWave: document.getElementById('impact-wave'),
+        
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody')
+    };
+
+    // Отрисовка пунктирной дуги
+    function updateAngleVisuals(ang1, ang2) {
+        if (Math.abs(ang1 - ang2) < 0.5) {
+            ui.angleArc.setAttribute('d', ''); 
+            ui.angleText.innerHTML = '';
+            return;
+        }
+        
+        const minA = Math.min(ang1, ang2);
+        const maxA = Math.max(ang1, ang2);
+        
+        const r = 100; // Радиус дуги
+        const r1 = minA * Math.PI / 180;
+        const r2 = maxA * Math.PI / 180;
+
+        const x1 = -r * Math.sin(r1);
+        const y1 = r * Math.cos(r1);
+        
+        const x2 = -r * Math.sin(r2);
+        const y2 = r * Math.cos(r2);
+
+        const d = `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`;
+        ui.angleArc.setAttribute('d', d);
+
+        const midA = (minA + maxA) / 2;
+        const rMid = midA * Math.PI / 180;
+        const textR = r + 20;
+        ui.angleText.setAttribute('x', -textR * Math.sin(rMid));
+        ui.angleText.setAttribute('y', textR * Math.cos(rMid));
+        ui.angleText.innerHTML = Math.round(maxA - minA) + "&deg;";
+    }
+
+    // Визуальный эффект волны от удара
+    function showImpactEffect() {
+        ui.impactWave.setAttribute('r', '10');
+        ui.impactWave.setAttribute('opacity', '1');
+        
+        let r = 10;
+        let op = 1.0;
+        
+        function expand() {
+            r += 1.5;
+            op -= 0.05;
+            ui.impactWave.setAttribute('r', r);
+            ui.impactWave.setAttribute('opacity', op);
+            if (op > 0) {
+                requestAnimationFrame(expand);
+            } else {
+                ui.impactWave.setAttribute('opacity', '0');
+            }
+        }
+        requestAnimationFrame(expand);
+    }
+
+    function updateSetup() {
+        if(isRunning) return;
+        
+        startAngleDeg = parseInt(ui.angleInput.value);
+        isElastic = (ui.typeSelect.value === 'elastic');
+        ui.angleVal.innerText = startAngleDeg;
+        
+        if (isElastic) {
+            ui.plasticine.style.visibility = 'hidden';
+        } else {
+            ui.plasticine.style.visibility = 'visible';
+        }
+        
+        ui.pendulum1.setAttribute('transform', `rotate(${-startAngleDeg})`);
+        ui.pendulum2.setAttribute('transform', `rotate(0)`);
+        
+        updateAngleVisuals(-startAngleDeg, 0); 
+        
+        const rad = startAngleDeg * Math.PI / 180;
+        h1_cm = (STRING_LEN_M * (1 - Math.cos(rad))) * 100;
+        ui.displayH1.innerText = h1_cm.toFixed(2) + " см";
+        ui.displayH2.innerText = "0.00 см";
+        
+        ui.btnRecord.disabled = true;
+        ui.status.innerText = translations[curLang].statusReady;
+    }
+
+    function startSimulation() {
+        if(isRunning) return;
+        
+        initAudio(); // Инициализация звука по клику пользователя
+        
+        isRunning = true;
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+        
+        const durationDrop = 1000; 
+        let startTime = null;
+        
+        ui.status.innerText = translations[curLang].statusRun;
+
+        function animate(timestamp) {
+            if(!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            
+            if (elapsed < durationDrop) {
+                const progress = elapsed / durationDrop;
+                const currentAngle1 = -startAngleDeg * Math.cos( (Math.PI/2) * progress );
+                
+                ui.pendulum1.setAttribute('transform', `rotate(${currentAngle1})`);
+                updateAngleVisuals(currentAngle1, 0); 
+                
+                animFrame = requestAnimationFrame(animate);
+            } else {
+                handleCollision();
+            }
+        }
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function handleCollision() {
+        // УДАР: Синий шар строго останавливается на 0 (Закон сохранения импульса)
+        ui.pendulum1.setAttribute('transform', `rotate(0)`);
+        updateAngleVisuals(0, 0); 
+        
+        ui.status.innerText = translations[curLang].statusImpact;
+        
+        // Звук и визуальный эффект
+        playImpactSound(isElastic);
+        showImpactEffect();
+        
+        const radStart = startAngleDeg * Math.PI / 180;
+        const h_start = STRING_LEN_M * (1 - Math.cos(radStart));
+        
+        let h_end = 0;
+        let radEnd = 0;
+        
+        if (isElastic) {
+            // Весь импульс переходит второму шару
+            h_end = h_start;
+            radEnd = radStart;
+        } else {
+            // Шары слипаются, скорость падает вдвое (m*v = 2m*u)
+            h_end = h_start / 4;
+            const cosA = 1 - (h_end / STRING_LEN_M);
+            radEnd = Math.acos(cosA);
+        }
+        
+        endAngleDeg = radEnd * 180 / Math.PI;
+        h2_cm = h_end * 100;
+        
+        ui.displayH2.innerText = h2_cm.toFixed(2) + " см";
+        
+        startPostCollisionAnim(endAngleDeg);
+    }
+
+    function startPostCollisionAnim(targetAngle) {
+        let startTime = null;
+        const durationRise = 1000; 
+        
+        function animateRise(timestamp) {
+            if(!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            
+            if (elapsed < durationRise) {
+                const progress = elapsed / durationRise;
+                const currentAngle = targetAngle * Math.sin( (Math.PI/2) * progress );
+                
+                if (isElastic) {
+                    // Синий стоит (0), Серый летит (currentAngle)
+                    ui.pendulum1.setAttribute('transform', `rotate(0)`);
+                    ui.pendulum2.setAttribute('transform', `rotate(${currentAngle})`);
+                    updateAngleVisuals(0, currentAngle); 
+                } else {
+                    // Летят вместе
+                    ui.pendulum1.setAttribute('transform', `rotate(${currentAngle})`);
+                    ui.pendulum2.setAttribute('transform', `rotate(${currentAngle})`);
+                    updateAngleVisuals(currentAngle, currentAngle); 
+                }
+                
+                animFrame = requestAnimationFrame(animateRise);
+            } else {
+                finishRun();
+            }
+        }
+        animFrame = requestAnimationFrame(animateRise);
+    }
+
+    function finishRun() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = false;
+        ui.status.innerText = translations[curLang].statusDone;
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        ui.btnStart.disabled = false;
+        updateSetup();
+    }
+
+    function recordData() {
+        ui.btnRecord.disabled = true;
+        const tbody = ui.tableBody;
+        const row = document.createElement('tr');
+        const num = tbody.children.length + 1;
+        
+        const typeText = isElastic ? 
+            (curLang === 'ru' ? "Упругий" : "Серпімді") : 
+            (curLang === 'ru' ? "Неупругий" : "Серпімсіз");
+
+        row.innerHTML = `
+            <td>${num}</td>
+            <td>${typeText}</td>
+            <td>${startAngleDeg}</td>
+            <td>${h1_cm.toFixed(2)}</td>
+            <td><strong>${h2_cm.toFixed(2)}</strong></td>
+            <td>${endAngleDeg.toFixed(1)}</td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+    }
+
+    updateSetup();
+    updateTexts();
+
+</script>
+</body>
+</html>
