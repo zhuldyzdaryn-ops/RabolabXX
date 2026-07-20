@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Сила трения скольжения</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --fric-wood: #d35400;
+            --fric-rubber: #2c3e50;
+            --fric-ice: #3498db;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--primary);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg {
+            width: 100%;
+            height: 250px;
+            display: block;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        
+        input[type="range"], select { width: 100%; cursor: pointer; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: #27ae60; }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; }
+        .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-check { background: #f39c12; margin-top: 10px; }
+        .btn-check:hover:not(:disabled) { background: #d68910; }
+
+        /* --- DISPLAYS --- */
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .display-item { text-align: center; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; }
+        .display-item strong { font-size: 1.2rem; font-family: monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 60px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-weight: bold;
+            color: var(--primary);
+            outline: none;
+        }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        /* --- CHART --- */
+        .chart-container {
+            position: relative;
+            min-height: 250px;
+            width: 100%;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Сила трения скольжения</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- TOP PANEL: Intro -->
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Исследование силы трения скольжения для различных поверхностей</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Измерить силу трения, найти коэффициент трения μ для разных материалов и исследовать зависимость силы трения от веса тела.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Выберите тип поверхности (Дерево, Резина, Лед).</li>
+            <li>Добавьте грузы для изменения силы нормального давления (P = mg).</li>
+            <li>Запустите измерение и зафиксируйте силу тяги динамометра (Fтр).</li>
+            <li>Занесите данные в таблицу и рассчитайте коэффициент трения (μ).</li>
+        </ul>
+    </div>
+
+    <!-- LEFT PANEL: Simulation -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg viewBox="0 0 700 250" id="sim-svg">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c" />
+                    </marker>
+                    <pattern id="wood-pattern" patternUnits="userSpaceOnUse" width="40" height="40">
+                        <rect width="40" height="40" fill="#d35400"/>
+                        <path d="M0 10 L40 30 M0 20 L40 40 M0 30 L40 10" stroke="#e67e22" stroke-width="2" fill="none"/>
+                    </pattern>
+                </defs>
+
+                <!-- Фон и поверхность -->
+                <rect x="0" y="0" width="700" height="250" fill="#ecf0f1"/>
+                <!-- Поверхность, меняющая цвет -->
+                <rect id="surface-rect" x="0" y="180" width="700" height="70" fill="url(#wood-pattern)"/>
+                <line x1="0" y1="180" x2="700" y2="180" stroke="#7f8c8d" stroke-width="4"/>
+
+                <!-- Динамическая группа (Брусок + грузы) -->
+                <g id="block-group" transform="translate(100, 0)">
+                    <!-- Брусок -->
+                    <rect x="0" y="140" width="100" height="40" fill="#d35400" rx="2" stroke="#a04000" stroke-width="2"/>
+                    <text x="50" y="165" fill="white" font-size="14" text-anchor="middle" opacity="0.9" id="svg-block-text">Брусок</text>
+                    <!-- Крючок -->
+                    <path d="M 100 160 L 115 160" stroke="#34495e" stroke-width="3" fill="none"/>
+                    
+                    <!-- Грузы на бруске -->
+                    <g id="weights-group"></g>
+                </g>
+
+                <!-- Нить -->
+                <line id="pull-string" x1="215" y1="160" x2="250" y2="160" stroke="#2c3e50" stroke-width="2"/>
+
+                <!-- Динамометр -->
+                <g id="dynamo-group" transform="translate(250, 145)">
+                    <rect x="0" y="0" width="130" height="30" fill="#f1c40f" rx="5" stroke="#e67e22" stroke-width="2"/>
+                    <rect x="10" y="4" width="110" height="22" fill="#2c3e50" rx="3"/>
+                    <text id="dynamo-text" x="65" y="20" font-family="'Courier New', monospace" font-size="16" font-weight="bold" fill="#e74c3c" text-anchor="middle">0.00 Н</text>
+                    <line x1="130" y1="15" x2="150" y2="15" stroke="#34495e" stroke-width="3"/>
+                </g>
+
+                <!-- Тянущая стрелка -->
+                <g id="pull-arrow" transform="translate(400, 160)" opacity="0">
+                    <line x1="0" y1="0" x2="40" y2="0" stroke="#e74c3c" stroke-width="4" marker-end="url(#arrowhead)"/>
+                    <text id="pull-arrow-text" x="20" y="-10" font-size="14" font-weight="bold" fill="#e74c3c" text-anchor="middle">F</text>
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-surface">Поверхность:</label>
+                <select id="surface-select" onchange="updateSetup()">
+                    <option value="wood" id="opt-wood">Дерево (по дереву)</option>
+                    <option value="rubber" id="opt-rub">Резина (высокое трение)</option>
+                    <option value="ice" id="opt-ice">Стекло/Лед (низкое трение)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label id="lbl-weights">Количество доп. грузов: <span id="val-weights" style="color:var(--accent)">0</span></label>
+                <input type="range" id="slider-weights" min="0" max="4" step="1" value="0" oninput="updateSetup()">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-p">Вес P = N (Н)</span>
+                <strong id="meas-p">1.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-f">Показание F (Н)</span>
+                <strong id="meas-f">0.00</strong>
+            </div>
+            <div class="display-item" style="flex: 2;">
+                <span id="disp-status">Статус</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1rem; margin-top: 5px;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSim()">Измерить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()" disabled>Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM PANEL: Data & Theory -->
+    <div class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th id="th-surf">Поверхность</th>
+                                <th>P (Н)</th>
+                                <th>Fтр (Н)</th>
+                                <th id="th-mu">μ (расчет)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Данные будут здесь -->
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты μ</button>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">График зависимости Fтр от P</h2>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формула для расчета:</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ТЕКСТЫ И ФОРМУЛЫ ---
+    const formulaMu = `μ = <div class="frac"><span>F<sub>тр</sub></span><span class="bottom">P</span></div>`;
+
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Сила трения скольжения",
+            themeLbl: "Тема:",
+            themeTxt: "Исследование силы трения скольжения для различных поверхностей",
+            goalLbl: "Цель работы:",
+            goalTxt: "Измерить силу трения, найти коэффициент трения μ для разных материалов и исследовать зависимость силы трения от веса тела.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `Сила трения скольжения возникает при движении одного тела по поверхности другого. Она прямо пропорциональна силе нормального давления (N).<br>
+                        Формула: <b>F<sub>тр</sub> = μ · N</b>. <br>
+                        Так как движение происходит по горизонтальной поверхности, сила нормального давления равна весу тела: <b>N = P = mg</b>. Следовательно, <b>F<sub>тр</sub> = μ · P</b>.`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Выберите тип поверхности (Дерево, Резина, Лед).",
+                "Изменяйте количество грузов на бруске (увеличивая вес P).",
+                "Нажмите «Измерить» и дождитесь начала равномерного движения.",
+                "Занесите показания динамометра в таблицу. Вычислите коэффициент трения (μ)."
+            ],
+            sim: "Симуляция эксперимента",
+            surfaceLbl: "Поверхность:",
+            optWood: "Дерево (по дереву)",
+            optRubber: "Резина (высокое трение)",
+            optIce: "Стекло/Лед (низкое трение)",
+            weightsLbl: "Количество доп. грузов:",
+            dispP: "Вес P = N (Н)",
+            dispF: "Показание F (Н)",
+            dispStatus: "Статус",
+            btnStart: "Измерить",
+            btnReset: "Сброс",
+            btnRecord: "Записать в таблицу",
+            btnCheck: "Проверить расчеты μ",
+            journal: "Таблица измерений",
+            thSurf: "Поверхность",
+            thMu: "μ (расчет)",
+            chartTitle: "График зависимости Fтр от P",
+            theoryTitle: "Формула для расчета (выполняет ученик):",
+            theoryFormulas: formulaMu,
+            svgBlock: "Брусок",
+            
+            statReady: "Готов к запуску",
+            statPulling: "Увеличиваем силу тяги...",
+            statMoving: "Равномерное скольжение",
+            
+            surfNames: { wood: "Дерево", rubber: "Резина", ice: "Лед" },
+            chartX: "Вес P (Н)", chartY: "Сила трения F (Н)"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Сырғанау үйкеліс күші",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Әртүрлі беттер үшін сырғанау үйкеліс күшін зерттеу",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Үйкеліс күшін өлшеу, әртүрлі материалдар үшін μ үйкеліс коэффициентін табу және үйкеліс күшінің дене салмағына тәуелділігін зерттеу.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Сырғанау үйкеліс күші бір дене екінші дененің бетімен қозғалған кезде пайда болады. Ол нормаль қысым күшіне (N) тура пропорционал.<br>
+                        Формула: <b>F<sub>үйк</sub> = μ · N</b>. <br>
+                        Қозғалыс көлденең бетте жүретіндіктен, нормаль қысым күші дене салмағына тең: <b>N = P = mg</b>. Демек, <b>F<sub>үйк</sub> = μ · P</b>.`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Беттің түрін таңдаңыз (Ағаш, Резеңке, Мұз).",
+                "Білеушедегі жүктердің санын өзгертіңіз (P салмағын арттыра отырып).",
+                "«Өлшеу» түймесін басып, бірқалыпты қозғалыс басталғанша күтіңіз.",
+                "Динамометр көрсеткіштерін кестеге жазыңыз. Үйкеліс коэффициентін (μ) есептеңіз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            surfaceLbl: "Бет:",
+            optWood: "Ағаш (ағашпен)",
+            optRubber: "Резеңке (жоғары үйкеліс)",
+            optIce: "Шыны/Мұз (төмен үйкеліс)",
+            weightsLbl: "Қосымша жүктер саны:",
+            dispP: "Салмақ P = N (Н)",
+            dispF: "Көрсеткіш F (Н)",
+            dispStatus: "Статус",
+            btnStart: "Өлшеу",
+            btnReset: "Қалпына келтіру",
+            btnRecord: "Кестеге жазу",
+            btnCheck: "μ есептеулерін тексеру",
+            journal: "Өлшеулер кестесі",
+            thSurf: "Бет",
+            thMu: "μ (есептеу)",
+            chartTitle: "Fүйк P-ға тәуелділік графигі",
+            theoryTitle: "Есептеу формуласы (оқушы орындайды):",
+            theoryFormulas: formulaMu.replace("тр", "үйк"),
+            svgBlock: "Білеуше",
+            
+            statReady: "Бастауға дайын",
+            statPulling: "Тарту күшін арттырудамыз...",
+            statMoving: "Бірқалыпты сырғанау",
+            
+            surfNames: { wood: "Ағаш", rubber: "Резеңке", ice: "Мұз" },
+            chartX: "Салмақ P (Н)", chartY: "Үйкеліс күші F (Н)"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        const t = dict[lang];
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => {
+            let li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-surface').innerText = t.surfaceLbl;
+        
+        document.getElementById('opt-wood').innerText = t.optWood;
+        document.getElementById('opt-rub').innerText = t.optRubber;
+        document.getElementById('opt-ice').innerText = t.optIce;
+
+        document.getElementById('lbl-weights').childNodes[0].nodeValue = t.weightsLbl + " ";
+        document.getElementById('disp-p').innerText = t.dispP;
+        document.getElementById('disp-f').innerText = t.dispF;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-surf').innerText = t.thSurf;
+        document.getElementById('th-mu').innerText = t.thMu;
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = t.theoryFormulas;
+        document.getElementById('svg-block-text').textContent = t.svgBlock;
+
+        if(!isRunning) document.getElementById('meas-status').innerText = t.statReady;
+        
+        updateTableTranslations();
+
+        if (chartObj) {
+            chartObj.options.plugins.title.text = t.chartTitle;
+            chartObj.data.datasets[0].label = t.surfNames.wood;
+            chartObj.data.datasets[1].label = t.surfNames.rubber;
+            chartObj.data.datasets[2].label = t.surfNames.ice;
+            chartObj.options.scales.x.title.text = t.chartX;
+            chartObj.options.scales.y.title.text = t.chartY;
+            chartObj.update();
+        }
+    }
+
+    function updateTableTranslations() {
+        const rows = document.querySelectorAll('#data-table tbody tr');
+        rows.forEach(row => {
+            const surfCode = row.getAttribute('data-surfcode');
+            if(surfCode) row.cells[1].innerText = dict[currentLang].surfNames[surfCode];
+        });
+    }
+
+    // --- PHYSICS & SIMULATION LOGIC ---
+    const MU_DICT = { wood: 0.30, rubber: 0.60, ice: 0.10 };
+    
+    const WEIGHT_BASE = 1.0; // Вес бруска (Н)
+    const WEIGHT_STEP = 1.0; // Вес одного грузика (Н)
+    
+    const BLOCK_START_X = 100;
+    const DYNAMO_REST_X = 250;
+    const PX_PER_N = 15; // 15 пикселей растяжения на 1 Н
+    const VELOCITY = 40; // Скорость движения бруска px/sec
+
+    let isRunning = false;
+    let animFrame;
+    let startTime;
+    
+    let currentWeight = 1.0;
+    let targetForce = 0;
+    let measuredForce = 0;
+    let currentSurface = 'wood';
+
+    // DOM Элементы
+    const blockGroup = document.getElementById('block-group');
+    const weightsGroup = document.getElementById('weights-group');
+    const dynamoGroup = document.getElementById('dynamo-group');
+    const pullString = document.getElementById('pull-string');
+    const dynamoText = document.getElementById('dynamo-text');
+    const pullArrow = document.getElementById('pull-arrow');
+    const surfaceRect = document.getElementById('surface-rect');
+
+    function updateSetup() {
+        if(isRunning) return;
+        
+        currentSurface = document.getElementById('surface-select').value;
+        const weightsCount = parseInt(document.getElementById('slider-weights').value);
+        
+        document.getElementById('val-weights').innerText = weightsCount;
+        
+        // Пересчет веса
+        currentWeight = WEIGHT_BASE + weightsCount * WEIGHT_STEP;
+        document.getElementById('meas-p').innerText = currentWeight.toFixed(2);
+        
+        // Смена текстуры поверхности
+        if (currentSurface === 'wood') surfaceRect.setAttribute('fill', 'url(#wood-pattern)');
+        else if (currentSurface === 'rubber') surfaceRect.setAttribute('fill', '#2c3e50'); // Темно-синий/серый для резины
+        else if (currentSurface === 'ice') surfaceRect.setAttribute('fill', '#d6eaf8'); // Светло-голубой для льда
+
+        // Отрисовка грузов (переработано для лучшего вида на бруске)
+        weightsGroup.innerHTML = '';
+        for(let i=0; i<weightsCount; i++) {
+            let wx = 10 + (i % 2) * 42;
+            let wy = 120 - Math.floor(i / 2) * 20;
+            let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", wx); rect.setAttribute("y", wy);
+            rect.setAttribute("width", "38"); rect.setAttribute("height", "20");
+            rect.setAttribute("fill", "#7f8c8d"); rect.setAttribute("stroke", "#2c3e50");
+            weightsGroup.appendChild(rect);
+        }
+
+        // Сброс позиций
+        blockGroup.setAttribute("transform", `translate(${BLOCK_START_X}, 0)`);
+        dynamoGroup.setAttribute("transform", `translate(${DYNAMO_REST_X}, 145)`);
+        pullString.setAttribute("x1", BLOCK_START_X + 115);
+        pullString.setAttribute("x2", DYNAMO_REST_X);
+        
+        dynamoText.textContent = "0.00 Н";
+        document.getElementById('meas-f').innerText = "0.00";
+        pullArrow.setAttribute("opacity", "0");
+        document.getElementById('meas-status').innerText = dict[currentLang].statReady;
+        document.getElementById('meas-status').style.color = "#ecf0f1";
+    }
+
+    function startSim() {
+        isRunning = true;
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('surface-select').disabled = true;
+        document.getElementById('slider-weights').disabled = true;
+        
+        targetForce = MU_DICT[currentSurface] * currentWeight;
+        
+        document.getElementById('meas-status').innerText = dict[currentLang].statPulling;
+        document.getElementById('meas-status').style.color = "#f1c40f";
+
+        pullArrow.setAttribute("opacity", "1");
+        
+        startTime = performance.now();
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function animate(now) {
+        let t = (now - startTime) / 1000; 
+
+        // Фаза 1: Натяжение (2 секунды)
+        if (t < 2.0) {
+            let currentF = (t / 2.0) * targetForce;
+            let stretch = currentF * PX_PER_N;
+            
+            dynamoGroup.setAttribute("transform", `translate(${DYNAMO_REST_X + stretch}, 145)`);
+            pullString.setAttribute("x2", DYNAMO_REST_X + stretch);
+            pullArrow.setAttribute("transform", `translate(${DYNAMO_REST_X + stretch + 140}, 160)`);
+            
+            dynamoText.textContent = currentF.toFixed(2) + " Н";
+            document.getElementById('meas-f').innerText = currentF.toFixed(2);
+        } 
+        // Фаза 2: Равномерное скольжение (3 секунды)
+        else if (t >= 2.0 && t < 5.0) {
+            if (t > 2.0 && t < 2.1) {
+                document.getElementById('meas-status').innerText = dict[currentLang].statMoving;
+                document.getElementById('meas-status').style.color = "#27ae60";
+            }
+            
+            measuredForce = parseFloat(targetForce.toFixed(2));
+            let stretch = targetForce * PX_PER_N;
+            let dist = VELOCITY * (t - 2.0); // Движение начинается после 2 сек
+
+            // Небольшой шум (колебания стрелки) для реалистичности
+            const noise = (Math.random() - 0.5) * 0.05;
+            let displayF = (targetForce + noise);
+            if (displayF < 0) displayF = 0;
+
+            dynamoText.textContent = displayF.toFixed(2) + " Н";
+            document.getElementById('meas-f').innerText = displayF.toFixed(2);
+
+            blockGroup.setAttribute("transform", `translate(${BLOCK_START_X + dist}, 0)`);
+            dynamoGroup.setAttribute("transform", `translate(${DYNAMO_REST_X + stretch + dist}, 145)`);
+            pullString.setAttribute("x1", BLOCK_START_X + 115 + dist);
+            pullString.setAttribute("x2", DYNAMO_REST_X + stretch + dist);
+            pullArrow.setAttribute("transform", `translate(${DYNAMO_REST_X + stretch + dist + 140}, 160)`);
+        } 
+        // Фаза 3: Окончание
+        else {
+            dynamoText.textContent = measuredForce.toFixed(2) + " Н";
+            document.getElementById('meas-f').innerText = measuredForce.toFixed(2);
+            finishSim();
+            return;
+        }
+
+        if (isRunning) animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishSim() {
+        isRunning = false;
+        pullArrow.setAttribute("opacity", "0");
+        document.getElementById('btn-reset').disabled = false;
+        document.getElementById('btn-record').disabled = false;
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('btn-reset').disabled = true;
+        document.getElementById('btn-record').disabled = true;
+        document.getElementById('surface-select').disabled = false;
+        document.getElementById('slider-weights').disabled = false;
+        updateSetup();
+    }
+
+    function recordData() {
+        document.getElementById('btn-record').disabled = true;
+        const surfName = dict[currentLang].surfNames[currentSurface];
+        
+        let muCalc = (measuredForce / currentWeight).toFixed(2);
+
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        row.setAttribute('data-surfcode', currentSurface);
+        
+        row.innerHTML = `
+            <td>${tbody.children.length + 1}</td>
+            <td>${surfName}</td>
+            <td>${currentWeight.toFixed(2)}</td>
+            <td>${measuredForce.toFixed(2)}</td>
+            <td><input type="text" class="calc-input mu-input" data-ans="${muCalc}"></td>
+        `;
+        tbody.appendChild(row);
+
+        // Добавление точки на график
+        let datasetIndex = 0;
+        if(currentSurface === 'wood') datasetIndex = 0;
+        else if(currentSurface === 'rubber') datasetIndex = 1;
+        else if(currentSurface === 'ice') datasetIndex = 2;
+
+        chartObj.data.datasets[datasetIndex].data.push({x: currentWeight, y: measuredForce});
+        chartObj.data.datasets[datasetIndex].data.sort((a, b) => a.x - b.x);
+        chartObj.update();
+
+        const wrapper = document.querySelector('.table-wrap');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        inputs.forEach(input => {
+            if(input.value.trim() === "") return;
+            
+            const userVal = parseFloat(input.value.replace(',', '.'));
+            const target = parseFloat(input.dataset.ans);
+            
+            if (!isNaN(userVal) && Math.abs(userVal - target) <= 0.03) {
+                input.classList.add('correct');
+                input.classList.remove('incorrect');
+            } else {
+                input.classList.add('incorrect');
+                input.classList.remove('correct');
+            }
+        });
+    }
+
+    // --- CHART INITIALIZATION ---
+    let chartObj = null;
+    function initChart() {
+        const ctx = document.getElementById('chart').getContext('2d');
+        chartObj = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: dict['ru'].surfNames.wood,
+                        data: [],
+                        borderColor: 'var(--fric-wood)', backgroundColor: 'var(--fric-wood)',
+                        borderWidth: 2, pointRadius: 5, showLine: true, fill: false, tension: 0
+                    },
+                    {
+                        label: dict['ru'].surfNames.rubber,
+                        data: [],
+                        borderColor: 'var(--fric-rubber)', backgroundColor: 'var(--fric-rubber)',
+                        borderWidth: 2, pointRadius: 5, showLine: true, fill: false, tension: 0
+                    },
+                    {
+                        label: dict['ru'].surfNames.ice,
+                        data: [],
+                        borderColor: 'var(--fric-ice)', backgroundColor: 'var(--fric-ice)',
+                        borderWidth: 2, pointRadius: 5, showLine: true, fill: false, tension: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: dict['ru'].chartX },
+                        min: 0, max: 5.5,
+                        ticks: { stepSize: 1 },
+                        grid: { color: '#e0e0e0' }
+                    },
+                    y: {
+                        title: { display: true, text: dict['ru'].chartY },
+                        min: 0, max: 3.5,
+                        ticks: { stepSize: 0.5 },
+                        grid: { color: '#e0e0e0' }
+                    }
+                },
+                plugins: {
+                    legend: { display: true, position: 'bottom' },
+                    title: { display: false }
+                }
+            }
+        });
+    }
+
+    // Инициализация при старте
+    initChart();
+    setLang('ru');
+    updateSetup();
+
+</script>
+</body>
+</html>

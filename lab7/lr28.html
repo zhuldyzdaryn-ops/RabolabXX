@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Условия равновесия рычага</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22; /* Цвет рычага */
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --weight: #f1c40f; /* Цвет латунных грузиков */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--accent);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- CONTROLS & BUTTONS --- */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            align-items: center;
+        }
+
+        .control-group { display: flex; flex-direction: column; align-items: center; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; text-align: center; }
+
+        .btn-group { display: flex; gap: 10px; width: 100%; justify-content: center; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 5px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+        .btn-reset { background: var(--danger); }
+        .btn-reset:hover { background: #c0392b; }
+        .btn-check { background: #2980b9; margin-top: 10px; max-width: 300px; align-self: center; }
+        .btn-check:hover { background: #1f618d; }
+
+        /* --- DISPLAY BOARD --- */
+        .display-board {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-direction: column;
+        }
+        .display-board span { font-size: 0.9rem; color: #bdc3c7; margin-bottom: 5px; }
+        .display-board strong { font-size: 1.4rem; font-family: monospace; letter-spacing: 1px; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 70px; padding: 4px; text-align: center; border: 1px solid var(--border);
+            border-radius: 4px; font-weight: bold; color: var(--primary); outline: none;
+        }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        .sim-area {
+            position: relative;
+            background: radial-gradient(circle at center, #ffffff, #eef2f3);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+        }
+
+        .lab-setup {
+            position: relative;
+            width: 800px;
+            height: 400px;
+        }
+
+        /* Stand */
+        .stand-base {
+            position: absolute;
+            bottom: 50px; left: 50%; transform: translateX(-50%);
+            width: 200px; height: 20px; background: #555; border-radius: 4px;
+        }
+        .stand-pole {
+            position: absolute;
+            bottom: 70px; left: 50%; transform: translateX(-50%);
+            width: 15px; height: 250px; background: linear-gradient(90deg, #777, #999, #777);
+        }
+        .stand-joint {
+            position: absolute;
+            bottom: 300px; left: 50%; transform: translateX(-50%);
+            width: 20px; height: 20px; background: #333; border-radius: 50%;
+            z-index: 5;
+        }
+
+        /* Beam */
+        .beam-container {
+            position: absolute;
+            bottom: 310px; /* Pivots at the joint */
+            left: 50%;
+            width: 700px;
+            height: 40px;
+            margin-left: -350px;
+            transform-origin: center center;
+            transition: transform 1s cubic-bezier(0.2, 1, 0.3, 1);
+        }
+
+        .beam {
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(to bottom, #d35400, #a04000);
+            position: absolute;
+            top: 15px;
+            border-radius: 5px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+
+        /* Ruler Marks */
+        .mark {
+            position: absolute;
+            top: 0; width: 1px; height: 100%; background: rgba(255,255,255,0.5);
+        }
+        .mark-label {
+            position: absolute;
+            top: -20px; font-size: 10px; font-weight: bold; color: #333;
+            transform: translateX(-50%); pointer-events: none;
+        }
+        
+        /* Hooks/Positions */
+        .hook-zone {
+            position: absolute;
+            top: 25px; /* Below beam */
+            width: 20px; height: 100px; /* Drop zone */
+            transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* Weights Styling */
+        .weight-source {
+            display: flex; justify-content: center; padding: 15px;
+            border: 2px dashed #bdc3c7; border-radius: 5px; background: #fff;
+            margin-top: 5px; width: 120px;
+        }
+
+        .weight-obj, .hanging-weight {
+            width: 30px; height: 40px;
+            background: linear-gradient(to right, #f1c40f, #f39c12, #f1c40f);
+            border: 1px solid #b7950b;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: #5d4037;
+            position: relative; box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .weight-obj {
+            border-radius: 3px 3px 10px 10px; cursor: grab;
+        }
+        .weight-obj::before {
+            content: ''; position: absolute; top: -5px; left: 10px;
+            width: 10px; height: 5px; border: 2px solid #b7950b;
+            border-bottom: none; border-radius: 5px 5px 0 0;
+        }
+
+        .hanging-weight {
+            border-radius: 3px; margin-top: -5px;
+            font-size: 9px; z-index: 10; cursor: pointer;
+        }
+        .hanging-weight::before {
+            content: ''; position: absolute; top: -8px; left: 10px;
+            width: 8px; height: 8px; border: 2px solid #555; border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Определение условия равновесия рычага</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Intro / Theory -->
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Условия равновесия рычага</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Научиться экспериментально определять условия равновесия рычага (правило моментов).</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Перетащите грузы (массой по 100г) на левую и правую части рычага.</li>
+            <li>Добейтесь горизонтального равновесия рычага.</li>
+            <li>Запишите значения массы и плеча (расстояния от оси) в таблицу.</li>
+            <li>Рассчитайте силы (F = mg) и моменты (M = F · l), затем проверьте свои вычисления.</li>
+        </ul>
+    </div>
+
+    <!-- Main Panel: Simulation -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <div class="lab-setup">
+                <div class="stand-base"></div>
+                <div class="stand-pole"></div>
+                <div class="stand-joint"></div>
+
+                <div class="beam-container" id="beamContainer">
+                    <div class="beam" id="beam"></div>
+                    <!-- Ruler marks will be generated here by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-equip">Оборудование: Груз <br>(перетащите на рычаг)</label>
+                <div class="weight-source">
+                    <div class="weight-obj" draggable="true" id="sourceWeight">100г</div>
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="btn-group">
+                    <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Снять все грузы</button>
+                </div>
+                <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 15px; text-align: center;">
+                    <strong id="lbl-const">Константы:</strong><br>
+                    g &approx; 9.8 м/с&sup2;<br>
+                    m = 100 г = 0.1 кг
+                </div>
+            </div>
+        </div>
+
+        <div class="display-board">
+            <span id="lbl-status">Состояние системы:</span>
+            <strong id="balanceStatus" style="color: var(--success);">РАВНОВЕСИЕ</strong>
+        </div>
+    </div>
+
+    <!-- Bottom Panel: Data Table -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-table">Таблица результатов</h2>
+        <div class="table-wrap">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th id="th-left" colspan="4" style="border-bottom: 2px solid var(--border);">Слева от оси</th>
+                        <th id="th-right" colspan="4" style="border-bottom: 2px solid var(--border);">Справа от оси</th>
+                    </tr>
+                    <tr>
+                        <th id="th-m1">Масса<br>m1, г</th>
+                        <th id="th-l1">Плечо<br>l1, см</th>
+                        <th id="th-f1">Сила<br>F1, Н</th>
+                        <th id="th-mom1">Момент<br>M1, Н·м</th>
+                        <th id="th-m2">Масса<br>m2, г</th>
+                        <th id="th-l2">Плечо<br>l2, см</th>
+                        <th id="th-f2">Сила<br>F2, Н</th>
+                        <th id="th-mom2">Момент<br>M2, Н·м</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="row1">
+                        <td><input type="number" id="r1_m1" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r1_l1" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r1_f1" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r1_mom1" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r1_m2" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r1_l2" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r1_f2" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r1_mom2" class="calc-input" placeholder="0.0" step="0.01"></td>
+                    </tr>
+                    <tr id="row2">
+                        <td><input type="number" id="r2_m1" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r2_l1" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r2_f1" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r2_mom1" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r2_m2" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r2_l2" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r2_f2" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r2_mom2" class="calc-input" placeholder="0.0" step="0.01"></td>
+                    </tr>
+                    <tr id="row3">
+                        <td><input type="number" id="r3_m1" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r3_l1" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r3_f1" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r3_mom1" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r3_m2" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r3_l2" class="calc-input" placeholder="0"></td>
+                        <td><input type="number" id="r3_f2" class="calc-input" placeholder="0.0" step="0.01"></td>
+                        <td><input type="number" id="r3_mom2" class="calc-input" placeholder="0.0" step="0.01"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <button class="btn btn-check" id="btn-check" onclick="checkResults()">Проверить вычисления</button>
+
+        <p id="hints-box" style="font-size:0.85rem; color:#7f8c8d; margin-top: 15px; border-top: 1px solid #ecf0f1; padding-top: 10px;">
+            <strong>Указания по расчету:</strong><br>
+            1. Формула силы: <b>F = m · g</b> (массу необходимо перевести в килограммы).<br>
+            2. Формула момента силы: <b>M = F · l</b> (плечо "l" в таблице дано в сантиметрах, а для формулы момента его нужно перевести в метры!).
+        </p>
+    </div>
+</div>
+
+<script>
+    // === ЛОКАЛИЗАЦИЯ ===
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Условия равновесия рычага",
+            themeLbl: "Тема:",
+            themeTxt: "Условия равновесия рычага",
+            goalLbl: "Цель работы:",
+            goalTxt: "Научиться экспериментально определять условия равновесия рычага (правило моментов).",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `Рычаг находится в равновесии, если момент силы, вращающей его по часовой стрелке, равен моменту силы, вращающей его против часовой стрелки: <b>M<sub>1</sub> = M<sub>2</sub></b>.<br>Момент силы равен произведению силы на её плечо: <b>M = F &middot; l</b>.`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Перетащите грузы (массой по 100г) на левую и правую части рычага.",
+                "Добейтесь горизонтального равновесия рычага.",
+                "Запишите значения массы и плеча (расстояния от оси) в таблицу.",
+                "Рассчитайте силы (F = mg) и моменты (M = F · l), затем проверьте свои вычисления."
+            ],
+            sim: "Симуляция эксперимента",
+            equipTitle: "Оборудование: Груз <br>(перетащите на рычаг)",
+            btnReset: "Снять все грузы",
+            constTxt: "<strong>Константы:</strong><br>g &approx; 9.8 м/с&sup2;<br>m = 100 г = 0.1 кг",
+            statLbl: "Состояние системы:",
+            bal: "РАВНОВЕСИЕ",
+            leftOver: "ПЕРЕВЕС СЛЕВА",
+            rightOver: "ПЕРЕВЕС СПРАВА",
+            tableTitle: "Таблица результатов",
+            thLeft: "Слева от оси", thRight: "Справа от оси",
+            thM1: "Масса<br>m1, г", thL1: "Плечо<br>l1, см", thF1: "Сила<br>F1, Н", thMom1: "Момент<br>M1, Н·м",
+            thM2: "Масса<br>m2, г", thL2: "Плечо<br>l2, см", thF2: "Сила<br>F2, Н", thMom2: "Момент<br>M2, Н·м",
+            btnCheck: "Проверить вычисления",
+            hints: `<strong>Указания по расчету:</strong><br>
+                    1. Формула силы: <b>F = m · g</b> (массу необходимо перевести в килограммы).<br>
+                    2. Формула момента силы: <b>M = F · l</b> (плечо "l" в таблице дано в сантиметрах, а для формулы момента его нужно перевести в метры!).`,
+            weightUnit: "г"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Иіндіктің тепе-теңдік шарттары",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Иіндіктің тепе-теңдік шарттары",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Иіндіктің тепе-теңдік шарттарын (моменттер ережесін) тәжірибе жүзінде анықтауды үйрену.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Иіндікті сағат тілімен айналдыратын күш моменті оны сағат тіліне қарсы айналдыратын күш моментіне тең болса, иіндік тепе-теңдікте болады: <b>M<sub>1</sub> = M<sub>2</sub></b>.<br>Күш моменті күштің оның иініне көбейтіндісіне тең: <b>M = F &middot; l</b>.`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Жүктерді (әрқайсысы 100г) иіндіктің сол және оң жақтарына сүйреңіз.",
+                "Иіндіктің көлденең тепе-теңдігіне қол жеткізіңіз.",
+                "Масса мен иіннің (осьтен қашықтық) мәндерін кестеге жазыңыз.",
+                "Күштерді (F = mg) және моменттерді (M = F · l) есептеп, өз есептеулеріңізді тексеріңіз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            equipTitle: "Құрал-жабдық: Жүк <br>(иіндікке сүйреңіз)",
+            btnReset: "Барлық жүктерді алу",
+            constTxt: "<strong>Тұрақтылар:</strong><br>g &approx; 9.8 м/с&sup2;<br>m = 100 г = 0.1 кг",
+            statLbl: "Жүйе күйі:",
+            bal: "ТЕПЕ-ТЕҢДІК",
+            leftOver: "СОЛ ЖАҚ БАСЫМ",
+            rightOver: "ОҢ ЖАҚ БАСЫМ",
+            tableTitle: "Нәтижелер кестесі",
+            thLeft: "Осьтің сол жағы", thRight: "Осьтің оң жағы",
+            thM1: "Масса<br>m1, г", thL1: "Иін<br>l1, см", thF1: "Күш<br>F1, Н", thMom1: "Момент<br>M1, Н·м",
+            thM2: "Масса<br>m2, г", thL2: "Иін<br>l2, см", thF2: "Күш<br>F2, Н", thMom2: "Момент<br>M2, Н·м",
+            btnCheck: "Есептеулерді тексеру",
+            hints: `<strong>Есептеу нұсқаулары:</strong><br>
+                    1. Күш формуласы: <b>F = m · g</b> (массаны килограммға айналдыру қажет).<br>
+                    2. Күш моментінің формуласы: <b>M = F · l</b> ("l" иіні кестеде сантиметрмен берілген, ал момент формуласы үшін оны метрге айналдыру қажет!).`,
+            weightUnit: "г"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        const t = dict[lang];
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => {
+            let li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-equip').innerHTML = t.equipTitle;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('lbl-const').parentElement.innerHTML = t.constTxt;
+        
+        document.getElementById('lbl-status').innerText = t.statLbl;
+        calcPhysics(); // Update balance status text dynamically
+        
+        document.getElementById('lbl-table').innerText = t.tableTitle;
+        document.getElementById('th-left').innerText = t.thLeft;
+        document.getElementById('th-right').innerText = t.thRight;
+        document.getElementById('th-m1').innerHTML = t.thM1;
+        document.getElementById('th-l1').innerHTML = t.thL1;
+        document.getElementById('th-f1').innerHTML = t.thF1;
+        document.getElementById('th-mom1').innerHTML = t.thMom1;
+        document.getElementById('th-m2').innerHTML = t.thM2;
+        document.getElementById('th-l2').innerHTML = t.thL2;
+        document.getElementById('th-f2').innerHTML = t.thF2;
+        document.getElementById('th-mom2').innerHTML = t.thMom2;
+        
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        document.getElementById('hints-box').innerHTML = t.hints;
+        
+        renderWeights(); // Update "100г" labels
+    }
+
+    // === CONFIG ===
+    const G_CONST = 9.8;
+    const WEIGHT_MASS_G = 100; 
+    const RULER_MAX_CM = 30; 
+    const PX_PER_CM = 10; 
+
+    // State array for weights
+    let weights = []; 
+    let dragSrc = null;
+
+    // === INIT ===
+    function init() {
+        createRuler();
+        setupDrag();
+        calcPhysics();
+        setLang('ru');
+    }
+
+    function createRuler() {
+        const container = document.getElementById('beamContainer');
+        const centerPx = 350; // container is 700px wide
+
+        for(let i = -30; i <= 30; i+=2) { 
+            if (i === 0) continue;
+            
+            const leftPos = centerPx + (i * PX_PER_CM);
+            
+            // Mark
+            const mark = document.createElement('div');
+            mark.className = 'mark';
+            mark.style.left = leftPos + 'px';
+            mark.style.height = (i % 10 === 0) ? '100%' : '50%';
+            mark.style.top = (i % 10 === 0) ? '0' : '5px';
+            container.appendChild(mark);
+
+            // Label
+            if(Math.abs(i) % 10 === 0) {
+                const lbl = document.createElement('div');
+                lbl.className = 'mark-label';
+                lbl.innerText = Math.abs(i);
+                lbl.style.left = leftPos + 'px';
+                container.appendChild(lbl);
+            }
+
+            // Drop Zone
+            const zone = document.createElement('div');
+            zone.className = 'hook-zone';
+            zone.style.left = leftPos + 'px';
+            zone.dataset.pos = i;
+            zone.id = `zone_${i}`;
+            container.appendChild(zone);
+        }
+    }
+
+    function setupDrag() {
+        const src = document.getElementById('sourceWeight');
+        src.addEventListener('dragstart', (e) => {
+            dragSrc = { type: 'new' };
+        });
+    }
+
+    function allowDrop(ev) { ev.preventDefault(); }
+
+    function drop(ev) {
+        ev.preventDefault();
+        
+        const beamRect = document.getElementById('beamContainer').getBoundingClientRect();
+        let target = ev.target;
+        
+        while(target && !target.classList.contains('hook-zone') && !target.classList.contains('sim-area')) {
+            target = target.parentElement;
+        }
+
+        if (target && target.classList.contains('hook-zone')) {
+            const pos = parseInt(target.dataset.pos);
+            addWeight(pos);
+        } else {
+            // Fallback coordinate mapping
+            const relX = ev.clientX - beamRect.left;
+            const center = beamRect.width / 2;
+            const cmRaw = (relX - center) / PX_PER_CM;
+            const cm = Math.round(cmRaw / 2) * 2; // snap to 2cm marks
+            if(cm !== 0 && Math.abs(cm) <= 30) {
+                addWeight(cm);
+            }
+        }
+    }
+
+    function addWeight(pos) {
+        const existing = weights.filter(w => w.pos === pos).length;
+        const newW = { id: Date.now(), mass: WEIGHT_MASS_G, pos: pos, stackIndex: existing };
+        weights.push(newW);
+        renderWeights();
+        calcPhysics();
+    }
+
+    function removeWeight(id) {
+        weights = weights.filter(w => w.id !== id);
+        renderWeights();
+        calcPhysics();
+    }
+
+    function renderWeights() {
+        document.querySelectorAll('.hanging-weight').forEach(el => el.remove());
+        const stacks = {}; 
+        const unitLabel = dict[currentLang].weightUnit;
+
+        weights.forEach(w => {
+            if (stacks[w.pos] === undefined) stacks[w.pos] = 0;
+            const zone = document.getElementById(`zone_${w.pos}`);
+            if(zone) {
+                const div = document.createElement('div');
+                div.className = 'hanging-weight';
+                div.innerText = '100' + unitLabel;
+                div.onclick = (e) => {
+                    e.stopPropagation();
+                    removeWeight(w.id);
+                };
+                zone.appendChild(div);
+            }
+            stacks[w.pos]++;
+        });
+    }
+
+    function calcPhysics() {
+        let mLeft = 0; 
+        let mRight = 0;
+
+        weights.forEach(w => {
+            const massKg = w.mass / 1000;
+            const force = massKg * G_CONST;
+            const distM = Math.abs(w.pos) / 100;
+            const moment = force * distM;
+
+            if (w.pos < 0) mLeft += moment;
+            else mRight += moment;
+        });
+
+        const beam = document.getElementById('beamContainer');
+        const status = document.getElementById('balanceStatus');
+        const t = dict[currentLang];
+        const diff = mRight - mLeft;
+        
+        if (Math.abs(diff) < 0.0001) {
+            beam.style.transform = 'rotate(0deg)';
+            status.innerText = t.bal;
+            status.style.color = "var(--success)";
+        } else if (diff > 0) {
+            beam.style.transform = 'rotate(15deg)';
+            status.innerText = t.rightOver;
+            status.style.color = "var(--danger)";
+        } else {
+            beam.style.transform = 'rotate(-15deg)';
+            status.innerText = t.leftOver;
+            status.style.color = "var(--danger)";
+        }
+    }
+
+    function resetSim() {
+        weights = [];
+        renderWeights();
+        calcPhysics();
+    }
+
+    function checkResults() {
+        for(let i=1; i<=3; i++) validateRow(i);
+    }
+
+    function validateRow(rowNum) {
+        const getVal = (id) => parseFloat(document.getElementById(id).value);
+        
+        const m1 = getVal(`r${rowNum}_m1`);
+        const l1 = getVal(`r${rowNum}_l1`);
+        const f1 = getVal(`r${rowNum}_f1`);
+        const mom1 = getVal(`r${rowNum}_mom1`);
+
+        const m2 = getVal(`r${rowNum}_m2`);
+        const l2 = getVal(`r${rowNum}_l2`);
+        const f2 = getVal(`r${rowNum}_f2`);
+        const mom2 = getVal(`r${rowNum}_mom2`);
+
+        if(isNaN(m1)) return; // skip empty rows
+
+        // Calculations
+        const f1_exp = (m1 / 1000) * G_CONST;
+        const f2_exp = (m2 / 1000) * G_CONST;
+        const mom1_exp = f1_exp * (l1 / 100);
+        const mom2_exp = f2_exp * (l2 / 100);
+
+        const check = (id, val, expected) => {
+            const el = document.getElementById(id);
+            const diff = Math.abs(val - expected);
+            // Allow 5% error margin or 0.1 abs error for tolerance
+            if (diff <= 0.1 || (expected !== 0 && diff/expected <= 0.05)) {
+                el.classList.add('correct');
+                el.classList.remove('incorrect');
+            } else {
+                el.classList.add('incorrect');
+                el.classList.remove('correct');
+            }
+        };
+
+        check(`r${rowNum}_f1`, f1, f1_exp);
+        check(`r${rowNum}_f2`, f2, f2_exp);
+        check(`r${rowNum}_mom1`, mom1, mom1_exp);
+        check(`r${rowNum}_mom2`, mom2, mom2_exp);
+    }
+
+    // Start App
+    window.onload = init;
+
+</script>
+</body>
+</html>

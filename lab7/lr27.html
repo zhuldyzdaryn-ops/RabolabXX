@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Плавание тел</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --fric-stat: #e74c3c;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --warning: #e67e22;
+            --water: rgba(52, 152, 219, 0.45);
+            --sand: #f39c12;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--accent);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: radial-gradient(circle at center, #ffffff, #eef2f3);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 350px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* SVG Elements */
+        .scale-base { fill: #7f8c8d; }
+        .scale-plate { fill: #34495e; transition: transform 0.2s; }
+        .scale-screen { fill: #2c3e50; }
+        .scale-text { fill: #f1c40f; font-family: monospace; font-size: 16px; font-weight: bold; }
+        
+        .beaker { fill: rgba(255,255,255,0.5); stroke: #bdc3c7; stroke-width: 3; }
+        .liquid { fill: var(--water); transition: height 0.5s ease-out, y 0.5s ease-out; }
+        .grad-line { stroke: #555; stroke-width: 1; }
+        .grad-text { fill: #555; font-size: 10px; font-family: sans-serif; }
+
+        .tube { fill: rgba(255, 255, 255, 0.7); stroke: #555; stroke-width: 2; transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); }
+        .cork { fill: #c0392b; }
+        .sand { fill: var(--sand); transition: height 0.2s, y 0.2s; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group { display: flex; gap: 10px; }
+        .btn {
+            flex: 1; padding: 10px; border: none; border-radius: 5px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-scale { background: #e67e22; }
+        .btn-scale:hover:not(:disabled) { background: #d35400; }
+        .btn-water { background: #3498db; }
+        .btn-water:hover:not(:disabled) { background: #2980b9; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-check { background: var(--warning); margin-top: 10px; width: 250px; }
+        .btn-check:hover:not(:disabled) { background: #d68910; }
+
+        .warn-text {
+            color: #e74c3c;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-top: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        /* --- DISPLAYS --- */
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .display-item { text-align: center; flex: 1; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; }
+        .display-item strong { font-size: 1.2rem; font-family: monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; max-height: 300px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 70px; padding: 4px; text-align: center; border: 1px solid var(--border);
+            border-radius: 4px; font-weight: bold; color: var(--primary); outline: none;
+        }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+        
+        .res-float { color: #27ae60; font-weight: bold; }
+        .res-sink { color: #c0392b; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Выяснение условий плавания тела</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- TOP PANEL: Intro -->
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Выяснение условий плавания тела в жидкости</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">На опыте выяснить условия, при которых тело плавает и при которых тонет.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Измените массу пробирки, добавляя или убирая песок.</li>
+            <li>Поместите пробирку на весы и определите действующую на нее силу тяжести (F<sub>тяж</sub> = mg).</li>
+            <li>Погрузите пробирку в мензурку с водой и определите силу Архимеда по вытесненному объему.</li>
+            <li>Сравните силы и занесите данные в таблицу, сделав вывод (тонет или плавает).</li>
+        </ul>
+    </div>
+
+    <!-- MAIN PANEL: Simulation -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg id="scene" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+                
+                <!-- ВЕСЫ -->
+                <g id="scale-group" transform="translate(150, 200)">
+                    <rect x="-60" y="80" width="120" height="30" rx="5" class="scale-base"/>
+                    <rect x="-40" y="85" width="80" height="20" rx="3" class="scale-screen"/>
+                    <text id="svg-scale-text" x="0" y="100" class="scale-text" text-anchor="middle">0.0 г</text>
+                    <rect x="-5" y="40" width="10" height="40" class="scale-base"/>
+                    <rect id="svg-plate" x="-50" y="30" width="100" height="10" rx="2" class="scale-plate"/>
+                </g>
+
+                <!-- МЕНЗУРКА -->
+                <g id="beaker-group" transform="translate(550, 100)">
+                    <!-- Вода -->
+                    <rect id="svg-liquid" x="-60" y="100" width="120" height="100" class="liquid" />
+                    <!-- Контур мензурки -->
+                    <path d="M -60 0 L -60 200 C -60 210 -50 210 -40 210 L 40 210 C 50 210 60 210 60 200 L 60 0 Z" fill="none" class="beaker" />
+                    <!-- Деления (каждые 20мл, 200мл макс = 200px высота) -->
+                    <g id="graduations">
+                        <!-- Сгенерируем через JS -->
+                    </g>
+                </g>
+
+                <!-- ПРОБИРКА С ПЕСКОМ -->
+                <g id="svg-tube" class="tube" style="transform: translate(350px, 50px);">
+                    <path d="M -15 0 L -15 80 C -15 95 15 95 15 80 L 15 0 Z" fill="rgba(255, 255, 255, 0.7)" />
+                    <rect id="svg-sand" x="-13" y="60" width="26" height="25" class="sand" />
+                    <path d="M -15 0 L -15 80 C -15 95 15 95 15 80 L 15 0 Z" fill="none" stroke="#555" stroke-width="2" />
+                    <rect x="-12" y="-5" width="24" height="10" rx="2" class="cork" />
+                </g>
+
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-sand">Масса песка: <span id="val-sand" style="color:var(--accent)">10 г</span> (Общая: <span id="val-total-mass">20 г</span>)</label>
+                <input type="range" id="sand-slider" min="0" max="40" value="10" step="1" oninput="updateSim()">
+            </div>
+            <div class="control-group" style="justify-content: flex-end;">
+                <div class="btn-group">
+                    <button class="btn btn-scale" id="btn-scale" onclick="moveToScale()">1. На весы</button>
+                    <button class="btn btn-water" id="btn-water" onclick="moveToWater()">2. В воду</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-fg">Сила тяжести Fтяж (Н)</span>
+                <strong id="meas-fg">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-fa">Сила Архимеда FA (Н)</span>
+                <strong id="meas-fa">0.00</strong>
+            </div>
+            <div class="display-item" style="flex: 2;">
+                <span id="disp-status">Статус / Вывод</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1rem; margin-top: 5px;">Пробирка в воздухе</strong>
+            </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="btn-group" style="width: 100%;">
+                <button class="btn btn-record" id="btn-record" onclick="recordData()">Записать в таблицу</button>
+            </div>
+            <div id="warn-msg" class="warn-text">Пожалуйста, сначала погрузите тело в воду!</div>
+        </div>
+    </div>
+
+    <!-- BOTTOM PANEL: Data & Theory -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+        <div class="table-wrap">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th id="th-v1">V₁ (мл)</th>
+                        <th id="th-v2">V₂ (мл)</th>
+                        <th id="th-m">m (г)</th>
+                        <th id="th-fg">F<sub>тяж</sub> (Н)</th>
+                        <th id="th-fa">F<sub>A</sub> (расчет)</th>
+                        <th id="th-res">Итог</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Данные будут здесь -->
+                </tbody>
+            </table>
+        </div>
+        <button class="btn btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты FA</button>
+
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формула для расчета:</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ТЕКСТЫ И ФОРМУЛЫ ---
+    const formulaFA = `F<sub>A</sub> = &rho;<sub>ж</sub> &middot; g &middot; (V<sub>2</sub> - V<sub>1</sub>) / 1 000 000`;
+
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Выяснение условий плавания тела",
+            themeLbl: "Тема:",
+            themeTxt: "Выяснение условий плавания тела в жидкости",
+            goalLbl: "Цель работы:",
+            goalTxt: "На опыте выяснить условия, при которых тело плавает и при которых тонет.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `На тело, погруженное в жидкость, действуют две силы: сила тяжести (вниз) и выталкивающая сила Архимеда (вверх).<br>
+                        Если <b>F<sub>тяж</sub> > F<sub>A</sub></b>, тело тонет.<br>
+                        Если <b>F<sub>тяж</sub> = F<sub>A</sub></b>, тело плавает внутри жидкости или на поверхности.<br>
+                        Если <b>F<sub>тяж</sub> < F<sub>A</sub></b>, тело всплывает.`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Измените массу пробирки, добавляя или убирая песок ползунком.",
+                "Поместите пробирку на весы («1. На весы») и определите силу тяжести (F<sub>тяж</sub> = mg).",
+                "Погрузите пробирку в мензурку с водой («2. В воду») и определите силу Архимеда по вытесненному объему.",
+                "Занесите данные в таблицу, сделайте расчеты и проверьте вывод (тонет или плавает)."
+            ],
+            sim: "Симуляция эксперимента",
+            lblSand: "Масса песка: ",
+            massPrefix: "г (Общая: ",
+            btnScale: "1. На весы",
+            btnWater: "2. В воду",
+            dispFg: "Сила тяжести Fтяж (Н)",
+            dispFa: "Сила Архимеда FA (Н)",
+            dispStatus: "Статус / Вывод",
+            btnRecord: "Записать в таблицу",
+            btnCheck: "Проверить расчеты FA",
+            warnTxt: "Сначала выполните погружение пробирки в воду!",
+            journal: "Таблица измерений",
+            thV1: "V₁ (мл)", thV2: "V₂ (мл)", thM: "m (г)", thFg: "F<sub>тяж</sub> (Н)", thFa: "F<sub>A</sub> (расчет)", thRes: "Итог",
+            theoryTitle: "Формула для расчета (выполняет ученик, V в мл):",
+            theoryFormulas: formulaFA,
+            
+            statAir: "Пробирка в воздухе",
+            statScale: "Взвешивание...",
+            statFloat: "Тело плавает (Fтяж = FA)",
+            statSink: "Тело тонет (Fтяж > FA)",
+            resFloat: "Плавает", resSink: "Тонет"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Денелердің жүзу шарттары",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Денелердің сұйықтықта жүзу шарттарын анықтау",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Тәжірибе жүзінде дененің жүзу және бату шарттарын анықтау.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Сұйыққа батырылған денеге екі күш әсер етеді: ауырлық күші (төмен) және Архимедтің ығыстырушы күші (жоғары).<br>
+                        Егер <b>F<sub>ауыр</sub> > F<sub>A</sub></b> болса, дене батады.<br>
+                        Егер <b>F<sub>ауыр</sub> = F<sub>A</sub></b> болса, дене сұйық ішінде немесе бетінде жүзеді.<br>
+                        Егер <b>F<sub>ауыр</sub> < F<sub>A</sub></b> болса, дене қалқып шығады.`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Жүгіртпе арқылы құм қосып немесе алып, сынауықтың массасын өзгертіңіз.",
+                "Сынауықты таразыға қойып («1. Таразыға»), ауырлық күшін анықтаңыз (F<sub>ауыр</sub> = mg).",
+                "Сынауықты суы бар мензуркаға батырып («2. Суға»), ығыстырылған көлем бойынша Архимед күшін анықтаңыз.",
+                "Деректерді кестеге енгізіп, есептеулер жүргізіңіз және қорытындыны тексеріңіз (батады немесе жүзеді)."
+            ],
+            sim: "Эксперимент симуляциясы",
+            lblSand: "Құм массасы: ",
+            massPrefix: "г (Жалпы: ",
+            btnScale: "1. Таразыға",
+            btnWater: "2. Суға",
+            dispFg: "Ауырлық күші Fауыр (Н)",
+            dispFa: "Архимед күші FA (Н)",
+            dispStatus: "Статус / Қорытынды",
+            btnRecord: "Кестеге жазу",
+            btnCheck: "FA есептеулерін тексеру",
+            warnTxt: "Алдымен сынауықты суға батырыңыз!",
+            journal: "Өлшеулер кестесі",
+            thV1: "V₁ (мл)", thV2: "V₂ (мл)", thM: "m (г)", thFg: "F<sub>ауыр</sub> (Н)", thFa: "F<sub>A</sub> (есептеу)", thRes: "Қорытынды",
+            theoryTitle: "Есептеу формуласы (оқушы орындайды, V мл-мен):",
+            theoryFormulas: formulaFA.replace("ж", "с"),
+            
+            statAir: "Сынауық ауада",
+            statScale: "Өлшеу...",
+            statFloat: "Дене жүзеді (Fауыр = FA)",
+            statSink: "Дене батады (Fауыр > FA)",
+            resFloat: "Жүзеді", resSink: "Батады"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        const t = dict[lang];
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => {
+            let li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-sand').childNodes[0].nodeValue = t.lblSand;
+        
+        document.getElementById('btn-scale').innerText = t.btnScale;
+        document.getElementById('btn-water').innerText = t.btnWater;
+        
+        document.getElementById('disp-fg').innerText = t.dispFg;
+        document.getElementById('disp-fa').innerText = t.dispFa;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        document.getElementById('warn-msg').innerText = t.warnTxt;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-v1').innerHTML = t.thV1;
+        document.getElementById('th-v2').innerHTML = t.thV2;
+        document.getElementById('th-m').innerHTML = t.thM;
+        document.getElementById('th-fg').innerHTML = t.thFg;
+        document.getElementById('th-fa').innerHTML = t.thFa;
+        document.getElementById('th-res').innerHTML = t.thRes;
+        
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = t.theoryFormulas;
+        
+        updateSimText(); 
+        translateTable();
+    }
+
+    function translateTable() {
+        const rows = document.querySelectorAll('#data-table tbody tr');
+        rows.forEach(row => {
+            const isFloat = row.getAttribute('data-status') === 'float';
+            row.cells[6].innerText = isFloat ? dict[currentLang].resFloat : dict[currentLang].resSink;
+        });
+    }
+
+    // --- ФИЗИЧЕСКИЕ КОНСТАНТЫ ---
+    const G = 9.8; 
+    const RHO_WATER = 1000; // кг/м³
+    const TUBE_EMPTY_MASS = 10; // г
+    const TUBE_MAX_VOL = 40; // мл (см³)
+    const TUBE_HEIGHT_PX = 80; // высота пробирки в SVG
+    const V1 = 100; // начальный объем воды в мензурке (мл)
+    const ML_TO_PX = 1.0; // масштаб: 1 мл = 1 px высоты в SVG мензурке
+
+    let locationState = 'air'; // air, scale, water
+    let currentSandMass = 10;
+    let totalMass = 20; // г
+    let v2 = 100; // конечный объем
+    
+    // Элементы
+    const els = {
+        slider: document.getElementById('sand-slider'),
+        valSand: document.getElementById('val-sand'),
+        valTotal: document.getElementById('val-total-mass'),
+        tube: document.getElementById('svg-tube'),
+        sand: document.getElementById('svg-sand'),
+        scalePlate: document.getElementById('svg-plate'),
+        scaleText: document.getElementById('svg-scale-text'),
+        liquid: document.getElementById('svg-liquid'),
+        measFg: document.getElementById('meas-fg'),
+        measFa: document.getElementById('meas-fa'),
+        measStat: document.getElementById('meas-status'),
+        btnRec: document.getElementById('btn-record'),
+        warnMsg: document.getElementById('warn-msg')
+    };
+
+    // Отрисовка делений мензурки
+    function drawGraduations() {
+        const g = document.getElementById('graduations');
+        // Мензурка от 0 до 200, 200px высота (каждый мл = 1px)
+        for(let i = 0; i <= 200; i += 20) {
+            const y = 200 - i; // SVG координаты (0 наверху)
+            let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", "50"); line.setAttribute("y1", y);
+            line.setAttribute("x2", "60"); line.setAttribute("y2", y);
+            line.setAttribute("class", "grad-line");
+            g.appendChild(line);
+            
+            if(i % 40 === 0 && i > 0) {
+                let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", "65"); text.setAttribute("y", y + 4);
+                text.setAttribute("class", "grad-text");
+                text.textContent = i;
+                g.appendChild(text);
+            }
+        }
+    }
+
+    function updateSim() {
+        if(locationState !== 'air') resetToAir();
+
+        currentSandMass = parseInt(els.slider.value);
+        totalMass = TUBE_EMPTY_MASS + currentSandMass;
+        
+        els.valSand.innerText = currentSandMass + " г";
+        els.valTotal.innerText = totalMass + " г";
+        
+        // Высота песка в пробирке (max 65px)
+        const sandH = (currentSandMass / 40) * 65;
+        els.sand.setAttribute('height', sandH);
+        els.sand.setAttribute('y', 85 - sandH);
+
+        updateSimText();
+    }
+
+    function resetToAir() {
+        locationState = 'air';
+        els.tube.style.transform = `translate(350px, 50px)`;
+        els.scalePlate.style.transform = 'translateY(0)';
+        els.liquid.setAttribute('height', V1 * ML_TO_PX);
+        els.liquid.setAttribute('y', 200 - (V1 * ML_TO_PX));
+        v2 = V1;
+        updateSimText();
+    }
+
+    function moveToScale() {
+        locationState = 'scale';
+        // Позиция над весами
+        els.tube.style.transform = `translate(150px, 150px)`;
+        
+        setTimeout(() => {
+            if(locationState !== 'scale') return;
+            els.scalePlate.style.transform = 'translateY(3px)';
+            updateSimText();
+        }, 500);
+        
+        els.liquid.setAttribute('height', V1 * ML_TO_PX);
+        els.liquid.setAttribute('y', 200 - (V1 * ML_TO_PX));
+        els.measFg.innerText = '...';
+        updateSimText();
+    }
+
+    function moveToWater() {
+        locationState = 'water';
+        els.scalePlate.style.transform = 'translateY(0)';
+        
+        // Расчет физики
+        const Fg = (totalMass / 1000) * G;
+        const Fa_max = (TUBE_MAX_VOL / 1000000) * RHO_WATER * G;
+        
+        const isSinking = (Fg > Fa_max);
+        let submergedVol = isSinking ? TUBE_MAX_VOL : totalMass; // так как плотность воды 1г/мл, масса в граммах = объему вытесненной воды в мл при плавании
+        
+        v2 = V1 + submergedVol;
+        
+        // Анимация жидкости
+        els.liquid.setAttribute('height', v2 * ML_TO_PX);
+        els.liquid.setAttribute('y', 200 - (v2 * ML_TO_PX));
+
+        // Анимация пробирки (глубина)
+        let tubeBottomY; 
+        if (isSinking) {
+            tubeBottomY = 195; // на дне (мензурка от 0 до 200)
+        } else {
+            // Уровень воды сейчас: 200 - v2. 
+            // Пробирка должна погрузиться на (submergedVol / 40) * 80 пикселей ниже уровня воды.
+            const depthPx = (submergedVol / TUBE_MAX_VOL) * TUBE_HEIGHT_PX;
+            const waterSurfaceY = 200 - (v2 * ML_TO_PX);
+            tubeBottomY = waterSurfaceY + depthPx;
+        }
+
+        // Трансформация: мензурка находится на x=550, y=100.
+        // tube coordinate y is the top of the tube. Bottom is y+80.
+        // So y_transform + 80 = 100 + tubeBottomY  => y_transform = tubeBottomY + 20
+        const yTransform = tubeBottomY + 20;
+        
+        els.tube.style.transform = `translate(550px, ${yTransform}px)`;
+
+        els.measFa.innerText = '...';
+        
+        setTimeout(() => {
+            if(locationState === 'water') updateSimText();
+        }, 500);
+    }
+
+    function updateSimText() {
+        const t = dict[currentLang];
+        els.valSand.innerText = currentSandMass + " г";
+        
+        // Очищаем табло, чтобы собрать заново
+        let displayTotalMass = totalMass + " " + t.massPrefix.replace(" (", "") + ")"; // Костыль для сборки строки
+        els.valTotal.innerText = totalMass + " г)";
+
+        const Fg = (totalMass / 1000) * G;
+        
+        if (locationState === 'air') {
+            els.scaleText.textContent = "0.0 г";
+            els.measFg.innerText = "0.00";
+            els.measFa.innerText = "0.00";
+            els.measStat.innerText = t.statAir;
+            els.measStat.style.color = "#ecf0f1";
+        } 
+        else if (locationState === 'scale') {
+            // Если анимация чаши еще не завершена, показываем 0
+            if (els.scalePlate.style.transform === 'translateY(0px)' || els.scalePlate.style.transform === '') {
+                els.scaleText.textContent = "0.0 г";
+            } else {
+                els.scaleText.textContent = totalMass.toFixed(1) + " г";
+                els.measFg.innerText = Fg.toFixed(2);
+            }
+            els.measFa.innerText = "0.00";
+            els.measStat.innerText = t.statScale;
+            els.measStat.style.color = "var(--warning)";
+        } 
+        else if (locationState === 'water') {
+            els.scaleText.textContent = "0.0 г";
+            
+            const Fa_max = (TUBE_MAX_VOL / 1000000) * RHO_WATER * G;
+            const isSinking = (Fg > Fa_max);
+            let submergedVol = isSinking ? TUBE_MAX_VOL : totalMass;
+            const Fa = (submergedVol / 1000000) * RHO_WATER * G;
+
+            els.measFg.innerText = Fg.toFixed(2);
+            els.measFa.innerText = Fa.toFixed(2);
+            
+            if (isSinking) {
+                els.measStat.innerText = t.statSink;
+                els.measStat.style.color = "#e74c3c";
+            } else {
+                els.measStat.innerText = t.statFloat;
+                els.measStat.style.color = "var(--success)";
+            }
+        }
+    }
+
+    function recordData() {
+        if (locationState !== 'water') {
+            els.warnMsg.style.display = 'block';
+            setTimeout(() => els.warnMsg.style.display = 'none', 3000);
+            return;
+        }
+
+        const Fg = (totalMass / 1000) * G;
+        const Fa_max = (TUBE_MAX_VOL / 1000000) * RHO_WATER * G;
+        const isSinking = (Fg > Fa_max);
+        
+        let submergedVol = isSinking ? TUBE_MAX_VOL : totalMass;
+        const Fa = (submergedVol / 1000000) * RHO_WATER * G;
+        
+        const Fa_calc = Fa.toFixed(2); // То, что должен вписать ученик
+        const statusKey = isSinking ? 'sink' : 'float';
+        const resText = isSinking ? dict[currentLang].resSink : dict[currentLang].resFloat;
+        const resClass = isSinking ? 'res-sink' : 'res-float';
+
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        row.setAttribute('data-status', statusKey);
+
+        row.innerHTML = `
+            <td>${tbody.children.length + 1}</td>
+            <td>${V1}</td>
+            <td>${v2.toFixed(1)}</td>
+            <td>${totalMass}</td>
+            <td>${Fg.toFixed(2)}</td>
+            <td><input type="text" class="calc-input" data-ans="${Fa_calc}"></td>
+            <td class="${resClass}">${resText}</td>
+        `;
+        tbody.appendChild(row);
+
+        const wrapper = document.querySelector('.table-wrap');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        inputs.forEach(input => {
+            if(input.value.trim() === "") return;
+            
+            const userVal = parseFloat(input.value.replace(',', '.'));
+            const target = parseFloat(input.dataset.ans);
+            
+            if (!isNaN(userVal) && Math.abs(userVal - target) <= 0.05) {
+                input.classList.add('correct');
+                input.classList.remove('incorrect');
+            } else {
+                input.classList.add('incorrect');
+                input.classList.remove('correct');
+            }
+        });
+    }
+
+    // Инициализация
+    drawGraduations();
+    setLang('ru');
+    updateSim();
+
+</script>
+</body>
+</html>
