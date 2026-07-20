@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лабораторная работа №1: Скорость равномерного движения</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --warning: #e67e22;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        header {
+            position: relative;
+            padding: 15px 20px;
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 { max-width: 78%; margin: 0; font-size: 1.3rem; }
+
+        .lang-switch {
+            position: absolute;
+            top: 12px;
+            right: 20px;
+            display: flex;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .lang-btn {
+            padding: 6px 15px;
+            border: 0;
+            background: transparent;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+        .intro-box,
+        .panel {
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background: var(--panel);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .intro-box { border-left: 5px solid var(--primary); }
+        .intro-box p { margin: 7px 0; font-size: 0.95rem; line-height: 1.55; }
+        .intro-box ul { margin: 5px 0 0 20px; padding: 0; font-size: 0.95rem; line-height: 1.55; }
+        .intro-label { color: var(--primary); font-weight: bold; }
+
+        .panel-title {
+            margin: 0 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--bg);
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .sim-area {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 18px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: linear-gradient(#f9fbfc, #e8eef1);
+        }
+
+        #sim-svg { display: block; width: 100%; height: 460px; }
+        .water { fill: rgba(52, 152, 219, 0.24); }
+        .cylinder-wall { fill: none; stroke: #5d6d7e; stroke-width: 4; }
+        .scale-tick { stroke: #566573; stroke-width: 1.2; }
+        .scale-label { fill: #566573; font-size: 11px; text-anchor: end; }
+        .finish-line { stroke: #e74c3c; stroke-width: 2; stroke-dasharray: 7 5; }
+        .finish-label { fill: #c0392b; font-size: 13px; font-weight: bold; }
+        .vessel { fill: #e67e22; stroke: #a04000; stroke-width: 2; }
+        .bubble { fill: rgba(255, 255, 255, 0.8); stroke: #85c1e9; }
+
+        .sim-hint {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            max-width: 290px;
+            padding: 7px 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.92);
+            color: #6c7a7a;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 18px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { margin-bottom: 6px; font-size: 0.9rem; font-weight: bold; }
+        .control-value { float: right; color: var(--accent); }
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+        .control-note { margin-top: 4px; color: #7f8c8d; font-size: 0.76rem; }
+
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #34495e;
+            color: #ecf0f1;
+        }
+
+        .display-item { flex: 1; padding: 0 8px; border-right: 1px solid #566573; text-align: center; }
+        .display-item:last-child { border-right: 0; }
+        .display-item span { display: block; margin-bottom: 5px; color: #bdc3c7; font-size: 0.78rem; }
+        .display-item strong { color: #f1c40f; font-family: "Courier New", monospace; font-size: 1.2rem; }
+
+        .btn-group { display: flex; gap: 10px; }
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: 0;
+            border-radius: 5px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: var(--success); }
+        .btn-reset { background: var(--warning); }
+        .btn-record { background: var(--primary); }
+        .btn-check { flex: none; background: #8e44ad; }
+        .btn-clear { flex: none; padding: 7px 14px; background: #95a5a6; }
+
+        .data-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+        .section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .section-heading .panel-title { flex: 1; }
+        .table-wrap { max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+        table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.82rem; text-align: center; }
+        th,
+        td { padding: 8px 6px; border-bottom: 1px solid var(--border); }
+        th { position: sticky; top: 0; z-index: 2; background: var(--bg); color: var(--primary); }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 100%;
+            max-width: 100px;
+            padding: 6px;
+            border: 2px solid var(--border);
+            border-radius: 5px;
+            background: white;
+            color: var(--primary);
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .calc-input:focus { outline: none; border-color: #8e44ad; box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.12); }
+        .calc-input.correct { border-color: #28a745; background: #d4edda; color: #155724; }
+        .calc-input.incorrect { border-color: #dc3545; background: #f8d7da; color: #721c24; }
+        .calc-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+        .calc-feedback { margin: 0; font-weight: bold; }
+        .chart-container { position: relative; min-height: 310px; }
+        .chart-hint { margin: 10px 0 0; color: #7f8c8d; font-size: 0.8rem; text-align: center; }
+
+        .theory-card {
+            margin-top: 20px;
+            padding: 15px;
+            border-left: 4px solid var(--accent);
+            border-radius: 4px;
+            background: #f8f9fa;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .formula-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 7px 0; }
+        .formula {
+            display: inline-block;
+            padding: 5px 9px;
+            border: 1px solid #dfe6e9;
+            border-radius: 4px;
+            background: white;
+            color: var(--primary);
+            font-family: "Cambria Math", "Times New Roman", serif;
+            font-size: 1.05rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 { max-width: 68%; font-size: 1.05rem; }
+            .container { padding: 12px; }
+            .controls { grid-template-columns: 1fr; }
+            .display-board { flex-wrap: wrap; }
+            .display-item { flex: 1 1 48%; margin: 5px 0; }
+            .btn-group { flex-direction: column; }
+            .calc-actions { align-items: stretch; }
+            .calc-actions .btn { width: 100%; }
+            table { min-width: 650px; }
+            #sim-svg { height: 390px; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1 id="header-title">Лабораторная работа №1: Скорость равномерного движения</h1>
+    <div class="lang-switch" aria-label="Выбор языка">
+        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="kz" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<main class="container">
+    <section class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme"></span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal"></span></p>
+        <div style="display:flex; align-items:flex-start; flex-wrap:wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right:5px; margin-top:8px;">Краткая теория:</span>
+            <div id="txt-theory" style="margin-top:8px; font-size:0.95rem; line-height:1.5;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure"></ul>
+    </section>
+
+    <section class="panel">
+        <h2 class="panel-title" id="lbl-sim">Всплытие тела в мерном цилиндре</h2>
+        <div class="sim-area">
+            <svg id="sim-svg" viewBox="0 0 420 500" preserveAspectRatio="xMidYMid meet" aria-label="Мерный цилиндр и всплывающее тело">
+                <rect x="135" y="50" width="150" height="400" class="water"/>
+                <line x1="135" y1="40" x2="135" y2="450" class="cylinder-wall"/>
+                <line x1="285" y1="40" x2="285" y2="450" class="cylinder-wall"/>
+                <path d="M135 450 Q210 475 285 450" class="cylinder-wall"/>
+                <g id="scale-group"></g>
+                <line id="finish-line" x1="120" y1="130" x2="300" y2="130" class="finish-line"/>
+                <text id="finish-text" x="310" y="134" class="finish-label">Финиш</text>
+                <g id="vessel-group" transform="translate(210,425)">
+                    <rect x="-18" y="-24" width="36" height="48" rx="5" class="vessel"/>
+                    <circle cx="-7" cy="-34" r="4" class="bubble"/>
+                    <circle cx="7" cy="-45" r="3" class="bubble"/>
+                    <circle cx="0" cy="-57" r="2" class="bubble"/>
+                </g>
+            </svg>
+            <div class="sim-hint" id="sim-hint">Задайте финишную отметку и запустите всплытие.</div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label><span id="lbl-finish">Финишная отметка V:</span> <span class="control-value"><span id="volume-value">250</span> мл</span></label>
+                <input id="volume-range" type="range" min="50" max="250" value="250" step="10" oninput="updateSettings()">
+                <small class="control-note"><span id="path-note">Соответствующий путь:</span> <span id="path-value">200.0</span> мм</small>
+            </div>
+            <div class="control-group">
+                <label><span id="lbl-medium">Свойства среды:</span> <span class="control-value" id="medium-value">Средняя скорость</span></label>
+                <input id="medium-range" type="range" min="20" max="80" value="50" step="5" oninput="updateSettings()">
+                <small class="control-note" id="medium-note">Не изменяйте среду в одной серии измерений.</small>
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-volume-label">Объёмная отметка V (мл)</span>
+                <strong id="disp-volume">250</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-path-label">Путь S (мм)</span>
+                <strong id="disp-path">200.0</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-time-label">Время t (с)</span>
+                <strong id="disp-time">0.000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status-label">Статус</span>
+                <strong id="status-text" style="color:#ecf0f1; font-size:1rem;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSimulation()">Запустить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Добавить опыт в таблицу</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <div class="section-heading">
+                    <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                    <button class="btn btn-clear" id="btn-clear" onclick="clearTable()">Очистить</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-num">№</th>
+                                <th id="th-series">Серия</th>
+                                <th id="th-volume">V (мл)</th>
+                                <th id="th-path">S (мм)</th>
+                                <th id="th-time">t (с)</th>
+                                <th id="th-speed">v = S/t (мм/с), ввод</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="calc-actions">
+                    <button class="btn btn-check" id="btn-check" onclick="checkCalculations()">Проверить скорость</button>
+                    <p class="calc-feedback" id="calc-feedback" aria-live="polite">Проведите опыт и самостоятельно рассчитайте скорость.</p>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">График зависимости пути от времени S(t)</h2>
+                <div class="chart-container"><canvas id="distance-chart"></canvas></div>
+                <p class="chart-hint" id="chart-hint">Каждая настройка среды строится отдельной цветной линией поверх предыдущих.</p>
+            </div>
+        </div>
+
+        <div class="theory-card">
+            <strong id="theory-title">Формулы для расчёта:</strong>
+            <div class="formula-row"><span class="formula">S = 0.8V</span><span id="formula-path">— перевод объёма V в путь S</span></div>
+            <div class="formula-row"><span class="formula">v = S / t</span><span id="formula-speed">— средняя скорость</span></div>
+            <div class="formula-row"><span class="formula">S = vt</span><span id="formula-motion">— уравнение равномерного движения</span></div>
+            <p id="comparison-text" style="margin:10px 0 0; font-weight:bold;"></p>
+        </div>
+    </section>
+</main>
+
+<script>
+    const MAX_VOLUME = 250;
+    const MM_PER_ML = 0.8;
+    const BOTTOM_Y = 425;
+    const TOP_Y = 75;
+
+    let targetVolume = 250;
+    let distanceMm = 200;
+    let mediumSetting = 50;
+    let measuredTime = 0;
+    let isRunning = false;
+    let resultReady = false;
+    let animationFrame = null;
+    let currentLang = 'ru';
+    let currentStateKey = 'statReady';
+    let feedbackState = 'calcPrompt';
+    let lastVerifiedSpeed = null;
+    let distanceChart;
+
+    const dict = {
+        ru: {
+            thSeries: 'Серия',
+            seriesLabel: 'Серия',
+            title: 'Лабораторная работа №1: Скорость равномерного движения',
+            themeLbl: 'Тема:',
+            theme: 'Измерение скорости равномерного движения тела',
+            goalLbl: 'Цель работы:',
+            goal: 'Определить среднюю скорость равномерного всплытия тела в мерном цилиндре и построить график зависимости пути от времени.',
+            theoryLbl: 'Краткая теория:',
+            theory: 'При равномерном движении тело за равные промежутки времени проходит равные пути. Скорость постоянна и определяется отношением пройденного пути ко времени движения.',
+            procedureLbl: 'Ход работы:',
+            procedure: [
+                'Выберите финишную отметку V. Путь вычисляется по соотношению S = 0.8V.',
+                'Оставьте свойства среды неизменными в серии опытов.',
+                'Нажмите «Запустить» и дождитесь остановки секундомера.',
+                'Добавьте результат в таблицу и самостоятельно вычислите скорость v = S/t.',
+                'Повторите опыт для нескольких финишных отметок и проанализируйте график S(t).'
+            ],
+            sim: 'Всплытие тела в мерном цилиндре',
+            hint: 'Задайте финишную отметку и запустите всплытие.',
+            finish: 'Финишная отметка V:',
+            pathNote: 'Соответствующий путь:',
+            medium: 'Свойства среды:',
+            mediumNote: 'Не изменяйте среду в одной серии измерений.',
+            mediumSlow: 'Медленное всплытие',
+            mediumNormal: 'Средняя скорость',
+            mediumFast: 'Быстрое всплытие',
+            displayVolume: 'Объёмная отметка V (мл)',
+            displayPath: 'Путь S (мм)',
+            displayTime: 'Время t (с)',
+            displayStatus: 'Статус',
+            start: 'Запустить',
+            reset: 'Сброс',
+            record: 'Добавить опыт в таблицу',
+            clear: 'Очистить',
+            check: 'Проверить скорость',
+            journal: 'Таблица измерений',
+            thNum: '№', thVolume: 'V (мл)', thPath: 'S (мм)', thTime: 't (с)', thSpeed: 'v = S/t (мм/с), ввод',
+            chart: 'График зависимости пути от времени S(t)',
+            chartHint: 'Каждая настройка среды строится отдельной цветной линией поверх предыдущих.',
+            chartLabel: 'Результаты таблицы',
+            chartX: 'Время t (с)',
+            chartY: 'Путь S (мм)',
+            theoryTitle: 'Формулы для расчёта:',
+            formulaPath: '— перевод объёма V в путь S',
+            formulaSpeed: '— средняя скорость',
+            formulaMotion: '— уравнение равномерного движения',
+            calcPrompt: 'Проведите опыт и самостоятельно рассчитайте скорость.',
+            calcFill: 'Введите рассчитанную скорость в пустую ячейку.',
+            calcRetry: 'Ответ неверный. Проверьте деление S на t и единицы измерения.',
+            calcCorrect: 'Верно! Скорость рассчитана правильно.',
+            calcNoRows: 'Сначала проведите опыт и добавьте строку в таблицу.',
+            comparison: speed => `Проверенная скорость последнего опыта: ${speed} мм/с.`,
+            finishLabel: 'Финиш',
+            statReady: 'Готов к запуску',
+            statMove: 'Тело всплывает...',
+            statDone: 'Финиш. Добавьте результат в таблицу.',
+            statRecorded: 'Данные добавлены. Рассчитайте скорость.',
+            statCalculated: 'Расчёт проверен.'
+        },
+        kz: {
+            thSeries: 'Топтама',
+            seriesLabel: 'Топтама',
+            title: '№1 зертханалық жұмыс: Бірқалыпты қозғалыс жылдамдығы',
+            themeLbl: 'Тақырыбы:',
+            theme: 'Дененің бірқалыпты қозғалыс жылдамдығын өлшеу',
+            goalLbl: 'Жұмыстың мақсаты:',
+            goal: 'Өлшеуіш цилиндрдегі дененің бірқалыпты қалқып шығу жылдамдығын анықтап, жолдың уақытқа тәуелділік графигін құру.',
+            theoryLbl: 'Қысқаша теория:',
+            theory: 'Бірқалыпты қозғалыста дене бірдей уақыт аралықтарында бірдей жол жүреді. Жылдамдық тұрақты және жүрілген жолдың қозғалыс уақытына қатынасымен анықталады.',
+            procedureLbl: 'Жұмыс барысы:',
+            procedure: [
+                'V мәре белгісін таңдаңыз. Жол S = 0.8V қатынасы бойынша есептеледі.',
+                'Тәжірибелер сериясында ортаның қасиеттерін өзгертпеңіз.',
+                '«Бастау» түймесін басып, секундомердің тоқтауын күтіңіз.',
+                'Нәтижені кестеге қосып, v = S/t жылдамдығын өзіңіз есептеңіз.',
+                'Бірнеше мәре белгісі үшін тәжірибені қайталап, S(t) графигін талдаңыз.'
+            ],
+            sim: 'Дененің өлшеуіш цилиндрде қалқып шығуы',
+            hint: 'Мәре белгісін орнатып, қалқып шығуды бастаңыз.',
+            finish: 'Мәре белгісі V:',
+            pathNote: 'Сәйкес жол:',
+            medium: 'Ортаның қасиеттері:',
+            mediumNote: 'Бір өлшеулер сериясында ортаны өзгертпеңіз.',
+            mediumSlow: 'Баяу қалқу',
+            mediumNormal: 'Орташа жылдамдық',
+            mediumFast: 'Жылдам қалқу',
+            displayVolume: 'Көлем белгісі V (мл)',
+            displayPath: 'Жол S (мм)',
+            displayTime: 'Уақыт t (с)',
+            displayStatus: 'Күйі',
+            start: 'Бастау',
+            reset: 'Қалпына келтіру',
+            record: 'Тәжірибені кестеге қосу',
+            clear: 'Тазалау',
+            check: 'Жылдамдықты тексеру',
+            journal: 'Өлшеулер кестесі',
+            thNum: '№', thVolume: 'V (мл)', thPath: 'S (мм)', thTime: 't (с)', thSpeed: 'v = S/t (мм/с), енгізу',
+            chart: 'Жолдың уақытқа тәуелділік графигі S(t)',
+            chartHint: 'Ортаның әр баптауы алдыңғы сызықтардың үстіне бөлек түсті сызықпен салынады.',
+            chartLabel: 'Кесте нәтижелері',
+            chartX: 'Уақыт t (с)',
+            chartY: 'Жол S (мм)',
+            theoryTitle: 'Есептеу формулалары:',
+            formulaPath: '— V көлемін S жолына айналдыру',
+            formulaSpeed: '— орташа жылдамдық',
+            formulaMotion: '— бірқалыпты қозғалыс теңдеуі',
+            calcPrompt: 'Тәжірибе жасап, жылдамдықты өзіңіз есептеңіз.',
+            calcFill: 'Есептелген жылдамдықты бос ұяшыққа енгізіңіз.',
+            calcRetry: 'Жауап қате. S жолын t уақытына бөлуді және өлшем бірліктерін тексеріңіз.',
+            calcCorrect: 'Дұрыс! Жылдамдық дұрыс есептелді.',
+            calcNoRows: 'Алдымен тәжірибе жасап, кестеге жол қосыңыз.',
+            comparison: speed => `Соңғы тәжірибенің тексерілген жылдамдығы: ${speed} мм/с.`,
+            finishLabel: 'Мәре',
+            statReady: 'Бастауға дайын',
+            statMove: 'Дене қалқып шығып жатыр...',
+            statDone: 'Мәре. Нәтижені кестеге қосыңыз.',
+            statRecorded: 'Деректер қосылды. Жылдамдықты есептеңіз.',
+            statCalculated: 'Есеп тексерілді.'
+        }
+    };
+
+    const ui = {
+        volumeRange: document.getElementById('volume-range'),
+        mediumRange: document.getElementById('medium-range'),
+        volumeValue: document.getElementById('volume-value'),
+        pathValue: document.getElementById('path-value'),
+        mediumValue: document.getElementById('medium-value'),
+        scaleGroup: document.getElementById('scale-group'),
+        finishLine: document.getElementById('finish-line'),
+        finishText: document.getElementById('finish-text'),
+        vessel: document.getElementById('vessel-group'),
+        dispVolume: document.getElementById('disp-volume'),
+        dispPath: document.getElementById('disp-path'),
+        dispTime: document.getElementById('disp-time'),
+        status: document.getElementById('status-text'),
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody'),
+        feedback: document.getElementById('calc-feedback'),
+        comparison: document.getElementById('comparison-text')
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.documentElement.lang = lang === 'kz' ? 'kk' : 'ru';
+        document.querySelectorAll('.lang-btn').forEach(button => button.classList.toggle('active', button.dataset.lang === lang));
+        const t = dict[lang];
+        document.title = t.title;
+        document.getElementById('header-title').innerText = t.title;
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.theme;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goal;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerText = t.theory;
+        document.getElementById('lbl-procedure').innerText = t.procedureLbl;
+        const list = document.getElementById('list-procedure');
+        list.innerHTML = '';
+        t.procedure.forEach(text => { const item = document.createElement('li'); item.innerText = text; list.appendChild(item); });
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('sim-hint').innerText = t.hint;
+        document.getElementById('lbl-finish').innerText = t.finish;
+        document.getElementById('path-note').innerText = t.pathNote;
+        document.getElementById('lbl-medium').innerText = t.medium;
+        document.getElementById('medium-note').innerText = t.mediumNote;
+        document.getElementById('disp-volume-label').innerText = t.displayVolume;
+        document.getElementById('disp-path-label').innerText = t.displayPath;
+        document.getElementById('disp-time-label').innerText = t.displayTime;
+        document.getElementById('disp-status-label').innerText = t.displayStatus;
+        document.getElementById('btn-start').innerText = t.start;
+        document.getElementById('btn-reset').innerText = t.reset;
+        document.getElementById('btn-record').innerText = t.record;
+        document.getElementById('btn-clear').innerText = t.clear;
+        document.getElementById('btn-check').innerText = t.check;
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-num').innerText = t.thNum;
+        document.getElementById('th-series').innerText = t.thSeries;
+        document.getElementById('th-volume').innerText = t.thVolume;
+        document.getElementById('th-path').innerText = t.thPath;
+        document.getElementById('th-time').innerText = t.thTime;
+        document.getElementById('th-speed').innerText = t.thSpeed;
+        document.querySelectorAll('.speed-input').forEach(input => input.setAttribute('aria-label', t.thSpeed));
+        document.getElementById('lbl-chart').innerText = t.chart;
+        document.getElementById('chart-hint').innerText = t.chartHint;
+        document.getElementById('theory-title').innerText = t.theoryTitle;
+        document.getElementById('formula-path').innerText = t.formulaPath;
+        document.getElementById('formula-speed').innerText = t.formulaSpeed;
+        document.getElementById('formula-motion').innerText = t.formulaMotion;
+        updateState(currentStateKey);
+        updateMediumLabel();
+        updateFeedback();
+        updateFinishLine();
+        if (distanceChart) {
+            distanceChart.options.scales.x.title.text = t.chartX;
+            distanceChart.options.scales.y.title.text = t.chartY;
+            rebuildChartFromTable();
+        }
+    }
+
+    function updateState(key) {
+        currentStateKey = key;
+        ui.status.innerText = dict[currentLang][key];
+    }
+
+    function drawScale() {
+        ui.scaleGroup.innerHTML = '';
+        for (let volume = 0; volume <= MAX_VOLUME; volume += 10) {
+            const y = BOTTOM_Y - volume / MAX_VOLUME * (BOTTOM_Y - TOP_Y);
+            const major = volume % 50 === 0;
+            const leftTick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            leftTick.setAttribute('x1', 135);
+            leftTick.setAttribute('x2', 135 + (major ? 14 : 8));
+            leftTick.setAttribute('y1', y);
+            leftTick.setAttribute('y2', y);
+            leftTick.setAttribute('class', 'scale-tick');
+            ui.scaleGroup.appendChild(leftTick);
+            if (major) {
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', 125);
+                label.setAttribute('y', y + 4);
+                label.setAttribute('class', 'scale-label');
+                label.textContent = volume;
+                ui.scaleGroup.appendChild(label);
+            }
+        }
+    }
+
+    function updateMediumLabel() {
+        const t = dict[currentLang];
+        if (mediumSetting < 40) ui.mediumValue.innerText = t.mediumSlow;
+        else if (mediumSetting > 60) ui.mediumValue.innerText = t.mediumFast;
+        else ui.mediumValue.innerText = t.mediumNormal;
+    }
+
+    function updateFinishLine() {
+        const y = BOTTOM_Y - targetVolume / MAX_VOLUME * (BOTTOM_Y - TOP_Y);
+        ui.finishLine.setAttribute('y1', y);
+        ui.finishLine.setAttribute('y2', y);
+        ui.finishText.setAttribute('y', y + 4);
+        ui.finishText.textContent = `${dict[currentLang].finishLabel} ${targetVolume} мл`;
+    }
+
+    function updateSettings() {
+        if (isRunning) return;
+        targetVolume = Number(ui.volumeRange.value);
+        mediumSetting = Number(ui.mediumRange.value);
+        distanceMm = targetVolume * MM_PER_ML;
+        ui.volumeValue.innerText = targetVolume;
+        ui.pathValue.innerText = distanceMm.toFixed(1);
+        ui.dispVolume.innerText = targetVolume;
+        ui.dispPath.innerText = distanceMm.toFixed(1);
+        updateMediumLabel();
+        updateFinishLine();
+        resetVessel();
+        invalidateResult();
+    }
+
+    function resetVessel() {
+        ui.vessel.setAttribute('transform', `translate(210, ${BOTTOM_Y})`);
+    }
+
+    function setControlsDisabled(disabled) {
+        ui.volumeRange.disabled = disabled;
+        ui.mediumRange.disabled = disabled;
+    }
+
+    function invalidateResult() {
+        resultReady = false;
+        ui.btnRecord.disabled = true;
+        ui.dispTime.innerText = '0.000';
+        updateState('statReady');
+    }
+
+    function startSimulation() {
+        if (isRunning) return;
+        isRunning = true;
+        resultReady = false;
+        setControlsDisabled(true);
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+        resetVessel();
+        updateState('statMove');
+
+        const trueSpeed = mediumSetting;
+        measuredTime = distanceMm / trueSpeed * (1 + (Math.random() - 0.5) * 0.012);
+        const visualDuration = Math.max(900, measuredTime * 650);
+        const finishY = BOTTOM_Y - targetVolume / MAX_VOLUME * (BOTTOM_Y - TOP_Y);
+        const start = performance.now();
+
+        function animate(time) {
+            const progress = Math.min(1, (time - start) / visualDuration);
+            const y = BOTTOM_Y + (finishY - BOTTOM_Y) * progress;
+            ui.vessel.setAttribute('transform', `translate(210, ${y})`);
+            ui.dispTime.innerText = (measuredTime * progress).toFixed(3);
+            if (progress < 1) {
+                animationFrame = requestAnimationFrame(animate);
+            } else {
+                finishRun();
+            }
+        }
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    function finishRun() {
+        isRunning = false;
+        resultReady = true;
+        setControlsDisabled(false);
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = false;
+        ui.dispTime.innerText = measuredTime.toFixed(3);
+        updateState('statDone');
+    }
+
+    function resetSim() {
+        if (animationFrame) cancelAnimationFrame(animationFrame);
+        isRunning = false;
+        setControlsDisabled(false);
+        ui.btnStart.disabled = false;
+        resetVessel();
+        invalidateResult();
+    }
+
+    function recordData() {
+        if (!resultReady) return;
+        ui.btnRecord.disabled = true;
+        const shownTime = Number(measuredTime.toFixed(3));
+        const shownDistance = Number(distanceMm.toFixed(1));
+        const targetSpeed = shownDistance / shownTime;
+        const row = document.createElement('tr');
+        row.dataset.time = shownTime.toFixed(3);
+        row.dataset.distance = shownDistance.toFixed(1);
+        row.dataset.medium = mediumSetting.toFixed(0);
+        row.dataset.targetSpeed = targetSpeed.toFixed(5);
+        row.dataset.verified = 'false';
+        row.innerHTML = `
+            <td>${ui.tableBody.children.length + 1}</td>
+            <td class="series-cell"></td>
+            <td>${targetVolume}</td>
+            <td>${shownDistance.toFixed(1)}</td>
+            <td>${shownTime.toFixed(3)}</td>
+            <td><input class="calc-input speed-input" inputmode="decimal" placeholder="?" aria-label="${dict[currentLang].thSpeed}"></td>
+        `;
+        ui.tableBody.appendChild(row);
+        rebuildChartFromTable();
+        setFeedback('calcFill');
+        updateState('statRecorded');
+    }
+
+    function rebuildChartFromTable() {
+        const rows = Array.from(ui.tableBody.querySelectorAll('tr'));
+        const settings = [...new Set(rows.map(row => row.dataset.medium))];
+        const palette = ['#3498db', '#e74c3c', '#27ae60', '#8e44ad', '#f39c12', '#16a085'];
+        const t = dict[currentLang];
+
+        distanceChart.data.datasets = settings.map((setting, index) => {
+            const color = palette[index % palette.length];
+            const points = rows
+                .filter(row => row.dataset.medium === setting)
+                .map(row => ({ x: Number(row.dataset.time), y: Number(row.dataset.distance) }))
+                .sort((a, b) => a.x - b.x);
+
+            rows
+                .filter(row => row.dataset.medium === setting)
+                .forEach(row => {
+                    row.querySelector('.series-cell').innerText = `${t.seriesLabel} ${index + 1}`;
+                });
+
+            const mediumName = Number(setting) < 40
+                ? t.mediumSlow
+                : Number(setting) > 60
+                    ? t.mediumFast
+                    : t.mediumNormal;
+
+            return {
+                label: `${t.seriesLabel} ${index + 1} — ${mediumName}`,
+                data: [{ x: 0, y: 0 }, ...points],
+                backgroundColor: color,
+                borderColor: color,
+                borderWidth: 2,
+                showLine: true,
+                tension: 0.15,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            };
+        });
+        distanceChart.update();
+    }
+
+    function parseStudentValue(value) {
+        return Number(value.trim().replace(',', '.'));
+    }
+
+    function checkCalculations() {
+        const rows = Array.from(ui.tableBody.querySelectorAll('tr'));
+        if (rows.length === 0) { setFeedback('calcNoRows'); return; }
+        let hasBlank = false;
+        let hasError = false;
+
+        rows.forEach(row => {
+            if (row.dataset.verified === 'true') return;
+            const input = row.querySelector('.speed-input');
+            if (!input.value.trim()) {
+                input.classList.remove('correct', 'incorrect');
+                hasBlank = true;
+                return;
+            }
+            const value = parseStudentValue(input.value);
+            const target = Number(row.dataset.targetSpeed);
+            const correct = Number.isFinite(value) && value >= 0 && Math.abs(value - target) <= Math.max(0.5, target * 0.03);
+            input.classList.toggle('correct', correct);
+            input.classList.toggle('incorrect', !correct);
+            if (!correct) {
+                hasError = true;
+                return;
+            }
+            row.dataset.verified = 'true';
+            input.readOnly = true;
+            lastVerifiedSpeed = value;
+        });
+
+        if (hasError) {
+            setFeedback('calcRetry');
+        } else if (hasBlank) {
+            setFeedback('calcFill');
+        } else {
+            setFeedback('calcCorrect');
+            updateState('statCalculated');
+        }
+    }
+
+    function setFeedback(state) {
+        feedbackState = state;
+        updateFeedback();
+    }
+
+    function updateFeedback() {
+        const colors = { calcPrompt: '#34495e', calcFill: '#d68910', calcRetry: '#c0392b', calcCorrect: '#218c4a', calcNoRows: '#d35400' };
+        ui.feedback.innerText = dict[currentLang][feedbackState];
+        ui.feedback.style.color = colors[feedbackState];
+        if (lastVerifiedSpeed !== null) {
+            ui.comparison.innerText = dict[currentLang].comparison(lastVerifiedSpeed.toFixed(1));
+            ui.comparison.style.color = '#218c4a';
+        } else {
+            ui.comparison.innerText = '';
+        }
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+        lastVerifiedSpeed = null;
+        rebuildChartFromTable();
+        setFeedback('calcPrompt');
+    }
+
+    function initChart() {
+        const context = document.getElementById('distance-chart').getContext('2d');
+        distanceChart = new Chart(context, {
+            type: 'scatter',
+            data: {
+                datasets: []
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', beginAtZero: true, title: { display: true, text: dict.ru.chartX, font: { weight: 'bold' } }, grid: { color: '#e2e8f0' } },
+                    y: { beginAtZero: true, title: { display: true, text: dict.ru.chartY, font: { weight: 'bold' } }, grid: { color: '#e2e8f0' } }
+                },
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    drawScale();
+    initChart();
+    setLang('ru');
+    updateSettings();
+</script>
+</body>
+</html>

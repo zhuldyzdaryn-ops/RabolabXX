@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Горизонтальный бросок</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid { display: flex; flex-direction: column; gap: 20px; }
+        .data-grid > * { flex: 1; }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px; font-size: 1.1rem;
+        }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 5px solid var(--primary);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- FRACTIONS & MATH (HTML/CSS ONLY) --- */
+        .math-container { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; justify-content: center;}
+        .formula-card {
+            background: #f8f9fa; border: 1px solid #dfe6e9; border-radius: 8px; padding: 15px;
+            text-align: center; font-family: 'Times New Roman', serif; font-size: 1.2rem; font-style: italic;
+        }
+        .formula-desc { font-family: 'Segoe UI', sans-serif; font-size: 0.8rem; color: #7f8c8d; font-style: normal; margin-top: 8px; font-weight: bold;}
+        .frac { display: inline-block; vertical-align: middle; text-align: center; line-height: 1.2; margin: 0 4px; }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+        .sqrt-wrap { white-space: nowrap; display: inline-block; vertical-align: middle; }
+        .sqrt-sym { font-size: 1.2em; vertical-align: bottom; }
+        .sqrt-content { border-top: 1px solid var(--text); display: inline-block; margin-left: -2px; padding-top: 2px;}
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: #ecf0f1; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);
+            margin-bottom: 20px; position: relative; display: flex; justify-content: center; align-items: center;
+        }
+        svg { width: 100%; height: 350px; display: block; cursor: default; }
+
+        .floor { stroke: #2c3e50; stroke-width: 4; }
+        .ball { fill: url(#grad-ball); stroke: #2c3e50; stroke-width: 1; }
+        .ramp { stroke: #34495e; stroke-width: 6; fill: none; stroke-linecap: round; }
+        .plumb-line { stroke: #e67e22; stroke-dasharray: 4; stroke-width: 2;}
+        .measure-line { stroke: #34495e; stroke-width: 2; marker-end: url(#arrow); marker-start: url(#arrow); }
+        .measure-text { fill: #2c3e50; font-weight: bold; font-size: 14px; text-anchor: middle; background: white;}
+
+        .controls {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;
+            background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid var(--border);
+        }
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group { display: flex; gap: 10px; }
+        .btn {
+            flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; color: white;
+            cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: var(--success); } .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; } .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); } .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-check { background: #f39c12; margin-top: 10px; } .btn-check:hover:not(:disabled) { background: #d68910; }
+
+        .display-board {
+            display: flex; justify-content: space-between; background: #34495e; color: #ecf0f1;
+            padding: 15px; border-radius: 8px; margin-bottom: 20px;
+        }
+        .display-item { text-align: center; flex: 1; border-right: 1px solid #475569; }
+        .display-item:last-child { border-right: none; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; margin-bottom: 5px;}
+        .display-item strong { font-size: 1.5rem; font-family: 'Courier New', monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; max-height: 350px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+        th, td { padding: 8px 4px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        td:last-child, th:last-child { border-right: none; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 60px; padding: 4px; text-align: center; border: 1px solid var(--border);
+            border-radius: 4px; font-weight: bold; color: var(--primary); outline: none; -moz-appearance: textfield;
+        }
+        .calc-input::-webkit-outer-spin-button, .calc-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        /* --- CHART --- */
+        .chart-box {
+            position: relative; min-height: 300px; width: 100%; border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px; background: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Горизонтальный бросок</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Определить начальную скорость шарика при горизонтальном броске и проверить характер траектории движения (парабола).</span></p>
+        
+        <div style="margin-top: 15px;">
+            <span class="intro-label" id="lbl-theory-head">Теория и расчетные формулы:</span>
+            <div class="math-container">
+                <div class="formula-card">
+                    <div>h = <div class="frac"><span>g · t²</span><span class="bottom">2</span></div> &nbsp;&rarr;&nbsp; t = <span class="sqrt-wrap"><span class="sqrt-sym">&radic;</span><span class="sqrt-content"><div class="frac"><span>2h</span><span class="bottom">g</span></div></span></span></div>
+                    <div class="formula-desc" id="txt-f1">Время падения (из высоты)</div>
+                </div>
+                <div class="formula-card" style="border-color: var(--accent);">
+                    <div>L = v<sub>0</sub> · t &nbsp;&rarr;&nbsp; v<sub>0</sub> = <div class="frac"><span>L</span><span class="bottom">t</span></div></div>
+                    <div class="formula-desc" id="txt-f2">Начальная скорость (расчет)</div>
+                </div>
+            </div>
+        </div>
+
+        <p style="margin-top: 15px;"><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Установите высоту падения (h) и силу толчка (влияет на начальную скорость v₀).</li>
+            <li>Нажмите «Запуск». Шарик скатится с желоба и полетит по параболе. Измерьте дальность полета (L) по линейке.</li>
+            <li>Нажмите «Записать». В таблицу занесутся данные h и L.</li>
+            <li>Самостоятельно рассчитайте время падения (t) и начальную скорость (v₀), подставьте их в таблицу и нажмите «Проверить».</li>
+            <li>Изменяйте высоту и скорость, соберите несколько точек для построения траекторий на графике.</li>
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg id="scene" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <radialGradient id="grad-ball" cx="30%" cy="30%" r="70%">
+                        <stop offset="0%" style="stop-color: #fff" />
+                        <stop offset="100%" style="stop-color: #e74c3c" />
+                    </radialGradient>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+                        <path d="M0,2 L8,5 L0,8 z" fill="#34495e" />
+                    </marker>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+                    </pattern>
+                </defs>
+                
+                <rect width="100%" height="100%" fill="url(#grid)" />
+                <line x1="50" y1="350" x2="750" y2="350" class="floor" />
+
+                <!-- Ось OY (Высота) -->
+                <line x1="100" y1="50" x2="100" y2="350" class="plumb-line" />
+                <!-- Линейка дальности (OX) -->
+                <g id="ruler-x" transform="translate(100, 350)"></g>
+
+                <!-- Желоб -->
+                <path d="M 40,50 Q 40,150 100,150" class="ramp" id="ramp-path" />
+
+                <!-- Шар -->
+                <circle cx="40" cy="40" r="10" class="ball" id="ball" />
+                <text x="0" y="0" font-size="12" font-weight="bold" fill="#e74c3c" id="impact-text"></text>
+
+                <!-- Индикатор высоты -->
+                <g transform="translate(60, 0)">
+                    <line id="h-measure" x1="0" y1="150" x2="0" y2="350" class="measure-line" />
+                    <text id="h-text" x="-10" y="250" class="measure-text" transform="rotate(-90 -10 250)">h = 1.00 м</text>
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-h">Высота стола h (м): <span id="val-h" style="color:var(--accent);">1.00</span></label>
+                <input type="range" id="h-range" min="0.5" max="2.0" value="1.0" step="0.1" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-v">Сила толчка (v₀): <span id="val-v" style="color:var(--accent);">Средне</span></label>
+                <input type="range" id="v-range" min="1.0" max="5.0" value="3.0" step="0.5" oninput="updateSetup()">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-time">Секундомер (с)</span>
+                <strong id="meas-time">0.000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-dist">Дальность полета L (м)</span>
+                <strong id="meas-dist" style="color: #2ecc71;">0.000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status">Статус</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1.1rem; margin-top: 5px;">Готов</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSim()">Запуск</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()" disabled>Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать</button>
+        </div>
+    </div>
+
+    <div class="data-grid">
+        <div class="panel">
+            <div class="table-section">
+                <h2 class="panel-title" id="lbl-journal">Журнал измерений</h2>
+                <div class="table-wrap" id="table-scroll">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th id="th-h">h (м)</th>
+                                <th id="th-l">L (м)</th>
+                                <th id="th-t">t (ввод)</th>
+                                <th id="th-v">v₀ (ввод)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Данные будут здесь -->
+                        </tbody>
+                    </table>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты</button>
+                    <button class="btn" style="background: #e74c3c; margin-top: 10px;" id="btn-clear" onclick="clearTable()">Очистить</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2 class="panel-title" id="lbl-chart">Траектория полета y(x)</h2>
+            <div class="chart-box">
+                <canvas id="chart-traj"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Горизонтальный бросок",
+            goalLbl: "Цель работы:",
+            goalTxt: "Определить начальную скорость шарика при горизонтальном броске и проверить характер траектории движения (парабола).",
+            theoryLbl: "Теория и расчетные формулы (g ≈ 9.8 м/с²):",
+            f1: "Время падения (из высоты)",
+            f2: "Начальная скорость (расчет)",
+            procLbl: "Ход работы:",
+            procList: [
+                "Установите высоту стола (h) и силу толчка (влияет на начальную скорость v₀).",
+                "Нажмите «Запуск». Шарик скатится с желоба и полетит по параболе. Система измерит дальность полета (L).",
+                "Нажмите «Записать». В таблицу занесутся данные h и L.",
+                "Самостоятельно рассчитайте время падения (t) и начальную скорость (v₀), подставьте их в таблицу и нажмите «Проверить».",
+                "Изменяйте высоту и скорость, соберите несколько точек для построения траекторий на графике."
+            ],
+            sim: "Симуляция эксперимента",
+            hLbl: "Высота стола h (м):",
+            vLbl: "Сила толчка (v₀):",
+            dispTime: "Секундомер (с)",
+            dispDist: "Дальность полета L (м)",
+            dispStatus: "Статус",
+            btnStart: "Запуск",
+            btnReset: "Сброс",
+            btnRecord: "Записать",
+            btnCheck: "Проверить расчеты",
+            btnClear: "Очистить таблицу",
+            journal: "Журнал измерений",
+            thH: "h (м)", thL: "L (м)", thT: "t (ввод)", thV: "v₀ (ввод)",
+            chartTitle: "Траектория полета y(x)",
+            
+            statReady: "Готов",
+            statRoll: "Разгон...",
+            statFly: "Полет...",
+            statDone: "Падение",
+
+            chartAxX: "Дальность L (м)",
+            chartAxY: "Высота h (м)"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Көлденең лақтыру",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Көлденең лақтырылған шардың бастапқы жылдамдығын анықтау және қозғалыс траекториясының сипатын (парабола) тексеру.",
+            theoryLbl: "Теория және есептеу формулалары (g ≈ 9.8 м/с²):",
+            f1: "Құлау уақыты (биіктіктен)",
+            f2: "Бастапқы жылдамдық (есептеу)",
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Үстел биіктігін (h) және итеру күшін (бастапқы жылдамдыққа v₀ әсер етеді) орнатыңыз.",
+                "«Іске қосу» түймесін басыңыз. Шар науадан домалап түсіп, парабола бойымен ұшады. Жүйе ұшу қашықтығын (L) өлшейді.",
+                "«Жазу» түймесін басыңыз. Кестеге h және L мәліметтері енгізіледі.",
+                "Құлау уақытын (t) және бастапқы жылдамдықты (v₀) өзіңіз есептеп, оларды кестеге қойып, «Тексеру» түймесін басыңыз.",
+                "Биіктік пен жылдамдықты өзгертіп, графикте траекторияларды салу үшін бірнеше нүкте жинаңыз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            hLbl: "Үстел биіктігі h (м):",
+            vLbl: "Итеру күші (v₀):",
+            dispTime: "Секундомер (с)",
+            dispDist: "Ұшу қашықтығы L (м)",
+            dispStatus: "Статус",
+            btnStart: "Іске қосу",
+            btnReset: "Қалпына келтіру",
+            btnRecord: "Жазу",
+            btnCheck: "Есептеулерді тексеру",
+            btnClear: "Кестені тазарту",
+            journal: "Өлшеулер журналы",
+            thH: "h (м)", thL: "L (м)", thT: "t (енгізу)", thV: "v₀ (енгізу)",
+            chartTitle: "Ұшу траекториясы y(x)",
+            
+            statReady: "Дайын",
+            statRoll: "Домалау...",
+            statFly: "Ұшу...",
+            statDone: "Құлау",
+
+            chartAxX: "Қашықтық L (м)",
+            chartAxY: "Биіктік h (м)"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        const t = dict[lang];
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-f1').innerText = t.f1;
+        document.getElementById('txt-f2').innerText = t.f2;
+        
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => { let li = document.createElement('li'); li.innerText = item; ul.appendChild(li); });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-h').childNodes[0].nodeValue = t.hLbl + " ";
+        document.getElementById('lbl-v').childNodes[0].nodeValue = t.vLbl + " ";
+        
+        document.getElementById('disp-time').innerText = t.dispTime;
+        document.getElementById('disp-dist').innerText = t.dispDist;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-h').innerText = t.thH;
+        document.getElementById('th-l').innerText = t.thL;
+        document.getElementById('th-t').innerText = t.thT;
+        document.getElementById('th-v').innerText = t.thV;
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+
+        if(!isRunning) document.getElementById('meas-status').innerText = t.statReady;
+
+        chartTraj.options.scales.x.title.text = t.chartAxX;
+        chartTraj.options.scales.y.title.text = t.chartAxY;
+        chartTraj.update();
+    }
+
+    // --- PHYSICS & LOGIC ---
+    const G = 9.8;
+    const PXM = 120; // Pixels per meter
+    const FLOOR_Y = 350;
+    const EDGE_X = 100; // Edge of the table
+
+    let heightM = 1.0;
+    let v0_m_s = 3.0;
+    
+    let isRunning = false;
+    let animFrame;
+    let measuredDist = 0;
+    
+    let trialsCount = 0;
+    const chartColors = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22'];
+
+    const ui = {
+        ball: document.getElementById('ball'),
+        ramp: document.getElementById('ramp-path'),
+        plumb: document.querySelector('.plumb-line'),
+        hMeasure: document.getElementById('h-measure'),
+        hText: document.getElementById('h-text'),
+        impact: document.getElementById('impact-text'),
+        
+        valH: document.getElementById('val-h'),
+        valV: document.getElementById('val-v'),
+        measTime: document.getElementById('meas-time'),
+        measDist: document.getElementById('meas-dist'),
+        measStatus: document.getElementById('meas-status'),
+        
+        hRange: document.getElementById('h-range'),
+        vRange: document.getElementById('v-range'),
+        btnStart: document.getElementById('btn-start'),
+        btnReset: document.getElementById('btn-reset'),
+        btnRecord: document.getElementById('btn-record')
+    };
+
+    function drawRuler() {
+        const g = document.getElementById('ruler-x');
+        g.innerHTML = '';
+        for(let i=0; i<=5; i+=0.5) {
+            const x = i * PXM;
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x); line.setAttribute("y1", 0);
+            line.setAttribute("x2", x); line.setAttribute("y2", (i%1===0)? 10 : 5);
+            line.setAttribute("stroke", "#34495e"); line.setAttribute("stroke-width", 2);
+            g.appendChild(line);
+            
+            if(i%1===0) {
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", x); text.setAttribute("y", 22);
+                text.setAttribute("font-size", "12"); text.setAttribute("text-anchor", "middle");
+                text.setAttribute("fill", "#7f8c8d"); text.textContent = i;
+                g.appendChild(text);
+            }
+        }
+    }
+
+    function updateSetup() {
+        if (isRunning) return;
+
+        heightM = parseFloat(ui.hRange.value);
+        v0_m_s = parseFloat(ui.vRange.value);
+
+        ui.valH.innerText = heightM.toFixed(2);
+        
+        let forceStr = "";
+        if(v0_m_s < 2) forceStr = (currentLang==='ru')?"Слабо":"Әлсіз";
+        else if(v0_m_s < 4) forceStr = (currentLang==='ru')?"Средне":"Орташа";
+        else forceStr = (currentLang==='ru')?"Сильно":"Қатты";
+        ui.valV.innerText = forceStr;
+
+        const exitY = FLOOR_Y - (heightM * PXM);
+        
+        // Update Ramp
+        ui.ramp.setAttribute("d", `M 40,${exitY - 80} Q 40,${exitY} ${EDGE_X},${exitY}`);
+        
+        // Update Plumb Line
+        ui.plumb.setAttribute("y1", exitY);
+        
+        // Update H Measure Line
+        ui.hMeasure.setAttribute("y1", exitY);
+        ui.hText.setAttribute("transform", `rotate(-90 -10 ${(exitY + FLOOR_Y)/2})`);
+        ui.hText.setAttribute("y", (exitY + FLOOR_Y)/2);
+        ui.hText.textContent = `h = ${heightM.toFixed(2)} м`;
+
+        resetSimUI();
+    }
+
+    function resetSimUI() {
+        const exitY = FLOOR_Y - (heightM * PXM);
+        ui.ball.setAttribute("cx", 40);
+        ui.ball.setAttribute("cy", exitY - 80);
+        ui.impact.textContent = "";
+        
+        ui.measTime.innerText = "0.000";
+        ui.measTime.style.color = "#ecf0f1";
+        ui.measDist.innerText = "0.000";
+        ui.measDist.style.color = "#ecf0f1";
+        
+        ui.measStatus.innerText = dict[currentLang].statReady;
+        ui.measStatus.style.color = "#ecf0f1";
+        
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = true;
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        ui.hRange.disabled = false;
+        ui.vRange.disabled = false;
+        ui.btnReset.disabled = true;
+        resetSimUI();
+    }
+
+    function startSim() {
+        if (isRunning) return;
+        isRunning = true;
+        
+        ui.btnStart.disabled = true;
+        ui.btnReset.disabled = true;
+        ui.btnRecord.disabled = true;
+        ui.hRange.disabled = true;
+        ui.vRange.disabled = true;
+
+        ui.measStatus.innerText = dict[currentLang].statRoll;
+        ui.measStatus.style.color = "#f39c12";
+
+        const exitY = FLOOR_Y - (heightM * PXM);
+        
+        // 1. Roll animation (fake physics just for visual)
+        let rollStart = performance.now();
+        const rollDuration = 500; // ms
+
+        function rollAnim(now) {
+            let p = (now - rollStart) / rollDuration;
+            if(p > 1) p = 1;
+            
+            // simple quadratic ease-in
+            const cx = 40 + (EDGE_X - 40) * (p * p);
+            const cy = (exitY - 80) + 80 * p;
+            
+            ui.ball.setAttribute("cx", cx);
+            ui.ball.setAttribute("cy", cy);
+            
+            if(p < 1) {
+                animFrame = requestAnimationFrame(rollAnim);
+            } else {
+                startFlight();
+            }
+        }
+        animFrame = requestAnimationFrame(rollAnim);
+    }
+
+    function startFlight() {
+        ui.measStatus.innerText = dict[currentLang].statFly;
+        ui.measStatus.style.color = "#3498db";
+        
+        const exitY = FLOOR_Y - (heightM * PXM);
+        const t_fall_ideal = Math.sqrt((2 * heightM) / G);
+        
+        // Add tiny human/sensor error to make it "experimental"
+        const error = 1 + (Math.random() - 0.5) * 0.05;
+        const t_fall_exp = t_fall_ideal * error;
+        measuredDist = v0_m_s * t_fall_exp;
+
+        let flyStart = performance.now();
+
+        function flyAnim(now) {
+            const elapsed = (now - flyStart) / 1000;
+            const t = Math.min(elapsed, t_fall_exp);
+            
+            const xM = v0_m_s * t;
+            const yM = 0.5 * G * t * t;
+            
+            const pxX = EDGE_X + (xM * PXM);
+            const pxY = exitY + (yM * PXM);
+            
+            ui.ball.setAttribute("cx", pxX);
+            ui.ball.setAttribute("cy", pxY);
+            
+            ui.measTime.innerText = t.toFixed(3);
+            ui.measDist.innerText = xM.toFixed(3);
+
+            if(elapsed < t_fall_exp) {
+                animFrame = requestAnimationFrame(flyAnim);
+            } else {
+                finishSim(pxX, pxY);
+            }
+        }
+        animFrame = requestAnimationFrame(flyAnim);
+    }
+
+    function finishSim(endX, endY) {
+        isRunning = false;
+        ui.measStatus.innerText = dict[currentLang].statDone;
+        ui.measStatus.style.color = "#2ecc71";
+        
+        ui.measTime.style.color = "#f1c40f";
+        ui.measDist.style.color = "#2ecc71";
+        
+        ui.impact.setAttribute("x", endX - 10);
+        ui.impact.setAttribute("y", endY - 15);
+        ui.impact.textContent = "💥";
+
+        ui.btnReset.disabled = false;
+        ui.btnRecord.disabled = false;
+    }
+
+    function recordData() {
+        ui.btnRecord.disabled = true;
+        trialsCount++;
+        
+        // Hidden correct answers
+        const t_correct = Math.sqrt((2 * heightM) / G);
+        const v_correct = measuredDist / t_correct; // Using measured dist to find v0
+        
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${trialsCount}</td>
+            <td>${heightM.toFixed(2)}</td>
+            <td>${measuredDist.toFixed(3)}</td>
+            <td><input type="number" step="0.001" class="calc-input" data-ans="${t_correct.toFixed(3)}"></td>
+            <td><input type="number" step="0.01" class="calc-input" data-ans="${v_correct.toFixed(2)}"></td>
+        `;
+        tbody.appendChild(row);
+
+        // Add to graph
+        addTrajectoryToGraph(heightM, v_correct, trialsCount);
+        
+        const wrap = document.getElementById('table-scroll');
+        wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        inputs.forEach(input => {
+            if (input.value.trim() === "") return;
+            const userVal = parseFloat(input.value.replace(',', '.'));
+            const target = parseFloat(input.dataset.ans);
+            
+            const tol = input.step === "0.01" ? 0.05 : 0.005;
+            
+            if (!isNaN(userVal) && Math.abs(userVal - target) <= tol) {
+                input.classList.add('correct'); input.classList.remove('incorrect');
+            } else {
+                input.classList.add('incorrect'); input.classList.remove('correct');
+            }
+        });
+    }
+
+    function clearTable() {
+        document.querySelector('#data-table tbody').innerHTML = '';
+        trialsCount = 0;
+        chartTraj.data.datasets = [];
+        chartTraj.update();
+        resetSim();
+    }
+
+    // --- CHART.JS ---
+    const ctx = document.getElementById('chart-traj').getContext('2d');
+    const chartTraj = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: [] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } },
+            scales: {
+                x: { type: 'linear', title: { display: true, font: {weight: 'bold'} }, min: 0, max: 5 },
+                y: { title: { display: true, font: {weight: 'bold'} }, min: 0, max: 2.5 }
+            }
+        }
+    });
+
+    function addTrajectoryToGraph(h, v0, trialNum) {
+        const trajData = [];
+        // Eq of trajectory: y = h - (g/(2*v0^2)) * x^2 (if y is height from ground)
+        // Here we plot y as height, x as distance
+        
+        const L = v0 * Math.sqrt((2 * h) / G);
+        const step = L / 20;
+        
+        for(let x = 0; x <= L; x += step) {
+            const y = h - (G / (2 * v0 * v0)) * x * x;
+            if(y >= 0) trajData.push({x: x, y: y});
+        }
+        // ensure last point hits 0
+        trajData.push({x: L, y: 0});
+        
+        const color = chartColors[(trialNum - 1) % chartColors.length];
+        
+        chartTraj.data.datasets.push({
+            label: `Опыт ${trialNum} (h=${h.toFixed(1)}, v₀≈${v0.toFixed(1)})`,
+            data: trajData,
+            borderColor: color,
+            borderWidth: 2,
+            fill: false,
+            pointRadius: 0,
+            tension: 0.3
+        });
+        
+        chartTraj.update();
+    }
+
+    // RUN INIT
+    drawRuler();
+    setLang('ru');
+    updateSetup();
+
+</script>
+</body>
+</html>

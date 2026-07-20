@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Соединение пружин</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container-main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 900px) {
+            .grid-layout { grid-template-columns: 350px 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .panel-title {
+            margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px; font-size: 1.1rem; font-weight: bold; margin-bottom: 15px;
+        }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 5px solid var(--primary);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- MATH / FRACTIONS --- */
+        .frac { display: inline-block; vertical-align: middle; text-align: center; font-size: 1em; line-height: 1.2; margin: 0 4px; }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        .math-container { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px; align-items: stretch;}
+        .formula-card {
+            background: #f8f9fa; border: 1px solid #dfe6e9; border-radius: 8px; padding: 12px 15px;
+            text-align: center; font-family: 'Times New Roman', serif; font-size: 1.1rem; font-style: italic;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .formula-desc { font-family: 'Segoe UI', sans-serif; font-size: 0.8rem; color: #7f8c8d; font-style: normal; margin-top: 8px; font-weight: bold;}
+
+        /* --- CONTROLS --- */
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        .custom-select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 5px; background: #fff; font-size: 0.9rem; outline: none; }
+        
+        .weights-viz {
+            display: flex; gap: 4px; justify-content: center; margin: 10px 0;
+            min-height: 40px; align-items: center; background: #f0f3f4; border-radius: 5px; border: 1px dashed #bdc3c7;
+        }
+        .w-icon { width: 28px; height: 28px; background: #34495e; color: white; font-size: 0.75rem; font-weight: bold; display: flex; align-items: center; justify-content: center; border-radius: 3px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
+
+        .btn-group { display: flex; gap: 10px; margin-top: 10px;}
+        .btn {
+            flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; color: white;
+            cursor: pointer; transition: 0.2s; font-size: 0.9rem; text-align: center;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-act { background: var(--accent); } .btn-act:hover:not(:disabled) { background: #219a52; }
+        .btn-rem { background: #e74c3c; } .btn-rem:hover:not(:disabled) { background: #c0392b; }
+        .btn-rec { background: var(--primary); } .btn-rec:hover:not(:disabled) { background: #1a252f; }
+        .btn-check { background: #f39c12; margin-top: 10px; width: 100%;} .btn-check:hover:not(:disabled) { background: #d68910; }
+
+        /* --- SIMULATION SVG --- */
+        .sim-area {
+            background: radial-gradient(circle at center, #ffffff, #ecf0f1);
+            border-radius: 8px; overflow: hidden; border: 1px solid var(--border);
+            height: 450px; position: relative; display: flex; justify-content: center; align-items: center;
+        }
+        svg { width: 100%; height: 100%; display: block; cursor: default; }
+
+        .stand-base { fill: #2c3e50; stroke: #1a252f; stroke-width: 2; }
+        .stand-pole { fill: url(#metal-grad); stroke: #7f8c8d; stroke-width: 1; }
+        .stand-clamp { fill: #34495e; stroke: #2c3e50;}
+        .spring-line { fill: none; stroke: #7f8c8d; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+        .weight-svg { fill: #34495e; stroke: #2c3e50; stroke-width: 1;}
+        .ruler-bg { fill: rgba(255, 250, 205, 0.9); stroke: #f39c12; stroke-width: 1;}
+        .ruler-line { stroke: #34495e; stroke-width: 1.5; }
+        .ruler-text { font-size: 11px; fill: #2c3e50; font-family: 'Courier New', Courier, monospace; font-weight: bold;}
+        .measure-line { stroke: #e74c3c; stroke-width: 1.5; stroke-dasharray: 4; }
+
+        /* --- TABLE --- */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; max-height: 250px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+        th, td { padding: 8px 4px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        td:last-child, th:last-child { border-right: none; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 60px; padding: 4px; text-align: center; border: 1px solid var(--border);
+            border-radius: 4px; font-weight: bold; color: var(--primary); outline: none; -moz-appearance: textfield;
+        }
+        .calc-input::-webkit-outer-spin-button, .calc-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        /* --- CHART --- */
+        .chart-box { position: relative; min-height: 300px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: #fff; margin-top: 20px;}
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="header-title">Лабораторная работа: Соединение пружин</h1>
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+            <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+        </div>
+    </header>
+
+    <div class="container-main">
+        <div class="intro-box">
+            <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Определить эквивалентную жесткость системы пружин при их параллельном и последовательном соединении и проверить теоретические формулы.</span></p>
+            
+            <div style="margin-top: 15px;">
+                <span class="intro-label" id="lbl-theory-head">Теория и формулы:</span>
+                <div class="math-container">
+                    <div class="formula-card">
+                        <div style="color:var(--accent);">F = k · Δx</div>
+                        <div class="formula-desc" id="txt-f1">Закон Гука</div>
+                    </div>
+                    <div class="formula-card">
+                        <div>k<sub>пар</sub> = k<sub>1</sub> + k<sub>2</sub></div>
+                        <div class="formula-desc" id="txt-f2">Параллельное (жесткость ↑)</div>
+                    </div>
+                    <div class="formula-card">
+                        <div><div class="frac"><span>1</span><span class="bottom">k<sub>посл</sub></span></div> = <div class="frac"><span>1</span><span class="bottom">k<sub>1</sub></span></div> + <div class="frac"><span>1</span><span class="bottom">k<sub>2</sub></span></div></div>
+                        <div class="formula-desc" id="txt-f3">Последовательное (жесткость ↓)</div>
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin-top: 15px;"><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+            <ul id="list-procedure">
+                <li>Выберите тип соединения и жесткость пружин. Запишите начальную длину L₀ (без грузов).</li>
+                <li>Добавляйте грузы (по 1 Н). Измеряйте новую длину L. Удлинение вычисляется как ΔL = L - L₀.</li>
+                <li>Нажмите «Записать». Внесите в таблицу самостоятельно рассчитанное значение k = F / ΔL.</li>
+                <li>Нажмите «Проверить расчеты». Сравните полученные графики зависимости F(ΔL) для разных соединений.</li>
+            </ul>
+        </div>
+
+        <div class="grid-layout">
+            <div class="panel">
+                <h2 class="panel-title" id="lbl-settings">Настройки и управление</h2>
+                
+                <div class="control-group">
+                    <label id="lbl-mode">1. Тип соединения:</label>
+                    <select id="conn-mode" class="custom-select" onchange="updateSimSetup()">
+                        <option value="single">Одна пружина</option>
+                        <option value="parallel">Параллельно (рядом)</option>
+                        <option value="series">Последовательно (друг за другом)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label id="lbl-k1">2. Пружина №1 (k₁):</label>
+                    <select id="k1-select" class="custom-select" onchange="updateSimSetup()">
+                        <option value="40">40 Н/м (Мягкая)</option>
+                        <option value="60">60 Н/м (Средняя)</option>
+                        <option value="100">100 Н/м (Жесткая)</option>
+                    </select>
+                </div>
+
+                <div class="control-group hidden" id="k2-group">
+                    <label id="lbl-k2">3. Пружина №2 (k₂):</label>
+                    <select id="k2-select" class="custom-select" onchange="updateSimSetup()">
+                        <option value="40">40 Н/м (Мягкая)</option>
+                        <option value="60">60 Н/м (Средняя)</option>
+                        <option value="100">100 Н/м (Жесткая)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label id="lbl-load">Нагрузка (по 1 Н):</label>
+                    <div class="weights-viz" id="w-viz">
+                        <span style="font-size:0.8rem; color:#7f8c8d;" id="txt-empty">Пусто</span>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-act" onclick="addWeight()" id="btn-add">+ Груз</button>
+                        <button class="btn btn-rem" onclick="removeWeight()" id="btn-rem">- Груз</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-rec" style="width:100%; margin-top: 10px;" onclick="recordData()" id="btn-rec">ЗАПИСАТЬ ИЗМЕРЕНИЕ</button>
+                <button class="btn" style="width:100%; margin-top: 10px; background: #95a5a6;" onclick="resetWeights()" id="btn-res">Снять все грузы</button>
+
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid var(--border);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-weight:bold; color:var(--primary);" id="disp-force">Сила F:</span>
+                        <strong id="val-force" style="color:#e74c3c;">0 Н</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-weight:bold; color:var(--primary);" id="disp-len">Длина L:</span>
+                        <strong id="val-len" style="color:#8e44ad;">0.100 м</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title" id="lbl-sim">Симуляция установки</h2>
+                <div class="sim-area">
+                    <svg id="sim-svg" viewBox="0 0 500 500" preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                            <linearGradient id="metal-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#bdc3c7;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#ffffff;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#95a5a6;stop-opacity:1" />
+                            </linearGradient>
+                            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+                            </pattern>
+                        </defs>
+                        
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+
+                        <!-- Штатив -->
+                        <rect x="80" y="450" width="160" height="15" class="stand-base" rx="4" />
+                        <rect x="150" y="30" width="20" height="420" class="stand-pole" />
+                        
+                        <!-- Лапка штатива -->
+                        <g transform="translate(150, 60)">
+                            <rect x="-10" y="-12" width="40" height="24" class="stand-clamp" rx="3" />
+                            <rect x="20" y="-6" width="160" height="12" class="stand-pole" />
+                            <circle cx="10" cy="0" r="6" fill="#2c3e50" />
+                        </g>
+
+                        <!-- Линейка -->
+                        <g id="ruler-group" transform="translate(100, 60)"></g>
+
+                        <!-- Пружины и грузы -->
+                        <g id="system-group" transform="translate(290, 60)"></g>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2 class="panel-title" id="lbl-journal">Журнал измерений и анализ</h2>
+            <div class="table-wrap" id="table-scroll">
+                <table id="data-table">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th id="th-type">Тип</th>
+                            <th id="th-f">F (Н)</th>
+                            <th id="th-l0">L₀ (м)</th>
+                            <th id="th-l">L (м)</th>
+                            <th id="th-dl">ΔL (м)</th>
+                            <th id="th-k">k (ввод Н/м)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Данные -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-check" onclick="checkMath()" id="btn-check">Проверить расчеты k</button>
+                <button class="btn" style="background: #e74c3c; margin-top: 10px; width: 200px;" onclick="clearTable()" id="btn-clear">Очистить таблицу</button>
+            </div>
+
+            <div class="chart-box">
+                <canvas id="chart-force"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dict = {
+            ru: {
+                title: "Лабораторная работа: Соединение пружин",
+                goalLbl: "Цель работы:",
+                goalTxt: "Определить эквивалентную жесткость системы пружин при их параллельном и последовательном соединении и проверить теоретические формулы.",
+                theoryLbl: "Теория и формулы:",
+                f1: "Закон Гука", f2: "Параллельное (жесткость ↑)", f3: "Последовательное (жесткость ↓)",
+                procLbl: "Ход работы:",
+                procList: [
+                    "Выберите тип соединения и жесткость пружин. Запишите начальную длину L₀ (без грузов).",
+                    "Добавляйте грузы (по 1 Н). Измеряйте новую длину L. Удлинение вычисляется как ΔL = L - L₀.",
+                    "Нажмите «Записать». Внесите в таблицу самостоятельно рассчитанное значение k = F / ΔL.",
+                    "Нажмите «Проверить расчеты». Сравните полученные графики зависимости F(ΔL) для разных соединений."
+                ],
+                settings: "Настройки и управление",
+                modeLbl: "1. Тип соединения:",
+                modes: ["Одна пружина", "Параллельно (рядом)", "Последовательно (друг за другом)"],
+                k1Lbl: "2. Пружина №1 (k₁):",
+                k2Lbl: "3. Пружина №2 (k₂):",
+                kOpts: ["40 Н/м (Мягкая)", "60 Н/м (Средняя)", "100 Н/м (Жесткая)"],
+                loadLbl: "Нагрузка (по 1 Н):",
+                empty: "Пусто",
+                btnAdd: "+ Груз", btnRem: "- Груз", btnRec: "ЗАПИСАТЬ ИЗМЕРЕНИЕ", btnRes: "Снять все грузы",
+                dispF: "Сила F:", dispL: "Длина L:",
+                sim: "Симуляция установки",
+                journal: "Журнал измерений и анализ",
+                thType: "Тип", thF: "F (Н)", thL0: "L₀ (м)", thL: "L (м)", thDl: "ΔL (м)", thK: "k (ввод Н/м)",
+                btnCheck: "Проверить расчеты k", btnClear: "Очистить таблицу",
+                chartTitle: "Зависимость силы упругости от удлинения F(ΔL)",
+                chartX: "Удлинение ΔL (м)", chartY: "Сила F (Н)",
+                type1: "Одна", type2: "Паралл.", type3: "Послед."
+            },
+            kz: {
+                title: "Зертханалық жұмыс: Серіппелерді жалғау",
+                goalLbl: "Жұмыс мақсаты:",
+                goalTxt: "Серіппелерді параллель және тізбектей жалғау кезіндегі жүйенің эквивалентті қатаңдығын анықтау және теориялық формулаларды тексеру.",
+                theoryLbl: "Теория және формулалар:",
+                f1: "Гук заңы", f2: "Параллель (қатаңдық ↑)", f3: "Тізбектей (қатаңдық ↓)",
+                procLbl: "Жұмыс барысы:",
+                procList: [
+                    "Жалғау түрін және серіппелердің қатаңдығын таңдаңыз. Бастапқы ұзындықты L₀ (жүксіз) жазып алыңыз.",
+                    "Жүктерді қосыңыз (1 Н-нан). Жаңа L ұзындығын өлшеңіз. Ұзару ΔL = L - L₀ ретінде есептеледі.",
+                    "«Жазу» түймесін басыңыз. Кестеге k = F / ΔL мәнін өзіңіз есептеп енгізіңіз.",
+                    "«Есептеулерді тексеру» түймесін басыңыз. Әр түрлі жалғаулар үшін F(ΔL) тәуелділік графиктерін салыстырыңыз."
+                ],
+                settings: "Баптаулар және басқару",
+                modeLbl: "1. Жалғау түрі:",
+                modes: ["Бір серіппе", "Параллель (қатар)", "Тізбектей (бірінен соң бірі)"],
+                k1Lbl: "2. Серіппе №1 (k₁):",
+                k2Lbl: "3. Серіппе №2 (k₂):",
+                kOpts: ["40 Н/м (Жұмсақ)", "60 Н/м (Орташа)", "100 Н/м (Қатаң)"],
+                loadLbl: "Жүктеме (1 Н-нан):",
+                empty: "Бос",
+                btnAdd: "+ Жүк", btnRem: "- Жүк", btnRec: "ӨЛШЕУДІ ЖАЗУ", btnRes: "Барлық жүкті алу",
+                dispF: "Күш F:", dispL: "Ұзындық L:",
+                sim: "Қондырғы симуляциясы",
+                journal: "Өлшеулер журналы және талдау",
+                thType: "Түрі", thF: "F (Н)", thL0: "L₀ (м)", thL: "L (м)", thDl: "ΔL (м)", thK: "k (енгізу Н/м)",
+                btnCheck: "k есептеулерін тексеру", btnClear: "Кестені тазарту",
+                chartTitle: "Серпімділік күшінің ұзаруға тәуелділігі F(ΔL)",
+                chartX: "Ұзару ΔL (м)", chartY: "Күш F (Н)",
+                type1: "Біреу", type2: "Паралл.", type3: "Тізбек."
+            }
+        };
+
+        let currentLang = 'ru';
+
+        function setLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            
+            const t = dict[lang];
+            document.getElementById('header-title').innerText = t.title;
+            document.title = t.title;
+            
+            document.getElementById('lbl-goal').innerText = t.goalLbl;
+            document.getElementById('txt-goal').innerText = t.goalTxt;
+            document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+            document.getElementById('txt-f1').innerText = t.f1;
+            document.getElementById('txt-f2').innerText = t.f2;
+            document.getElementById('txt-f3').innerText = t.f3;
+            
+            document.getElementById('lbl-procedure').innerText = t.procLbl;
+            const ul = document.getElementById('list-procedure');
+            ul.innerHTML = "";
+            t.procList.forEach(item => { let li = document.createElement('li'); li.innerText = item; ul.appendChild(li); });
+
+            document.getElementById('lbl-settings').innerText = t.settings;
+            document.getElementById('lbl-mode').innerText = t.modeLbl;
+            
+            const selMode = document.getElementById('conn-mode');
+            selMode.options[0].text = t.modes[0];
+            selMode.options[1].text = t.modes[1];
+            selMode.options[2].text = t.modes[2];
+
+            document.getElementById('lbl-k1').innerText = t.k1Lbl;
+            document.getElementById('lbl-k2').innerText = t.k2Lbl;
+            
+            ['k1-select', 'k2-select'].forEach(id => {
+                const sel = document.getElementById(id);
+                sel.options[0].text = t.kOpts[0];
+                sel.options[1].text = t.kOpts[1];
+                sel.options[2].text = t.kOpts[2];
+            });
+
+            document.getElementById('lbl-load').innerText = t.loadLbl;
+            if(weightCount === 0) document.getElementById('txt-empty').innerText = t.empty;
+            
+            document.getElementById('btn-add').innerText = t.btnAdd;
+            document.getElementById('btn-rem').innerText = t.btnRem;
+            document.getElementById('btn-rec').innerText = t.btnRec;
+            document.getElementById('btn-res').innerText = t.btnRes;
+            
+            document.getElementById('disp-force').innerText = t.dispF;
+            document.getElementById('disp-len').innerText = t.dispL;
+            
+            document.getElementById('lbl-sim').innerText = t.sim;
+            document.getElementById('lbl-journal').innerText = t.journal;
+            
+            document.getElementById('th-type').innerText = t.thType;
+            document.getElementById('th-f').innerText = t.thF;
+            document.getElementById('th-l0').innerText = t.thL0;
+            document.getElementById('th-l').innerText = t.thL;
+            document.getElementById('th-dl').innerText = t.thDl;
+            document.getElementById('th-k').innerText = t.thK;
+            
+            document.getElementById('btn-check').innerText = t.btnCheck;
+            document.getElementById('btn-clear').innerText = t.btnClear;
+
+            chartForce.options.plugins.title.text = t.chartTitle;
+            chartForce.options.scales.x.title.text = t.chartX;
+            chartForce.options.scales.y.title.text = t.chartY;
+            chartForce.update();
+        }
+
+        const PX_PER_M = 800; // 1m = 800px -> 10cm = 80px
+        const L0_SINGLE_M = 0.10; // 10 cm
+        
+        let mode = 'single';
+        let k1 = 40, k2 = 40;
+        let weightCount = 0;
+        
+        let totalK = 40;
+        let totalL0_M = 0.10;
+        let currentL_M = 0.10;
+        let forceN = 0;
+        let trialsCount = 0;
+
+        const ui = {
+            rulerGrp: document.getElementById('ruler-group'),
+            sysGrp: document.getElementById('system-group'),
+            valForce: document.getElementById('val-force'),
+            valLen: document.getElementById('val-len'),
+            wViz: document.getElementById('w-viz'),
+            k2Group: document.getElementById('k2-group'),
+            modeSel: document.getElementById('conn-mode'),
+            k1Sel: document.getElementById('k1-select'),
+            k2Sel: document.getElementById('k2-select')
+        };
+
+        function drawRuler() {
+            ui.rulerGrp.innerHTML = '';
+            
+            const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            bg.setAttribute("x", 0); bg.setAttribute("y", -20);
+            bg.setAttribute("width", 35); bg.setAttribute("height", 420);
+            bg.setAttribute("class", "ruler-bg");
+            bg.setAttribute("rx", "2");
+            ui.rulerGrp.appendChild(bg);
+
+            // Ticks (0 to 50cm)
+            for(let cm=0; cm<=50; cm++) {
+                const y = cm * (PX_PER_M / 100);
+                const isMajor = cm % 10 === 0;
+                const isMid = cm % 5 === 0 && !isMajor;
+                const w = isMajor ? 20 : (isMid ? 15 : 10);
+                
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", 35); line.setAttribute("y1", y);
+                line.setAttribute("x2", 35-w); line.setAttribute("y2", y);
+                line.setAttribute("class", "ruler-line");
+                ui.rulerGrp.appendChild(line);
+
+                if(isMajor) {
+                    const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    txt.setAttribute("x", 12); txt.setAttribute("y", y+4);
+                    txt.setAttribute("class", "ruler-text");
+                    txt.setAttribute("text-anchor", "end");
+                    txt.textContent = cm;
+                    ui.rulerGrp.appendChild(txt);
+                }
+            }
+        }
+
+        function updateSimSetup() {
+            mode = ui.modeSel.value;
+            k1 = parseFloat(ui.k1Sel.value);
+            k2 = parseFloat(ui.k2Sel.value);
+            
+            if (mode === 'single') {
+                ui.k2Group.classList.add('hidden');
+                totalK = k1;
+                totalL0_M = L0_SINGLE_M;
+            } else {
+                ui.k2Group.classList.remove('hidden');
+                if (mode === 'parallel') {
+                    totalK = k1 + k2;
+                    totalL0_M = L0_SINGLE_M;
+                } else if (mode === 'series') {
+                    totalK = (k1 * k2) / (k1 + k2);
+                    totalL0_M = L0_SINGLE_M * 2;
+                }
+            }
+            
+            forceN = weightCount * 1.0; 
+            const extension = forceN / totalK;
+            currentL_M = totalL0_M + extension;
+
+            drawSystem();
+            updateText();
+        }
+
+        function createSVGElement(tag, attrs) {
+            const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+            for (let k in attrs) el.setAttribute(k, attrs[k]);
+            return el;
+        }
+
+        function createSpringPath(x, y, width, length, color = "#7f8c8d") {
+            const coils = 14;
+            const segH = length / coils;
+            let d = `M${x},${y} `;
+            
+            for(let i=1; i<=coils; i++) {
+                const currY = y + i*segH;
+                const currX = (i===coils) ? x : (i%2===0 ? x-width/2 : x+width/2);
+                d += `L${currX},${currY} `;
+            }
+            return createSVGElement("path", {"d": d, "class": "spring-line", "stroke": color});
+        }
+
+        function createWeights(x, y) {
+            const g = createSVGElement("g", {"transform": `translate(${x}, ${y})`});
+            g.appendChild(createSVGElement("line", {"x1": 0, "y1": 0, "x2": 0, "y2": 15, "stroke": "#2c3e50", "stroke-width": "2"}));
+            
+            for(let i=0; i<weightCount; i++) {
+                const wy = 15 + i*22;
+                g.appendChild(createSVGElement("rect", {"x": -15, "y": wy, "width": 30, "height": 20, "rx": 2, "class": "weight-svg"}));
+                const txt = createSVGElement("text", {"x": 0, "y": wy+14, "fill": "white", "font-size": "10", "font-weight": "bold", "text-anchor": "middle"});
+                txt.textContent = "1H";
+                g.appendChild(txt);
+            }
+            return g;
+        }
+
+        function drawSystem() {
+            ui.sysGrp.innerHTML = '';
+            
+            // Крючок на лапке (y=0 соответствует 0 см на линейке)
+            ui.sysGrp.appendChild(createSVGElement("circle", {"cx": 0, "cy": -5, "r": 4, "fill": "#34495e"}));
+
+            const color1 = k1 === 40 ? "#3498db" : (k1 === 60 ? "#9b59b6" : "#e67e22");
+            const color2 = k2 === 40 ? "#3498db" : (k2 === 60 ? "#9b59b6" : "#e67e22");
+
+            if (mode === 'single') {
+                const lenPx = currentL_M * PX_PER_M;
+                ui.sysGrp.appendChild(createSpringPath(0, 0, 20, lenPx, color1));
+                ui.sysGrp.appendChild(createWeights(0, lenPx));
+                
+                // Указатель на линейку (290 - 135 = 155px влево)
+                ui.sysGrp.appendChild(createSVGElement("line", {"x1": -10, "y1": lenPx, "x2": -155, "y2": lenPx, "class": "measure-line"}));
+
+            } else if (mode === 'parallel') {
+                const lenPx = currentL_M * PX_PER_M;
+                ui.sysGrp.appendChild(createSVGElement("line", {"x1": -25, "y1": 0, "x2": 25, "y2": 0, "stroke": "#34495e", "stroke-width": "4"}));
+                
+                ui.sysGrp.appendChild(createSpringPath(-25, 0, 16, lenPx, color1));
+                ui.sysGrp.appendChild(createSpringPath(25, 0, 16, lenPx, color2));
+                
+                ui.sysGrp.appendChild(createSVGElement("line", {"x1": -25, "y1": lenPx, "x2": 25, "y2": lenPx, "stroke": "#34495e", "stroke-width": "4"}));
+                ui.sysGrp.appendChild(createWeights(0, lenPx));
+                ui.sysGrp.appendChild(createSVGElement("line", {"x1": -25, "y1": lenPx, "x2": -155, "y2": lenPx, "class": "measure-line"}));
+
+            } else if (mode === 'series') {
+                const ext1 = forceN / k1;
+                const len1Px = (L0_SINGLE_M + ext1) * PX_PER_M;
+                const ext2 = forceN / k2;
+                const len2Px = (L0_SINGLE_M + ext2) * PX_PER_M;
+
+                ui.sysGrp.appendChild(createSpringPath(0, 0, 20, len1Px, color1));
+                ui.sysGrp.appendChild(createSVGElement("circle", {"cx": 0, "cy": len1Px, "r": 3, "fill": "#2c3e50"}));
+                ui.sysGrp.appendChild(createSpringPath(0, len1Px, 20, len2Px, color2));
+                
+                const totalY = len1Px + len2Px;
+                ui.sysGrp.appendChild(createWeights(0, totalY));
+                ui.sysGrp.appendChild(createSVGElement("line", {"x1": -10, "y1": totalY, "x2": -155, "y2": totalY, "class": "measure-line"}));
+            }
+        }
+
+        function updateText() {
+            ui.valForce.textContent = forceN + " Н";
+            ui.valLen.textContent = currentL_M.toFixed(3) + " м";
+            
+            ui.wViz.innerHTML = '';
+            if(weightCount === 0) {
+                ui.wViz.innerHTML = `<span style="font-size:0.8rem; color:#7f8c8d;">${dict[currentLang].empty}</span>`;
+            } else {
+                for(let i=0; i<weightCount; i++) {
+                    ui.wViz.innerHTML += '<div class="w-icon">1Н</div>';
+                }
+            }
+        }
+
+        function addWeight() { if(weightCount < 6) { weightCount++; updateSimSetup(); } }
+        function removeWeight() { if(weightCount > 0) { weightCount--; updateSimSetup(); } }
+        function resetWeights() { weightCount = 0; updateSimSetup(); }
+
+        const ctx = document.getElementById('chart-force').getContext('2d');
+        const chartForce = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: [] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' }, title: {display: true} },
+                scales: {
+                    x: { type: 'linear', title: { display: true, font: {weight: 'bold'} }, min: 0 },
+                    y: { title: { display: true, font: {weight: 'bold'} }, min: 0 }
+                }
+            }
+        });
+
+        const colorMap = {'single': '#3498db', 'parallel': '#e74c3c', 'series': '#2ecc71'};
+
+        function recordData() {
+            const deltaL = currentL_M - totalL0_M;
+            const kCorrect = (deltaL > 0.001) ? (forceN / deltaL).toFixed(1) : "-";
+            
+            let typeStr = mode === 'single' ? dict[currentLang].type1 : (mode === 'parallel' ? dict[currentLang].type2 : dict[currentLang].type3);
+            let setupLabel = typeStr + " (k₁=" + k1 + (mode !== 'single' ? ", k₂=" + k2 : "") + ")";
+            trialsCount++;
+
+            const tbody = document.querySelector('#data-table tbody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${trialsCount}</td>
+                <td>${typeStr}</td>
+                <td>${forceN}</td>
+                <td>${totalL0_M.toFixed(3)}</td>
+                <td>${currentL_M.toFixed(3)}</td>
+                <td>${deltaL.toFixed(3)}</td>
+                <td>${deltaL > 0.001 ? `<input type="number" step="0.1" class="calc-input" data-ans="${kCorrect}">` : '-'}</td>
+            `;
+            row.dataset.label = setupLabel;
+            row.dataset.x = deltaL;
+            row.dataset.y = forceN;
+            tbody.appendChild(row);
+            
+            const wrapper = document.getElementById('table-scroll');
+            wrapper.scrollTop = wrapper.scrollHeight;
+            
+            updateChart(); // Обновляем график сразу при записи данных
+        }
+
+        function checkMath() {
+            const inputs = document.querySelectorAll('.calc-input');
+            inputs.forEach(input => {
+                if (input.value.trim() === "") return;
+                const userVal = parseFloat(input.value.replace(',', '.'));
+                const target = parseFloat(input.dataset.ans);
+                
+                if (!isNaN(userVal) && Math.abs(userVal - target) <= 2.0) { // Tolerance
+                    input.classList.add('correct'); input.classList.remove('incorrect');
+                } else {
+                    input.classList.add('incorrect'); input.classList.remove('correct');
+                }
+            });
+        }
+
+        function updateChart() {
+            const palette = ['#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f', '#e67e22', '#34495e', '#1abc9c'];
+            let colorIndex = 0;
+            const datasetsMap = {};
+
+            const rows = document.querySelectorAll('#data-table tbody tr');
+            rows.forEach(row => {
+                const label = row.dataset.label;
+                if (!datasetsMap[label]) {
+                    datasetsMap[label] = {
+                        label: label,
+                        data: [],
+                        borderColor: palette[colorIndex % palette.length],
+                        backgroundColor: palette[colorIndex % palette.length],
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 5,
+                        showLine: true, // Соединяем точки линией (показывает k)
+                        tension: 0
+                    };
+                    colorIndex++;
+                }
+                
+                datasetsMap[label].data.push({ x: parseFloat(row.dataset.x), y: parseFloat(row.dataset.y) });
+            });
+
+            chartForce.data.datasets = Object.values(datasetsMap);
+            chartForce.update();
+        }
+
+        function clearTable() {
+            document.querySelector('#data-table tbody').innerHTML = '';
+            trialsCount = 0;
+            chartForce.data.datasets = [];
+            chartForce.update();
+            resetWeights();
+        }
+
+        // INIT
+        drawRuler();
+        setLang('ru');
+        updateSimSetup();
+
+    </script>
+</body>
+</html>

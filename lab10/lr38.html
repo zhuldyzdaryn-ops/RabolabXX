@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Измерение заряда иона</title>
+    <!-- Подключение Chart.js для построения графика -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --warning: #e67e22;
+            --danger: #e74c3c;
+            --copper: #b87333;
+            --liquid: rgba(52, 152, 219, 0.2);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--accent);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg {
+            width: 100%;
+            height: 350px;
+            display: block;
+        }
+
+        /* Анимация пузырьков */
+        @keyframes bubble-rise {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-40px) scale(1.5); opacity: 0; }
+        }
+        .bubble { fill: white; opacity: 0; }
+        .bubble.active { animation: bubble-rise 2s infinite ease-in; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1; min-width: 150px;
+            padding: 10px 15px; border: none; border-radius: 5px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-start { background: var(--success); }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-stop { background: var(--danger); }
+        .btn-stop:hover:not(:disabled) { background: #c0392b; }
+        .btn-weigh { background: var(--warning); }
+        .btn-weigh:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-reset { background: #7f8c8d; }
+        .btn-reset:hover:not(:disabled) { background: #95a5a6; }
+
+        /* --- DISPLAYS --- */
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .display-item { text-align: center; flex: 1; min-width: 100px; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; margin-bottom: 5px; }
+        .display-item strong { font-size: 1.4rem; font-family: 'Courier New', Courier, monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 380px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input { width: 70px; padding: 4px; text-align: center; border: 1px solid var(--border); border-radius: 4px; font-weight: bold; color: var(--primary); outline: none; }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .btn-check { background: var(--warning); margin-top: 10px; padding: 8px 15px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; }
+        .btn-check:hover { background: #d68910; }
+
+        /* --- CHART --- */
+        .chart-box {
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Измерение заряда иона</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Измерение электрического заряда иона меди (Cu²⁺)</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Экспериментально определить заряд электрона в процессе электролиза раствора медного купороса.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Установите силу тока (I) с помощью реостата.</li>
+            <li>Замкните ключ («Начать электролиз») и подождите некоторое время.</li>
+            <li>Разомкните ключ и нажмите «Взвесить катод», чтобы измерить массу выделившейся меди (Δm).</li>
+            <li>Нажмите «Записать в таблицу». Проведите опыт для разных значений тока и времени.</li>
+            <li>Рассчитайте элементарный заряд e по формуле и проверьте свои расчеты.</li>
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg viewBox="0 0 650 350" id="circuit-svg" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#bdc3c7" stroke-width="0.5" opacity="0.5"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <!-- Провода и цепь -->
+                <path d="M 150,50 L 50,50 L 50,280 L 150,280" stroke="#2c3e50" stroke-width="3" fill="none" />
+                <path d="M 150,50 L 550,50 L 550,135" stroke="#2c3e50" stroke-width="3" fill="none" />
+                <path d="M 150,280 L 550,280 L 550,195" stroke="#2c3e50" stroke-width="3" fill="none" />
+                <path d="M 330,160 L 330,50" stroke="#2c3e50" stroke-width="3" fill="none" />
+                <path d="M 430,160 L 430,50" stroke="#2c3e50" stroke-width="3" fill="none" />
+
+                <!-- Ванна с раствором (в центре) -->
+                <g transform="translate(280, 160)">
+                    <rect x="0" y="0" width="200" height="110" fill="rgba(52, 152, 219, 0.2)" stroke="#2980b9" stroke-width="3" rx="10"/>
+                    <path d="M 0,20 Q 50,10 100,20 T 200,20" fill="none" stroke="#3498db" stroke-width="2"/>
+                    <text x="100" y="100" font-size="14" fill="#2980b9" font-weight="bold" text-anchor="middle" id="txt-bath">CuSO₄</text>
+                    
+                    <!-- Электроды -->
+                    <!-- Анод (+) слева -->
+                    <rect id="anode" x="40" y="-30" width="20" height="110" fill="#a04000" stroke="#78350f" stroke-width="2" rx="2" />
+                    <text x="50" y="-40" font-size="14" fill="#c0392b" font-weight="bold" text-anchor="middle">+</text>
+                    
+                    <!-- Катод (-) справа -->
+                    <rect id="cathode" x="140" y="-30" width="20" height="110" fill="#d35400" stroke="#78350f" stroke-width="2" rx="2" style="transition: width 0.3s, x 0.3s;" />
+                    <text x="150" y="-40" font-size="14" fill="#2980b9" font-weight="bold" text-anchor="middle">-</text>
+
+                    <!-- Пузырьки возле анода -->
+                    <circle cx="45" cy="80" r="3" class="bubble" style="animation-delay: 0s;" />
+                    <circle cx="55" cy="70" r="2.5" class="bubble" style="animation-delay: 0.5s;" />
+                    <circle cx="42" cy="60" r="3.5" class="bubble" style="animation-delay: 1.2s;" />
+                    <!-- Пузырьки возле катода -->
+                    <circle cx="145" cy="80" r="3" class="bubble" style="animation-delay: 0.2s;" />
+                    <circle cx="155" cy="70" r="2.5" class="bubble" style="animation-delay: 0.8s;" />
+                </g>
+
+                <!-- Источник питания (Батарея) -->
+                <g transform="translate(150, 280)">
+                    <line x1="0" y1="-20" x2="0" y2="20" stroke="#2c3e50" stroke-width="2" /> <!-- Длинная (+) -->
+                    <line x1="15" y1="-10" x2="15" y2="10" stroke="#2c3e50" stroke-width="6" /> <!-- Короткая (-) -->
+                    <!-- Разрыв провода для батареи -->
+                    <rect x="-10" y="-30" width="35" height="60" fill="var(--bg)" opacity="0" />
+                    <!-- Соединения -->
+                    <line x1="-50" y1="0" x2="-2" y2="0" stroke="#2c3e50" stroke-width="3" />
+                    <line x1="18" y1="0" x2="60" y2="0" stroke="#2c3e50" stroke-width="3" />
+                    <text x="-5" y="-30" font-size="16" fill="#c0392b" font-weight="bold">+</text>
+                    <text x="20" y="-30" font-size="16" fill="#2980b9" font-weight="bold">-</text>
+                </g>
+
+                <!-- Амперметр A -->
+                <g transform="translate(50, 165)">
+                    <circle cx="0" cy="0" r="24" fill="#fff" stroke="#2c3e50" stroke-width="3" />
+                    <text x="0" y="5" font-family="sans-serif" font-size="18" font-weight="bold" fill="#2c3e50" text-anchor="middle">A</text>
+                </g>
+
+                <!-- Реостат R -->
+                <g transform="translate(150, 50)">
+                    <rect x="-30" y="-15" width="60" height="30" fill="#fff" stroke="#2c3e50" stroke-width="3" />
+                    <text x="0" y="5" font-family="sans-serif" font-size="16" font-weight="bold" fill="#2c3e50" text-anchor="middle">R</text>
+                </g>
+
+                <!-- Ключ K -->
+                <g transform="translate(550, 165)">
+                    <circle cx="0" cy="-30" r="5" fill="#2c3e50" />
+                    <circle cx="0" cy="30" r="5" fill="#2c3e50" />
+                    <line id="switch-blade" x1="0" y1="-30" x2="0" y2="30" stroke="#2c3e50" stroke-width="4" stroke-linecap="round" style="transform-origin: 0px -30px; transform: rotate(-45deg); transition: transform 0.3s;" />
+                    <text x="25" y="0" font-size="16" font-weight="bold" fill="#2c3e50">K</text>
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-i">Сила тока (I): <span id="val-i" style="color:var(--accent)">1.0 А</span></label>
+                <input type="range" id="i-input" min="0.2" max="3.0" value="1.0" step="0.1" oninput="syncInputs()">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-i">Ток I (А)</span>
+                <strong id="meas-i">1.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-t">Время t (с)</span>
+                <strong id="meas-t">0</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-m">Масса катода m (г)</span>
+                <strong id="meas-m">10.000</strong>
+            </div>
+            <div class="display-item" style="flex: 2;">
+                <span id="disp-status">Статус</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1rem;">Ключ разомкнут</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="toggleWork()">Замкнуть ключ</button>
+            <button class="btn btn-weigh" id="btn-weigh" onclick="weighCathode()">Взвесить катод</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Сброс</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2 class="panel-title" id="lbl-journal" style="border:none; margin:0; padding:0;">Таблица измерений</h2>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-no">№</th>
+                                <th id="th-i">I (А)</th>
+                                <th id="th-t">t (с)</th>
+                                <th id="th-dm">Δm (г)</th>
+                                <th id="th-q">Q (Кл)</th>
+                                <th id="th-e">e · 10⁻¹⁹ (Кл)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-table-body">
+                            <!-- Данные будут здесь -->
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-check" id="btn-check" onclick="checkMath()">Проверить вычисления e</button>
+            </div>
+
+            <div class="chart-section" style="display:flex; flex-direction:column; gap:20px;">
+                <div class="chart-box">
+                    <h3 id="lbl-chart" style="margin:0 0 5px 0; font-size:1rem; text-align:center; color: var(--primary);">График зависимости Δm от Q</h3>
+                    <div class="chart-container">
+                        <canvas id="chartMQ"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формулы для расчета:</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px; font-size: 0.95rem; color: var(--primary);">
+                <b>1. Заряд:</b> Q = I · t <br>
+                <b>2. Элементарный заряд:</b> e = <div class="frac"><span>M · I · t</span><span class="bottom">Δm · N<sub>A</sub> · n</span></div>
+                (Переведите Δm в кг перед расчетом!)
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ЯЗЫКОВАЯ ЛОГИКА ---
+    let currentLang = 'ru';
+
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Измерение заряда иона",
+            themeLbl: "Тема:",
+            themeTxt: "Измерение электрического заряда иона меди (Cu²⁺)",
+            goalLbl: "Цель работы:",
+            goalTxt: "Экспериментально определить заряд электрона в процессе электролиза раствора медного купороса.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `Согласно закону Фарадея, масса выделившегося вещества равна <b>m = (M &middot; I &middot; t) / (e &middot; N<sub>A</sub> &middot; n)</b>.<br>
+                        Измеряя силу тока (<b>I</b>), время (<b>t</b>) и массу выделившейся меди (<b>Δm</b>), можно вычислить элементарный заряд <b>e</b>.<br>
+                        Константы: M(Cu) = 0.0635 кг/моль, N<sub>A</sub> = 6.022 &middot; 10²³ моль⁻¹, валентность n = 2.`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Установите силу тока (I) с помощью ползунка.",
+                "Нажмите «Замкнуть ключ» и подождите нужное время.",
+                "Нажмите «Разомкнуть ключ», а затем «Взвесить катод» для получения массы выделившейся меди (Δm).",
+                "Нажмите «Записать в таблицу» и проведите опыт 3-4 раза для разных I и t.",
+                "Рассчитайте заряд Q = I · t и элементарный заряд e · 10⁻¹⁹ Кл, введите их в таблицу и нажмите «Проверить»."
+            ],
+            sim: "Симуляция эксперимента",
+            lblI: "Сила тока (I):",
+            dispI: "Ток I (А)",
+            dispT: "Время t (с)",
+            dispM: "Масса катода m (г)",
+            dispStatus: "Статус",
+            
+            btnStart: "Замкнуть ключ",
+            btnStop: "Разомкнуть ключ",
+            btnWeigh: "Взвесить катод",
+            btnRecord: "Записать в таблицу",
+            btnReset: "Сброс",
+            btnClear: "Очистить таблицу",
+            
+            journal: "Таблица измерений",
+            thNo: "№", thI: "I (А)", thT: "t (с)", thDm: "Δm (г)", thQ: "Q (Кл)", thE: "e · 10⁻¹⁹ (Кл)",
+            chartTitle: "График зависимости Δm от Q",
+            chartX: "Заряд Q (Кл)", chartY: "Масса Δm (г)",
+            theoryTitle: "Формулы для расчета:",
+            
+            statOpen: "Ключ разомкнут",
+            statRun: "Идёт электролиз...",
+            statWeigh: "Взвешивание завершено"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Ион зарядын өлшеу",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Мыс ионының (Cu²⁺) электр зарядын өлшеу",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Мыс купоросы ерітіндісінің электролизі процесінде электрон зарядын тәжірибе жүзінде анықтау.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Фарадей заңына сәйкес бөлініп шыққан заттың массасы <b>m = (M &middot; I &middot; t) / (e &middot; N<sub>A</sub> &middot; n)</b> тең.<br>
+                        Ток күшін (<b>I</b>), уақытты (<b>t</b>) және бөлінген мыс массасын (<b>Δm</b>) өлшей отырып, <b>e</b> элементар зарядын есептеуге болады.<br>
+                        Тұрақтылар: M(Cu) = 0.0635 кг/моль, N<sub>A</sub> = 6.022 &middot; 10²³ моль⁻¹, валенттілік n = 2.`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Жүгіртпенің көмегімен ток күшін (I) орнатыңыз.",
+                "«Кілтті тұйықтау» түймесін басып, қажетті уақыт күтіңіз.",
+                "«Кілтті ажырату», содан кейін бөлінген мыс массасын (Δm) алу үшін «Катодты өлшеу» түймесін басыңыз.",
+                "«Кестеге жазу» түймесін басыңыз және әртүрлі I мен t үшін тәжірибені 3-4 рет қайталаңыз.",
+                "Q = I · t зарядын және e · 10⁻¹⁹ Кл элементар зарядын есептеп, оларды кестеге енгізіңіз және «Тексеру» түймесін басыңыз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            lblI: "Ток күші (I):",
+            dispI: "Ток I (А)",
+            dispT: "Уақыт t (с)",
+            dispM: "Катод массасы m (г)",
+            dispStatus: "Статус",
+            
+            btnStart: "Кілтті тұйықтау",
+            btnStop: "Кілтті ажырату",
+            btnWeigh: "Катодты өлшеу",
+            btnRecord: "Кестеге жазу",
+            btnReset: "Қалпына келтіру",
+            btnClear: "Кестені тазарту",
+            
+            journal: "Өлшеулер кестесі",
+            thNo: "№", thI: "I (А)", thT: "t (с)", thDm: "Δm (г)", thQ: "Q (Кл)", thE: "e · 10⁻¹⁹ (Кл)",
+            chartTitle: "Δm-нің Q-ға тәуелділік графигі",
+            chartX: "Заряд Q (Кл)", chartY: "Масса Δm (г)",
+            theoryTitle: "Есептеу формулалары:",
+            
+            statOpen: "Кілт ажыратылған",
+            statRun: "Электролиз жүріп жатыр...",
+            statWeigh: "Өлшеу аяқталды"
+        }
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        const t = dict[lang];
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => {
+            let li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-i').childNodes[0].nodeValue = t.lblI + " ";
+        
+        document.getElementById('disp-i').innerText = t.dispI;
+        document.getElementById('disp-t').innerText = t.dispT;
+        document.getElementById('disp-m').innerText = t.dispM;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        
+        document.getElementById('btn-start').innerText = isRunning ? t.btnStop : t.btnStart;
+        document.getElementById('btn-weigh').innerText = t.btnWeigh;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-no').innerText = t.thNo;
+        document.getElementById('th-i').innerText = t.thI;
+        document.getElementById('th-t').innerText = t.thT;
+        document.getElementById('th-dm').innerText = t.thDm;
+        document.getElementById('th-q').innerText = t.thQ;
+        document.getElementById('th-e').innerText = t.thE;
+        
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        
+        if (chartObj) {
+            chartObj.options.scales.x.title.text = t.chartX;
+            chartObj.options.scales.y.title.text = t.chartY;
+            chartObj.update();
+        }
+        
+        updateStatusText();
+    }
+
+    // --- КОНСТАНТЫ И ПЕРЕМЕННЫЕ ---
+    const M_CU = 0.0635; // кг/моль
+    const NA = 6.022e23;
+    const E_TRUE = 1.602e-19;
+    const VAL_N = 2;
+    const M0_CATHODE = 10.000; // г
+
+    let isRunning = false;
+    let timer = null;
+    let simTime = 0; // в секундах
+    let currentI = 1.0;
+    let deltaM = 0; // в граммах
+    let measurementCount = 0;
+
+    function syncInputs() {
+        currentI = parseFloat(document.getElementById('i-input').value);
+        document.getElementById('val-i').innerText = currentI.toFixed(1) + (currentLang === 'ru' ? ' А' : ' А');
+        if(!isRunning) document.getElementById('meas-i').innerText = currentI.toFixed(2);
+    }
+
+    function toggleWork() {
+        const t = dict[currentLang];
+        const switchBlade = document.getElementById('switch-blade');
+        const btnStart = document.getElementById('btn-start');
+        const bubbles = document.querySelectorAll('.bubble');
+        
+        isRunning = !isRunning;
+        
+        if (isRunning) {
+            // Старт
+            simTime = 0;
+            deltaM = 0;
+            document.getElementById('meas-t').innerText = "0";
+            document.getElementById('meas-m').innerText = M0_CATHODE.toFixed(3);
+            
+            switchBlade.style.transform = 'rotate(0deg)'; // Замыкаем
+            btnStart.className = "btn btn-stop";
+            btnStart.innerText = t.btnStop;
+            document.getElementById('i-input').disabled = true;
+            document.getElementById('btn-weigh').disabled = true;
+            document.getElementById('btn-record').disabled = true;
+            
+            bubbles.forEach(b => b.classList.add('active'));
+            
+            // Запуск таймера (1 реальная сек = 10 сим. сек)
+            timer = setInterval(() => {
+                simTime += 2; // Шаг в 2 секунды (каждые 200 мс)
+                document.getElementById('meas-t').innerText = simTime;
+                
+                // Визуальный рост катода
+                const visualGrowth = Math.min((currentI * simTime) / 500, 10);
+                const cathode = document.getElementById('cathode');
+                cathode.setAttribute('width', 20 + visualGrowth);
+                cathode.setAttribute('x', 140 - visualGrowth/2);
+            }, 200);
+            
+        } else {
+            // Стоп
+            clearInterval(timer);
+            switchBlade.style.transform = 'rotate(-45deg)'; // Разомкнут
+            btnStart.className = "btn btn-start";
+            btnStart.innerText = t.btnStart;
+            document.getElementById('i-input').disabled = false;
+            document.getElementById('btn-weigh').disabled = false;
+            
+            bubbles.forEach(b => b.classList.remove('active'));
+        }
+        updateStatusText();
+    }
+
+    function weighCathode() {
+        if (isRunning || simTime === 0) return;
+        
+        // Расчет реальной массы по физике: m = (M*I*t) / (e*Na*n)
+        // результат в кг, переводим в граммы
+        deltaM = ((M_CU * currentI * simTime) / (E_TRUE * NA * VAL_N)) * 1000;
+        
+        // Добавляем микрошум прибора (+- 0.001г)
+        const noise = (Math.random() - 0.5) * 0.002;
+        deltaM = Math.max(0, deltaM + noise);
+        
+        const finalMass = M0_CATHODE + deltaM;
+        document.getElementById('meas-m').innerText = finalMass.toFixed(3);
+        
+        document.getElementById('btn-record').disabled = false;
+        
+        const t = dict[currentLang];
+        document.getElementById('meas-status').innerText = t.statWeigh;
+        document.getElementById('meas-status').style.color = "var(--warning)";
+    }
+
+    function updateStatusText() {
+        const statEl = document.getElementById('meas-status');
+        const t = dict[currentLang];
+        
+        if (isRunning) {
+            statEl.innerText = t.statRun;
+            statEl.style.color = "var(--success)";
+        } else if (simTime === 0) {
+            statEl.innerText = t.statOpen;
+            statEl.style.color = "#ecf0f1";
+        }
+    }
+
+    function resetSim() {
+        if(isRunning) toggleWork();
+        
+        simTime = 0;
+        deltaM = 0;
+        document.getElementById('meas-t').innerText = "0";
+        document.getElementById('meas-m').innerText = M0_CATHODE.toFixed(3);
+        
+        const cathode = document.getElementById('cathode');
+        cathode.setAttribute('width', 20);
+        cathode.setAttribute('x', 140);
+        
+        document.getElementById('btn-record').disabled = true;
+        updateStatusText();
+    }
+
+    let chartObj = null;
+
+    function initChart() {
+        const ctx = document.getElementById('chartMQ').getContext('2d');
+        chartObj = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Δm(Q)',
+                    data: [],
+                    borderColor: 'var(--accent)',
+                    backgroundColor: 'var(--accent)',
+                    borderWidth: 2,
+                    pointRadius: 5,
+                    showLine: true,
+                    fill: false,
+                    tension: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: 'Заряд Q (Кл)' },
+                        min: 0,
+                        grid: { color: '#e0e0e0' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Масса Δm (г)' },
+                        min: 0,
+                        grid: { color: '#e0e0e0' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: false }
+                }
+            }
+        });
+    }
+
+    function recordData() {
+        if (deltaM === 0 || simTime === 0) return;
+        
+        measurementCount++;
+        const Q = currentI * simTime;
+        
+        // Ожидаемый ответ пользователя
+        // e = (M * I * t) / (dm_kg * Na * n)
+        const dm_kg = deltaM / 1000;
+        const e_calc = (M_CU * currentI * simTime) / (dm_kg * NA * VAL_N);
+        const e_str = (e_calc * 1e19).toFixed(3); // Ожидаем ввод формата X.XXX
+
+        const row = `
+            <tr>
+                <td>${measurementCount}</td>
+                <td>${currentI.toFixed(1)}</td>
+                <td>${simTime}</td>
+                <td><strong style="color: var(--primary);">${deltaM.toFixed(3)}</strong></td>
+                <td><input type="number" class="calc-input q-val" data-correct="${Q.toFixed(1)}" step="0.1"></td>
+                <td><input type="number" class="calc-input e-val" data-correct="${e_str}" step="0.001"></td>
+            </tr>
+        `;
+
+        document.getElementById('data-table-body').insertAdjacentHTML('beforeend', row);
+        
+        const wrapper = document.querySelector('.table-wrap');
+        wrapper.scrollTop = wrapper.scrollHeight;
+
+        // Обновление графика
+        chartObj.data.datasets[0].data.push({ x: Q, y: deltaM });
+        chartObj.data.datasets[0].data.sort((a, b) => a.x - b.x);
+        chartObj.update();
+
+        document.getElementById('btn-record').disabled = true;
+    }
+
+    function checkMath() {
+        const rows = document.querySelectorAll('#data-table-body tr');
+        rows.forEach(row => {
+            const qInput = row.querySelector('.q-val');
+            const eInput = row.querySelector('.e-val');
+
+            if (qInput) validate(qInput, qInput.dataset.correct, 0.5);
+            if (eInput) validate(eInput, eInput.dataset.correct, 0.05); // Небольшой допуск
+        });
+    }
+
+    function validate(input, correctVal, tolerance) {
+        if(input.value.trim() === "") return;
+        const userVal = parseFloat(input.value.replace(',', '.'));
+        const target = parseFloat(correctVal);
+        
+        const error = Math.abs(userVal - target);
+
+        if (!isNaN(userVal) && error <= tolerance) {
+            input.classList.add('correct');
+            input.classList.remove('incorrect');
+        } else {
+            input.classList.add('incorrect');
+            input.classList.remove('correct');
+        }
+    }
+
+    // Инициализация при загрузке
+    window.onload = function() {
+        initChart();
+        setLang('ru');
+        syncInputs();
+    };
+</script>
+</body>
+</html>

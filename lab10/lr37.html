@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лабораторная работа: Изучение полупроводникового диода</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --danger: #c0392b;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-family: "Segoe UI", Tahoma, sans-serif; }
+        header { position: relative; padding: 15px 20px; background: var(--primary); color: white; box-shadow: 0 2px 5px rgba(0,0,0,.2); }
+        h1 { max-width: 80%; margin: 0; font-size: 1.3rem; }
+
+        .lang-switch { position: absolute; top: 15px; right: 20px; display: flex; overflow: hidden; border: 1px solid rgba(255,255,255,.4); border-radius: 20px; background: rgba(255,255,255,.2); }
+        .lang-btn { padding: 5px 15px; border: 0; background: transparent; color: white; cursor: pointer; font-weight: 700; }
+        .lang-btn.active { background: var(--accent); }
+
+        .container { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1100px; margin: 0 auto; padding: 20px; }
+        .intro-box, .panel { background: var(--panel); border-radius: 9px; box-shadow: 0 4px 10px rgba(0,0,0,.05); }
+        .intro-box { padding: 20px; border-left: 5px solid var(--primary); }
+        .intro-box p { margin: 8px 0; font-size: .95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 0 20px; padding: 0; font-size: .95rem; line-height: 1.5; }
+        .intro-label { color: var(--primary); font-weight: 700; }
+        .panel { padding: 20px; }
+        .panel-title { margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid var(--bg); color: var(--primary); font-size: 1.1rem; }
+
+        .sim-area { display: flex; justify-content: center; align-items: center; overflow: hidden; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; background: #ecf0f1; }
+        #circuit-svg { display: block; width: 100%; height: 340px; }
+        .wire { fill: none; stroke: #34495e; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+        .wire.active { stroke: var(--accent); filter: drop-shadow(0 0 3px rgba(41,128,185,.55)); }
+        .meter { fill: white; stroke: #34495e; stroke-width: 3; }
+        .component { fill: white; stroke: #34495e; stroke-width: 3; }
+        .polarity { font-size: 18px; font-weight: 700; }
+
+        .controls { display: grid; grid-template-columns: .8fr 1.2fr; gap: 15px; margin-bottom: 20px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; background: #f8f9fa; }
+        .control-group { min-width: 0; }
+        .control-group label { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-size: .9rem; font-weight: 700; }
+        .control-value { color: var(--accent); white-space: nowrap; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); }
+
+        .mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .mode-btn { padding: 11px; border: 1px solid var(--border); border-radius: 6px; background: white; color: var(--text); cursor: pointer; font-weight: 700; }
+        .mode-btn.active { border-color: var(--accent); background: var(--accent); color: white; }
+
+        .display-board { display: flex; gap: 10px; margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #34495e; color: #ecf0f1; }
+        .display-item { flex: 1; min-width: 0; text-align: center; }
+        .display-item span { display: block; margin-bottom: 5px; color: #bdc3c7; font-size: .8rem; }
+        .display-item strong { color: #f1c40f; font-family: "Courier New", monospace; font-size: 1.2rem; }
+
+        .btn-group { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 10px; border: 0; border-radius: 5px; color: white; cursor: pointer; font-size: .95rem; font-weight: 700; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-record { background: var(--success); }
+        .btn-reset { background: #e67e22; }
+        .btn-clear { flex: none; padding: 7px 14px; background: #95a5a6; }
+
+        .data-stack { display: grid; grid-template-columns: 1fr; gap: 22px; }
+        .section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .section-heading .panel-title { flex: 1; }
+        .table-wrap { overflow: auto; max-height: 330px; border: 1px solid var(--border); border-radius: 8px; }
+        table { width: 100%; min-width: 660px; border-collapse: collapse; font-size: .86rem; text-align: center; }
+        th, td { padding: 9px 8px; border-bottom: 1px solid var(--border); }
+        th { position: sticky; top: 0; z-index: 2; background: var(--bg); color: var(--primary); }
+        tr:nth-child(even) { background: #fafbfc; }
+        .mode-mark { display: inline-block; min-width: 88px; padding: 3px 7px; border-radius: 12px; font-size: .78rem; font-weight: 700; }
+        .mode-mark.forward { background: #eaf2f8; color: #2471a3; }
+        .mode-mark.reverse { background: #fef5e7; color: #b9770e; }
+
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .chart-box h3 { margin: 0 0 8px; color: var(--primary); font-size: .98rem; text-align: center; }
+        .chart-container { position: relative; min-height: 310px; }
+        .chart-hint { margin: 10px 0 0; color: #7f8c8d; font-size: .82rem; text-align: center; }
+
+        .theory-card { margin-top: 20px; padding: 15px; border-left: 4px solid var(--accent); border-radius: 4px; background: #f8f9fa; font-size: .95rem; line-height: 1.6; }
+        .formula-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; }
+        .formula { display: inline-block; padding: 5px 9px; border: 1px solid #dfe6e9; border-radius: 4px; background: white; color: var(--primary); font-family: "Cambria Math", "Times New Roman", serif; font-size: 1.05rem; }
+        .status-note { min-height: 30px; margin: 9px 0 0; padding: 8px 10px; border-radius: 5px; background: #f8f9fa; color: #7f8c8d; font-size: .83rem; }
+
+        @media (max-width: 800px) {
+            h1 { max-width: 68%; font-size: 1.08rem; }
+            .container { padding: 12px; }
+            .controls, .charts-grid { grid-template-columns: 1fr; }
+            .display-board { flex-wrap: wrap; }
+            .display-item { flex: 1 1 45%; }
+            .btn-group { flex-direction: column; }
+            #circuit-svg { height: 290px; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1 id="header-title">Лабораторная работа: Изучение полупроводникового диода</h1>
+    <div class="lang-switch" aria-label="Выбор языка">
+        <button class="lang-btn active" data-lang="ru" type="button" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="kz" type="button" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<main class="container">
+    <section class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme"></span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal"></span></p>
+        <div style="display:flex; align-items:flex-start; flex-wrap:wrap;">
+            <span class="intro-label" id="lbl-theory" style="margin-right:5px; margin-top:8px;">Краткая теория:</span>
+            <div id="txt-theory" style="margin-top:8px; font-size:.95rem; line-height:1.5;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="procedure-list"></ul>
+    </section>
+
+    <section class="panel">
+        <h2 class="panel-title" id="lbl-simulation">Электрическая схема и измерение</h2>
+        <div class="sim-area">
+            <svg id="circuit-svg" viewBox="0 0 760 360" role="img" aria-labelledby="lbl-simulation">
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M40 0 L0 0 0 40" fill="none" stroke="#dfe6e9" stroke-width="1" opacity=".65"/>
+                    </pattern>
+                </defs>
+                <rect width="760" height="360" fill="url(#grid)"/>
+
+                <path class="wire" id="wire-path" d="M100 180 V75 H270 M330 75 H470 M530 75 H650 V285 H100 V180"/>
+
+                <g transform="translate(100 180)">
+                    <line x1="-25" y1="-8" x2="25" y2="-8" stroke="#2c3e50" stroke-width="6"/>
+                    <line x1="-14" y1="8" x2="14" y2="8" stroke="#2c3e50" stroke-width="3"/>
+                    <text class="polarity" id="polarity-top" x="-48" y="-18" fill="#c0392b">+</text>
+                    <text class="polarity" id="polarity-bottom" x="-48" y="31" fill="#2980b9">−</text>
+                </g>
+
+                <g transform="translate(300 75)">
+                    <rect class="component" x="-30" y="-15" width="60" height="30" rx="4"/>
+                </g>
+
+                <g transform="translate(500 75)">
+                    <circle class="meter" r="30"/>
+                    <text x="0" y="7" text-anchor="middle" font-size="20" font-weight="700" fill="#34495e">A</text>
+                </g>
+
+                <g id="diode-group" transform="translate(500 285)">
+                    <polygon points="-24,-17 -24,17 8,0" fill="#3498db" stroke="#2471a3" stroke-width="2"/>
+                    <line x1="12" y1="-19" x2="12" y2="19" stroke="#34495e" stroke-width="4"/>
+                    <line x1="-48" y1="0" x2="-24" y2="0" stroke="#34495e" stroke-width="3"/>
+                    <line x1="12" y1="0" x2="48" y2="0" stroke="#34495e" stroke-width="3"/>
+                </g>
+
+                <path class="wire" d="M452 285 H400 V225 H550 V285 H548"/>
+                <g transform="translate(475 225)">
+                    <circle class="meter" r="27"/>
+                    <text x="0" y="6" text-anchor="middle" font-size="18" font-weight="700" fill="#34495e">V</text>
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-mode">Режим включения</label>
+                <div class="mode-switch">
+                    <button class="mode-btn active" id="btn-forward" type="button" onclick="setMode(true)">Прямое</button>
+                    <button class="mode-btn" id="btn-reverse" type="button" onclick="setMode(false)">Обратное</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label><span id="lbl-voltage">Напряжение U:</span><span class="control-value"><span id="voltage-value">0.00</span> В</span></label>
+                <input id="voltage-input" type="range" min="0" max="0.8" step="0.05" value="0">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item"><span id="disp-mode">Режим</span><strong id="mode-display">Прямое</strong></div>
+            <div class="display-item"><span id="disp-voltage">Напряжение U (В)</span><strong id="voltage-display">0.00</strong></div>
+            <div class="display-item"><span id="disp-current">Сила тока I</span><strong><span id="current-display">0.000</span> <small id="current-unit">мА</small></strong></div>
+            <div class="display-item"><span id="disp-count">Измерений</span><strong id="measurement-count">0</strong></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-record" id="btn-record" type="button" onclick="recordMeasurement()">Записать измерение</button>
+            <button class="btn btn-reset" id="btn-reset" type="button" onclick="resetAll()">Сбросить всё</button>
+        </div>
+        <p class="status-note" id="status-note">Снимите не менее пяти точек для прямой и обратной ветвей.</p>
+    </section>
+
+    <section class="panel">
+        <div class="data-stack">
+            <div class="table-section">
+                <div class="section-heading">
+                    <h2 class="panel-title" id="lbl-table">Таблица измерений</h2>
+                    <button class="btn btn-clear" id="btn-clear" type="button" onclick="clearMeasurements()">Очистить</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead><tr>
+                            <th id="th-number">№</th>
+                            <th id="th-mode">Режим</th>
+                            <th id="th-voltage">U (В)</th>
+                            <th id="th-current">I</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-charts">Вольтамперная характеристика диода</h2>
+                <div class="charts-grid">
+                    <div class="chart-box">
+                        <h3 id="forward-chart-title">Прямая ветвь</h3>
+                        <div class="chart-container"><canvas id="forward-chart"></canvas></div>
+                    </div>
+                    <div class="chart-box">
+                        <h3 id="reverse-chart-title">Обратная ветвь</h3>
+                        <div class="chart-container"><canvas id="reverse-chart"></canvas></div>
+                    </div>
+                </div>
+                <p class="chart-hint" id="chart-hint">Оба графика строятся только по значениям из таблицы; масштабы тока различаются.</p>
+            </div>
+        </div>
+
+        <div class="theory-card">
+            <strong id="lbl-formulas">Что определить по графикам:</strong>
+            <div class="formula-row"><span class="formula">R = U / I</span><span id="formula-resistance">— сопротивление диода в выбранной точке</span></div>
+            <div class="formula-row"><span class="formula">Uпор ≈ 0.6–0.7 В</span><span id="formula-threshold">— порог заметного роста прямого тока</span></div>
+        </div>
+    </section>
+</main>
+
+<script>
+    let currentLang = 'ru';
+    let isForward = true;
+    let voltage = 0;
+    let forwardChart;
+    let reverseChart;
+
+    const dict = {
+        ru: {
+            title: 'Лабораторная работа: Изучение полупроводникового диода',
+            themeLbl: 'Тема:', theme: 'Прямая и обратная ветви вольтамперной характеристики полупроводникового диода',
+            goalLbl: 'Цель работы:', goal: 'Изучить одностороннюю проводимость диода и экспериментально построить его вольтамперную характеристику.',
+            theoryLbl: 'Краткая теория:', theory: 'При прямом включении ток диода резко возрастает после достижения порогового напряжения. При обратном включении через диод проходит очень малый обратный ток. Поэтому ветви характеристики строятся в разных масштабах тока.',
+            procedureLbl: 'Ход работы:', procedure: [
+                'Выберите прямое включение и последовательно установите несколько значений напряжения от 0 до 0.8 В.',
+                'Для каждого значения нажмите «Записать измерение».',
+                'Выберите обратное включение и повторите измерения при напряжении до 10 В.',
+                'Сравните две ветви графика и определите примерное пороговое напряжение диода.'
+            ],
+            simulation: 'Электрическая схема и измерение', mode: 'Режим включения', forward: 'Прямое', reverse: 'Обратное', voltage: 'Напряжение U:',
+            displayMode: 'Режим', displayVoltage: 'Напряжение U (В)', displayCurrent: 'Сила тока I', displayCount: 'Измерений',
+            record: 'Записать измерение', reset: 'Сбросить всё', clear: 'Очистить',
+            table: 'Таблица измерений', thNumber: '№', thMode: 'Режим', thVoltage: 'U (В)', thCurrent: 'I',
+            charts: 'Вольтамперная характеристика диода', forwardChart: 'Прямая ветвь', reverseChart: 'Обратная ветвь',
+            chartHint: 'Оба графика строятся только по значениям из таблицы; масштабы тока различаются.',
+            forwardDataset: 'Прямой ток', reverseDataset: 'Обратный ток', voltageAxis: 'Напряжение U (В)', reverseVoltageAxis: 'Модуль обратного напряжения |U| (В)', forwardAxis: 'Ток I (мА)', reverseAxis: 'Ток I (мкА)',
+            formulas: 'Что определить по графикам:', formulaResistance: '— сопротивление диода в выбранной точке', formulaThreshold: '— порог заметного роста прямого тока',
+            statusStart: 'Снимите не менее пяти точек для прямой и обратной ветвей.', statusDuplicate: 'Эта точка уже записана. Выберите другое напряжение.',
+            statusProgress: (f, r) => `Записано точек: прямая ветвь — ${f}, обратная — ${r}.`, statusReady: 'Обе ветви содержат достаточно точек для анализа.',
+            milliamp: 'мА', microamp: 'мкА'
+        },
+        kz: {
+            title: '№26 зертханалық жұмыс: Жартылай өткізгіш диодты зерттеу',
+            themeLbl: 'Тақырыбы:', theme: 'Жартылай өткізгіш диодтың вольт-амперлік сипаттамасының тура және кері тармақтары',
+            goalLbl: 'Жұмыстың мақсаты:', goal: 'Диодтың біржақты өткізгіштігін зерттеп, оның вольт-амперлік сипаттамасын тәжірибе жүзінде құру.',
+            theoryLbl: 'Қысқаша теория:', theory: 'Тура қосылғанда шекті кернеуге жеткеннен кейін диод тогы күрт өседі. Кері қосылғанда диод арқылы өте аз кері ток өтеді. Сондықтан сипаттаманың тармақтары токтың әртүрлі масштабында құрылады.',
+            procedureLbl: 'Жұмыс барысы:', procedure: [
+                'Тура қосуды таңдап, 0-ден 0.8 В-қа дейін бірнеше кернеу мәнін ретімен орнатыңыз.',
+                'Әр мән үшін «Өлшеуді жазу» түймесін басыңыз.',
+                'Кері қосуды таңдап, 10 В-қа дейінгі кернеуде өлшеулерді қайталаңыз.',
+                'Графиктің екі тармағын салыстырып, диодтың шамамен шекті кернеуін анықтаңыз.'
+            ],
+            simulation: 'Электрлік сұлба және өлшеу', mode: 'Қосу режимі', forward: 'Тура', reverse: 'Кері', voltage: 'Кернеу U:',
+            displayMode: 'Режим', displayVoltage: 'Кернеу U (В)', displayCurrent: 'Ток күші I', displayCount: 'Өлшеулер',
+            record: 'Өлшеуді жазу', reset: 'Барлығын қалпына келтіру', clear: 'Тазалау',
+            table: 'Өлшеулер кестесі', thNumber: '№', thMode: 'Режим', thVoltage: 'U (В)', thCurrent: 'I',
+            charts: 'Диодтың вольт-амперлік сипаттамасы', forwardChart: 'Тура тармақ', reverseChart: 'Кері тармақ',
+            chartHint: 'Екі график те кестедегі мәндер бойынша ғана құрылады; ток масштабтары әртүрлі.',
+            forwardDataset: 'Тура ток', reverseDataset: 'Кері ток', voltageAxis: 'Кернеу U (В)', reverseVoltageAxis: 'Кері кернеу модулі |U| (В)', forwardAxis: 'Ток I (мА)', reverseAxis: 'Ток I (мкА)',
+            formulas: 'Графиктер бойынша анықтау:', formulaResistance: '— таңдалған нүктедегі диод кедергісі', formulaThreshold: '— тура токтың айқын өсу шегі',
+            statusStart: 'Тура және кері тармақтар үшін кемінде бес нүктеден өлшеңіз.', statusDuplicate: 'Бұл нүкте жазылған. Басқа кернеуді таңдаңыз.',
+            statusProgress: (f, r) => `Жазылған нүктелер: тура тармақ — ${f}, кері — ${r}.`, statusReady: 'Екі тармақта да талдауға жеткілікті нүкте бар.',
+            milliamp: 'мА', microamp: 'мкА'
+        }
+    };
+
+    const ui = {
+        voltageInput: document.getElementById('voltage-input'),
+        voltageValue: document.getElementById('voltage-value'),
+        modeDisplay: document.getElementById('mode-display'),
+        voltageDisplay: document.getElementById('voltage-display'),
+        currentDisplay: document.getElementById('current-display'),
+        currentUnit: document.getElementById('current-unit'),
+        count: document.getElementById('measurement-count'),
+        tableBody: document.querySelector('#data-table tbody'),
+        wirePath: document.getElementById('wire-path'),
+        diodeGroup: document.getElementById('diode-group'),
+        status: document.getElementById('status-note')
+    };
+
+    function calculateCurrent(value, forward) {
+        if (value <= 0) return 0;
+        if (forward) {
+            const current = 0.02 * (Math.exp(Math.max(0, value - 0.45) / 0.045) - 1);
+            return Math.min(50, Math.max(0, current));
+        }
+        return 0.08 * (1 - Math.exp(-value / 1.5)) + 0.03 * value;
+    }
+
+    function currentUnit() {
+        return isForward ? dict[currentLang].milliamp : dict[currentLang].microamp;
+    }
+
+    function setLang(lang) {
+        currentLang = lang;
+        const t = dict[lang];
+        document.documentElement.lang = lang === 'kz' ? 'kk' : 'ru';
+        document.title = t.title;
+        document.querySelectorAll('.lang-btn').forEach(button => button.classList.toggle('active', button.dataset.lang === lang));
+        document.getElementById('header-title').innerText = t.title;
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.theme;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goal;
+        document.getElementById('lbl-theory').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerText = t.theory;
+        document.getElementById('lbl-procedure').innerText = t.procedureLbl;
+        const list = document.getElementById('procedure-list');
+        list.innerHTML = '';
+        t.procedure.forEach(text => { const item = document.createElement('li'); item.innerText = text; list.appendChild(item); });
+        document.getElementById('lbl-simulation').innerText = t.simulation;
+        document.getElementById('lbl-mode').innerText = t.mode;
+        document.getElementById('btn-forward').innerText = t.forward;
+        document.getElementById('btn-reverse').innerText = t.reverse;
+        document.getElementById('lbl-voltage').innerText = t.voltage;
+        document.getElementById('disp-mode').innerText = t.displayMode;
+        document.getElementById('disp-voltage').innerText = t.displayVoltage;
+        document.getElementById('disp-current').innerText = t.displayCurrent;
+        document.getElementById('disp-count').innerText = t.displayCount;
+        document.getElementById('btn-record').innerText = t.record;
+        document.getElementById('btn-reset').innerText = t.reset;
+        document.getElementById('btn-clear').innerText = t.clear;
+        document.getElementById('lbl-table').innerText = t.table;
+        document.getElementById('th-number').innerText = t.thNumber;
+        document.getElementById('th-mode').innerText = t.thMode;
+        document.getElementById('th-voltage').innerText = t.thVoltage;
+        document.getElementById('th-current').innerText = t.thCurrent;
+        document.getElementById('lbl-charts').innerText = t.charts;
+        document.getElementById('forward-chart-title').innerText = t.forwardChart;
+        document.getElementById('reverse-chart-title').innerText = t.reverseChart;
+        document.getElementById('chart-hint').innerText = t.chartHint;
+        document.getElementById('lbl-formulas').innerText = t.formulas;
+        document.getElementById('formula-resistance').innerText = t.formulaResistance;
+        document.getElementById('formula-threshold').innerText = t.formulaThreshold;
+        updateDisplays();
+        updateTableLanguage();
+        updateStatus();
+        rebuildCharts();
+    }
+
+    function setMode(forward) {
+        isForward = forward;
+        voltage = 0;
+        ui.voltageInput.max = forward ? '0.8' : '10';
+        ui.voltageInput.step = forward ? '0.05' : '0.5';
+        ui.voltageInput.value = '0';
+        document.getElementById('btn-forward').classList.toggle('active', forward);
+        document.getElementById('btn-reverse').classList.toggle('active', !forward);
+        document.getElementById('polarity-top').innerText = forward ? '+' : '−';
+        document.getElementById('polarity-bottom').innerText = forward ? '−' : '+';
+        ui.diodeGroup.setAttribute('transform', `translate(500 285) ${forward ? '' : 'rotate(180)'}`);
+        updateDisplays();
+    }
+
+    function updateDisplays() {
+        const current = calculateCurrent(voltage, isForward);
+        const t = dict[currentLang];
+        ui.voltageValue.innerText = voltage.toFixed(isForward ? 2 : 1);
+        ui.voltageDisplay.innerText = `${isForward ? '' : '−'}${voltage.toFixed(isForward ? 2 : 1)}`;
+        ui.currentDisplay.innerText = current.toFixed(3);
+        ui.currentUnit.innerText = currentUnit();
+        ui.modeDisplay.innerText = isForward ? t.forward : t.reverse;
+        ui.wirePath.classList.toggle('active', voltage > 0);
+    }
+
+    function updateVoltage() {
+        voltage = Number(ui.voltageInput.value);
+        updateDisplays();
+    }
+
+    function recordMeasurement() {
+        const duplicate = Array.from(ui.tableBody.rows).some(row =>
+            row.dataset.forward === String(isForward) && Math.abs(Number(row.dataset.voltage) - voltage) < 0.0001
+        );
+        if (duplicate) {
+            ui.status.innerText = dict[currentLang].statusDuplicate;
+            return;
+        }
+        const current = calculateCurrent(voltage, isForward);
+        const row = document.createElement('tr');
+        row.dataset.forward = String(isForward);
+        row.dataset.voltage = String(voltage);
+        row.dataset.current = String(current);
+        row.innerHTML = `
+            <td>${ui.tableBody.children.length + 1}</td>
+            <td class="mode-cell"></td>
+            <td>${isForward ? '' : '−'}${voltage.toFixed(isForward ? 2 : 1)}</td>
+            <td>${current.toFixed(3)} <span class="unit-cell"></span></td>
+        `;
+        ui.tableBody.appendChild(row);
+        ui.count.innerText = ui.tableBody.children.length;
+        updateTableLanguage();
+        updateStatus();
+        rebuildCharts();
+        const wrap = document.querySelector('.table-wrap');
+        wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    function updateTableLanguage() {
+        const t = dict[currentLang];
+        Array.from(ui.tableBody.rows).forEach(row => {
+            const forward = row.dataset.forward === 'true';
+            const modeCell = row.querySelector('.mode-cell');
+            modeCell.innerHTML = `<span class="mode-mark ${forward ? 'forward' : 'reverse'}">${forward ? t.forward : t.reverse}</span>`;
+            row.querySelector('.unit-cell').innerText = forward ? t.milliamp : t.microamp;
+        });
+    }
+
+    function updateStatus() {
+        const rows = Array.from(ui.tableBody.rows);
+        const forwardCount = rows.filter(row => row.dataset.forward === 'true').length;
+        const reverseCount = rows.length - forwardCount;
+        ui.status.innerText = forwardCount >= 5 && reverseCount >= 5
+            ? dict[currentLang].statusReady
+            : rows.length === 0
+                ? dict[currentLang].statusStart
+                : dict[currentLang].statusProgress(forwardCount, reverseCount);
+    }
+
+    function chartConfig(label, xTitle, yTitle, color) {
+        return {
+            type: 'scatter',
+            data: { datasets: [{ label, data: [], borderColor: color, backgroundColor: color, showLine: true, tension: .15, borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                parsing: false,
+                scales: {
+                    x: { type: 'linear', beginAtZero: true, title: { display: true, text: xTitle, font: { weight: 'bold' } } },
+                    y: { beginAtZero: true, title: { display: true, text: yTitle, font: { weight: 'bold' } } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        };
+    }
+
+    function initCharts() {
+        forwardChart = new Chart(document.getElementById('forward-chart').getContext('2d'), chartConfig(dict.ru.forwardDataset, dict.ru.voltageAxis, dict.ru.forwardAxis, '#2980b9'));
+        reverseChart = new Chart(document.getElementById('reverse-chart').getContext('2d'), chartConfig(dict.ru.reverseDataset, dict.ru.voltageAxis, dict.ru.reverseAxis, '#e67e22'));
+    }
+
+    function rebuildCharts() {
+        if (!forwardChart || !reverseChart) return;
+        const rows = Array.from(ui.tableBody.rows);
+        forwardChart.data.datasets[0].data = rows
+            .filter(row => row.dataset.forward === 'true')
+            .map(row => ({ x: Number(row.dataset.voltage), y: Number(row.dataset.current) }))
+            .sort((a, b) => a.x - b.x);
+        reverseChart.data.datasets[0].data = rows
+            .filter(row => row.dataset.forward === 'false')
+            .map(row => ({ x: Number(row.dataset.voltage), y: Number(row.dataset.current) }))
+            .sort((a, b) => a.x - b.x);
+        const t = dict[currentLang];
+        forwardChart.data.datasets[0].label = t.forwardDataset;
+        reverseChart.data.datasets[0].label = t.reverseDataset;
+        forwardChart.options.scales.x.title.text = t.voltageAxis;
+        reverseChart.options.scales.x.title.text = t.reverseVoltageAxis;
+        forwardChart.options.scales.y.title.text = t.forwardAxis;
+        reverseChart.options.scales.y.title.text = t.reverseAxis;
+        forwardChart.update();
+        reverseChart.update();
+    }
+
+    function clearMeasurements() {
+        ui.tableBody.innerHTML = '';
+        ui.count.innerText = '0';
+        updateStatus();
+        rebuildCharts();
+    }
+
+    function resetAll() {
+        clearMeasurements();
+        setMode(true);
+    }
+
+    ui.voltageInput.addEventListener('input', updateVoltage);
+    initCharts();
+    setLang('ru');
+    setMode(true);
+</script>
+</body>
+</html>
