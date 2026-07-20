@@ -3,505 +3,209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Лабораторная работа №23: Период и амплитуда</title>
+    <title>Период и амплитуда</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary: #2c3e50;
-            --accent: #8e44ad;
-            --accent-dark: #71368a;
-            --success: #27ae60;
-            --warning: #e67e22;
-            --bg: #f4f7f6;
-            --panel: #ffffff;
-            --text: #34495e;
             --border: #bdc3c7;
         }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: var(--bg);
-            color: var(--text);
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        header {
-            position: relative;
-            padding: 15px 20px;
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        }
-
-        h1 {
-            max-width: 78%;
-            margin: 0;
-            font-size: 1.3rem;
-        }
-
-        .lang-switch {
-            position: absolute;
-            top: 12px;
-            right: 20px;
-            display: flex;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.45);
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.18);
-        }
-
-        .lang-btn {
-            padding: 6px 15px;
-            border: 0;
-            background: transparent;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .lang-btn.active { background: var(--accent); }
-
-        .container {
-            width: 100%;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .intro-box,
-        .panel {
-            margin-bottom: 20px;
-            padding: 20px;
-            border-radius: 10px;
-            background: var(--panel);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        .intro-box { border-left: 5px solid var(--primary); }
-
-        .intro-box p {
-            margin: 7px 0;
-            font-size: 0.95rem;
-            line-height: 1.55;
-        }
-
-        .intro-box ul {
-            margin: 5px 0 0 20px;
-            padding: 0;
-            font-size: 0.95rem;
-            line-height: 1.55;
-        }
-
-        .intro-label {
-            color: var(--primary);
-            font-weight: bold;
-        }
-
-        .panel-title {
-            margin: 0 0 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--bg);
-            color: var(--primary);
-            font-size: 1.1rem;
-        }
-
-        .sim-area {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            margin-bottom: 18px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: linear-gradient(#f9fbfc, #e8eef1);
-        }
-
-        #sim-svg {
-            display: block;
-            width: 100%;
-            height: 430px;
-            touch-action: none;
-        }
-
-        .pivot-bar {
-            stroke: #7f8c8d;
-            stroke-width: 12;
-            stroke-linecap: round;
-        }
-
-        .pivot { fill: #2c3e50; }
-        .thread { stroke: #34495e; stroke-width: 3; }
-
-        .ball {
-            fill: url(#ball-gradient);
-            stroke: #5b2c6f;
-            stroke-width: 2;
-            cursor: grab;
-        }
-
-        .ball:active { cursor: grabbing; }
-
-        .center-line {
-            stroke: #e74c3c;
-            stroke-width: 1.5;
-            stroke-dasharray: 6 5;
-            opacity: 0.55;
-        }
-
-        .protractor-line { stroke: #aab7b8; stroke-width: 1; }
-
-        .protractor-label {
-            fill: #7f8c8d;
-            font-size: 11px;
-            font-weight: bold;
-            text-anchor: middle;
-        }
-
-        .angle-badge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            min-width: 96px;
-            padding: 7px 10px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.92);
-            color: var(--accent);
-            font-weight: bold;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
-        }
-
-        .sim-hint {
-            position: absolute;
-            right: 12px;
-            bottom: 12px;
-            max-width: 270px;
-            padding: 7px 10px;
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #6c7a7a;
-            font-size: 0.8rem;
-            text-align: center;
-        }
-
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 18px;
-            padding: 15px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: #f8f9fa;
-        }
-
-        .control-group { display: flex; flex-direction: column; }
-
-        .control-group label {
-            margin-bottom: 6px;
-            font-size: 0.9rem;
-            font-weight: bold;
-        }
-
-        .control-value {
-            float: right;
-            color: var(--accent);
-        }
-
-        input[type="range"] {
-            width: 100%;
-            accent-color: var(--accent);
-            cursor: pointer;
-        }
-
-        .display-board {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 18px;
-            padding: 15px;
-            border-radius: 8px;
-            background: #34495e;
-            color: #ecf0f1;
-        }
-
-        .display-item {
-            flex: 1;
-            padding: 0 8px;
-            border-right: 1px solid #566573;
-            text-align: center;
-        }
-
-        .display-item:last-child { border-right: 0; }
-
-        .display-item span {
-            display: block;
-            margin-bottom: 5px;
-            color: #bdc3c7;
-            font-size: 0.78rem;
-        }
-
-        .display-item strong {
-            color: #f1c40f;
-            font-family: "Courier New", monospace;
-            font-size: 1.2rem;
-        }
-
-        .btn-group { display: flex; gap: 10px; }
-
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: 0;
-            border-radius: 5px;
-            color: white;
-            font-size: 0.95rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-start { background: var(--success); }
-        .btn-start:hover:not(:disabled) { background: #219a52; }
-        .btn-reset { background: var(--warning); }
-        .btn-reset:hover:not(:disabled) { background: #d35400; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #334155; }
+        
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; background: var(--primary); padding: 15px 20px; border-radius: 8px; color: white; margin-bottom: 20px; }
+        .lang-btn { background: rgba(255,255,255,0.2); border: none; padding: 5px 15px; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .lang-btn.active { background: #3498db; }
+        
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 20px; }
+        .btn-group button { flex: 1; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; border: none; }
+        .btn-group button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        #btn-start { background: #10b981; } #btn-start:hover:not(:disabled) { background: #059669; }
+        #btn-reset { background: #ef4444; } #btn-reset:hover:not(:disabled) { background: #dc2626; }
+        
         .btn-record { background: var(--primary); }
         .btn-record:hover:not(:disabled) { background: #1a252f; }
         .btn-clear { flex: none; padding: 7px 14px; background: #95a5a6; }
+        .btn-check { width: 100%; margin-top: 15px; background: #f39c12; border: none; padding: 10px; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-check:hover:not(:disabled) { background: #d68910; }
 
-        .data-grid {
-            display: grid;
-            grid-template-columns: 1.05fr 0.95fr;
-            gap: 20px;
-        }
-
-        .section-heading {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .section-heading .panel-title { flex: 1; }
-
-        .table-wrap {
-            max-height: 320px;
-            overflow: auto;
+        .calc-input {
+            width: 70px;
+            padding: 4px;
+            text-align: center;
             border: 1px solid var(--border);
-            border-radius: 8px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.82rem;
-            text-align: center;
-        }
-
-        th,
-        td {
-            padding: 8px;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        th {
-            position: sticky;
-            top: 0;
-            z-index: 2;
-            background: var(--bg);
-            color: var(--primary);
-        }
-
-        tr:nth-child(even) { background: #fafbfc; }
-        tr:last-child td { border-bottom: 0; }
-
-        .chart-container { position: relative; min-height: 290px; }
-
-        .chart-hint {
-            margin: 10px 0 0;
-            color: #7f8c8d;
-            font-size: 0.8rem;
-            line-height: 1.4;
-            text-align: center;
-        }
-
-        .theory-card {
-            margin-top: 20px;
-            padding: 15px;
-            border-left: 4px solid var(--accent);
             border-radius: 4px;
-            background: #f8f9fa;
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-
-        .formula-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-            margin: 7px 0;
-        }
-
-        .formula {
-            display: inline-block;
-            padding: 5px 9px;
-            border: 1px solid #dfe6e9;
-            border-radius: 4px;
-            background: white;
+            font-weight: bold;
             color: var(--primary);
-            font-family: "Cambria Math", "Times New Roman", serif;
-            font-size: 1.05rem;
+            outline: none;
+            -moz-appearance: textfield;
         }
+        .calc-input::-webkit-outer-spin-button, .calc-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
 
-        @media (max-width: 900px) {
-            .data-grid { grid-template-columns: 1fr; }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media(max-width: 800px) { .data-grid { grid-template-columns: 1fr; } }
+        
+        .display-board {
+            display: flex; justify-content: space-between; background: #34495e; color: #ecf0f1;
+            padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;
         }
+        .display-item { flex: 1; border-right: 1px solid #475569; }
+        .display-item:last-child { border-right: none; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; margin-bottom: 5px; }
+        .display-item strong { font-size: 1.2rem; }
 
-        @media (max-width: 768px) {
-            h1 { max-width: 68%; font-size: 1.05rem; }
-            .container { padding: 12px; }
-            .controls { grid-template-columns: 1fr; }
-            .display-board { flex-wrap: wrap; }
-            .display-item { flex: 1 1 48%; margin: 5px 0; }
-            .btn-group { flex-direction: column; }
-            #sim-svg { height: 370px; }
-            .sim-hint { max-width: 210px; }
-        }
+        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9rem; }
+        th, td { border: 1px solid var(--border); padding: 8px; }
+        th { background-color: #f1f5f9; color: var(--primary); }
+        
+        .theory-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-top: 20px; }
+        .formula-row { margin: 8px 0; }
+        .formula { font-weight: bold; color: #2563eb; font-family: monospace; font-size: 1.1rem; }
+        
+        #sim-svg { width: 100%; height: 400px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; cursor: crosshair; }
+        #string { stroke: #2c3e50; stroke-width: 2; }
+        #ball { fill: #3498db; stroke: #2980b9; stroke-width: 2; cursor: grab; }
+        #ball:active { cursor: grabbing; }
+        
+        .control-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; font-weight: bold; }
+        .control-row input[type="range"] { flex: 1; margin: 0 15px; accent-color: #3498db; }
+        .val-badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 4px; min-width: 50px; text-align: center; }
     </style>
 </head>
 <body>
-<header>
-    <h1 id="header-title">Лабораторная работа №23: Период и амплитуда</h1>
-    <div class="lang-switch" aria-label="Выбор языка">
-        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
-        <button class="lang-btn" data-lang="kz" onclick="setLang('kz')">KZ</button>
+
+<main class="main-container">
+    <header>
+        <h1 id="header-title" class="text-xl font-bold">Лабораторная работа: Период и амплитуда</h1>
+        <div>
+            <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+            <button class="lang-btn" data-lang="kz" onclick="setLang('kz')">KZ</button>
+        </div>
+    </header>
+
+    <div class="card text-sm leading-relaxed">
+        <p><strong id="lbl-theme" class="text-slate-800">Тема:</strong> <span id="txt-theme"></span></p>
+        <p class="mt-2"><strong id="lbl-goal" class="text-slate-800">Цель работы:</strong> <span id="txt-goal"></span></p>
+        <p class="mt-2"><strong id="lbl-theory-head" class="text-slate-800">Краткая теория:</strong> <span id="txt-theory"></span></p>
+        <p class="mt-2"><strong id="lbl-procedure" class="text-slate-800">Ход работы:</strong></p>
+        <ul id="list-procedure" class="list-disc pl-5 mt-1 space-y-1"></ul>
     </div>
-</header>
 
-<main class="container">
-    <section class="intro-box">
-        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme"></span></p>
-        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal"></span></p>
-        <div style="display:flex; align-items:flex-start; flex-wrap:wrap;">
-            <span class="intro-label" id="lbl-theory-head" style="margin-right:5px; margin-top:8px;">Краткая теория:</span>
-            <div id="txt-theory" style="margin-top:8px; font-size:0.95rem; line-height:1.5;"></div>
-        </div>
-        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
-        <ul id="list-procedure"></ul>
-    </section>
-
-    <section class="panel">
-        <h2 class="panel-title" id="lbl-sim">Симуляция математического маятника</h2>
-
-        <div class="sim-area">
-            <div class="angle-badge"><span id="angle-label">Текущий угол</span>: <span id="angle-live">20</span>°</div>
-            <svg id="sim-svg" viewBox="0 0 500 520" preserveAspectRatio="xMidYMid meet" aria-label="Математический маятник с транспортиром">
-                <defs>
-                    <radialGradient id="ball-gradient" cx="30%" cy="30%" r="70%">
-                        <stop offset="0%" stop-color="#ffffff"/>
-                        <stop offset="100%" stop-color="#8e44ad"/>
-                    </radialGradient>
-                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#dfe6e9" stroke-width="1" opacity="0.55"/>
-                    </pattern>
-                </defs>
-                <rect width="500" height="520" fill="url(#grid)"/>
-                <line x1="250" y1="45" x2="250" y2="500" class="center-line"/>
-                <g id="protractor" transform="translate(250, 45)"></g>
-                <line x1="195" y1="35" x2="305" y2="35" class="pivot-bar"/>
-                <circle cx="250" cy="45" r="7" class="pivot"/>
-                <g id="pendulum" transform="translate(250, 45)">
-                    <line id="string" x1="0" y1="0" x2="0" y2="300" class="thread"/>
-                    <circle id="ball" cx="0" cy="300" r="18" class="ball"/>
-                </g>
-            </svg>
-            <div class="sim-hint" id="drag-hint">Задайте амплитуду ползунком или перетащите шар.</div>
-        </div>
-
-        <div class="controls">
-            <div class="control-group">
-                <label><span id="lbl-length">Длина нити L:</span> <span class="control-value"><span id="length-val">50</span> см</span></label>
-                <input type="range" id="length-range" min="30" max="80" value="50" step="1" oninput="updateSettings()">
-            </div>
-            <div class="control-group">
-                <label><span id="lbl-amplitude">Начальная амплитуда:</span> <span class="control-value"><span id="amplitude-val">20</span>°</span></label>
-                <input type="range" id="amplitude-range" min="5" max="80" value="20" step="1" oninput="updateSettings()">
-            </div>
-        </div>
-
-        <div class="display-board">
-            <div class="display-item">
-                <span id="disp-exp-label">Экспериментальный период Tэксп (с)</span>
-                <strong id="disp-exp">-.---</strong>
-            </div>
-            <div class="display-item">
-                <span id="disp-theory-label">Теоретический период Tтеор (с)</span>
-                <strong id="disp-theory">1.419</strong>
-            </div>
-            <div class="display-item">
-                <span id="disp-diff-label">Отклонение (%)</span>
-                <strong id="disp-diff">-.-</strong>
-            </div>
-            <div class="display-item">
-                <span id="disp-status-label">Статус</span>
-                <strong id="status-text" style="color:#ecf0f1; font-size:1rem;">Готов к запуску</strong>
-            </div>
-        </div>
-
-        <div class="btn-group">
-            <button class="btn btn-start" id="btn-start" onclick="startSimulation()">Запустить</button>
-            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Сброс</button>
-            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
-        </div>
-    </section>
-
-    <section class="panel">
-        <div class="data-grid">
-            <div class="table-section">
-                <div class="section-heading">
-                    <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
-                    <button class="btn btn-clear" id="btn-clear" onclick="clearTable()">Очистить</button>
-                </div>
-                <div class="table-wrap">
-                    <table id="data-table">
-                        <thead>
-                            <tr>
-                                <th id="th-num">№</th>
-                                <th id="th-length">L (см)</th>
-                                <th id="th-amplitude">A (°)</th>
-                                <th id="th-exp">Tэксп (с)</th>
-                                <th id="th-theory">Tтеор (с)</th>
-                                <th id="th-diff">ΔT (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+    <div class="card">
+        <h2 id="lbl-sim" class="text-lg font-bold text-slate-800 border-b pb-2 mb-4">Симуляция математического маятника</h2>
+        
+        <div class="flex flex-col lg:flex-row gap-6">
+            <div class="flex-1">
+                <svg id="sim-svg" viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet">
+                    <!-- Grid background -->
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                    <!-- Pivot -->
+                    <rect x="210" y="35" width="80" height="10" fill="#7f8c8d" rx="4" />
+                    <!-- Protractor group -->
+                    <g id="protractor"></g>
+                    <!-- Pendulum -->
+                    <line id="string" x1="250" y1="45" x2="250" y2="345"></line>
+                    <circle id="ball" cx="250" cy="345" r="15"></circle>
+                </svg>
+                <div class="text-center mt-2 text-sm text-slate-500">
+                    <span id="angle-label">Текущий угол</span>: <strong id="angle-live" class="text-slate-700">10°</strong><br>
+                    <span id="drag-hint" class="italic">Задайте амплитуду ползунком или перетащите шар.</span>
                 </div>
             </div>
-
-            <div class="chart-section">
-                <h2 class="panel-title" id="lbl-chart">Зависимость периода от амплитуды</h2>
-                <div class="chart-container">
-                    <canvas id="period-chart"></canvas>
+            
+            <div class="flex-1 flex flex-col justify-center">
+                <div class="control-row">
+                    <span id="lbl-length" class="w-1/3">Длина нити L:</span>
+                    <input id="length-range" type="range" min="30" max="70" value="50" step="1">
+                    <span class="val-badge"><span id="length-val">50</span> см</span>
                 </div>
-                <p class="chart-hint" id="chart-hint">При малых углах период почти постоянен, а при больших немного возрастает.</p>
+                <div class="control-row">
+                    <span id="lbl-amplitude" class="w-1/3">Начальная амплитуда:</span>
+                    <input id="amplitude-range" type="range" min="5" max="85" value="10" step="1">
+                    <span class="val-badge"><span id="amplitude-val">10</span>°</span>
+                </div>
+
+                <div class="display-board mt-6">
+                    <div class="display-item">
+                        <span id="disp-n-label">Колебаний N</span>
+                        <strong id="disp-n">5</strong>
+                    </div>
+                    <div class="display-item">
+                        <span id="disp-time-label">Время t (с)</span>
+                        <strong id="disp-time" class="text-yellow-400">-.---</strong>
+                    </div>
+                    <div class="display-item">
+                        <span id="disp-theory-label">Теоретический период Tтеор (с)</span>
+                        <strong id="disp-theory">1.419</strong>
+                    </div>
+                    <div class="display-item border-none">
+                        <span id="disp-status-label">Статус</span>
+                        <strong id="status-text" class="text-emerald-400 text-sm">Готов к запуску</strong>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button id="btn-start" onclick="startSimulation()">Запустить</button>
+                    <button id="btn-reset" onclick="resetSim()">Сброс</button>
+                    <button class="btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="theory-card">
-            <strong id="theory-title">Формулы и вывод:</strong>
-            <div class="formula-row"><span class="formula">T₀ = 2π√(L / g)</span><span id="formula-period-text">— период при малых углах</span></div>
-            <div class="formula-row"><span class="formula">g = 9.81 м/с²</span><span id="formula-g-text">— ускорение свободного падения</span></div>
-            <div class="formula-row"><span class="formula">δ = |Tэксп − T₀| / T₀ · 100%</span><span id="formula-diff-text">— относительное отклонение</span></div>
-            <p id="conclusion-text" style="margin:10px 0 0;"></p>
+    <div class="data-grid">
+        <div class="card" style="margin-bottom: 0;">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h2 id="lbl-journal" class="text-lg font-bold text-slate-800">Таблица измерений</h2>
+                <button class="btn-clear text-sm" id="btn-clear" onclick="clearTable()">Очистить</button>
+            </div>
+            <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
+                <table id="data-table">
+                    <thead>
+                        <tr>
+                            <th id="th-num" class="sticky top-0">№</th>
+                            <th id="th-length" class="sticky top-0">L (см)</th>
+                            <th id="th-amplitude" class="sticky top-0">A (°)</th>
+                            <th id="th-n" class="sticky top-0">N</th>
+                            <th id="th-time" class="sticky top-0">t (с)</th>
+                            <th id="th-theory" class="sticky top-0">Tтеор (с)</th>
+                            <th id="th-exp" class="sticky top-0">Tэксп (ввод)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button class="btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты Tэксп</button>
         </div>
-    </section>
+
+        <div class="card flex flex-col" style="margin-bottom: 0;">
+            <h2 id="lbl-chart" class="text-lg font-bold text-slate-800 border-b pb-2 mb-2">Зависимость периода от амплитуды</h2>
+            <p id="chart-hint" class="text-xs text-slate-500 mb-4 text-center">При малых углах период почти постоянен, а при больших немного возрастает.</p>
+            <div class="flex-1 relative min-h-[250px]">
+                <canvas id="periodChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="theory-card">
+        <strong id="theory-title" class="block mb-3 text-lg">Формулы и вывод:</strong>
+        <div class="formula-row"><span class="formula">Tтеор = 2π√(L / g)</span> <span id="formula-period-text" class="text-slate-600 text-sm">— период при малых углах</span></div>
+        <div class="formula-row"><span class="formula">g = 9.81 м/с²</span> <span id="formula-g-text" class="text-slate-600 text-sm">— ускорение свободного падения</span></div>
+        <div class="formula-row"><span class="formula">Tэксп = t / N</span> <span id="formula-diff-text" class="text-slate-600 text-sm">— экспериментальный период</span></div>
+        <p id="conclusion-text" class="mt-4 p-3 bg-emerald-50 text-emerald-800 rounded border border-emerald-200 text-sm font-medium"></p>
+    </div>
 </main>
 
 <script>
@@ -509,52 +213,54 @@
     const PIVOT_Y = 45;
     const PIXELS_PER_METER = 600;
     const G = 9.81;
+    const NUM_OSCILLATIONS = 5;
 
     let lengthM = 0.50;
-    let amplitudeDeg = 20;
-    let measuredPeriod = 0;
+    let amplitudeDeg = 10;
     let theoryPeriod = 0;
-    let deviation = 0;
+    let measuredPeriod = 0;
+    
     let isRunning = false;
     let isDragging = false;
     let resultReady = false;
-    let animationFrame = null;
     let currentLang = 'ru';
     let currentStateKey = 'statReady';
+    let animationFrame = null;
     let periodChart;
 
     const dict = {
         ru: {
-            title: 'Лабораторная работа №23: Период и амплитуда',
+            title: 'Лабораторная работа: Период и амплитуда',
             themeLbl: 'Тема:',
             theme: 'Исследование зависимости периода математического маятника от амплитуды колебаний',
             goalLbl: 'Цель работы:',
             goal: 'Экспериментально подтвердить, что при малых углах период почти не зависит от амплитуды, и наблюдать его увеличение при больших углах.',
             theoryLbl: 'Краткая теория:',
-            theory: 'Для малых отклонений период математического маятника определяется длиной нити и ускорением свободного падения. При больших углах приближение малых колебаний нарушается, поэтому период немного возрастает.',
+            theory: 'Период колебаний математического маятника рассчитывается по формуле Гюйгенса: <b>T<sub>теор</sub> = 2π√(L/g)</b>.<br>Экспериментальный период определяется через время <b>t</b>, за которое совершается <b>N</b> полных колебаний: <b>T<sub>эксп</sub> = t / N</b>.',
             procedureLbl: 'Ход работы:',
             procedure: [
                 'Установите длину нити L и не изменяйте её в серии опытов.',
                 'Амплитуду можно задать ползунком или перетаскиванием шара на схеме.',
-                'Нажмите «Запустить» и дождитесь измерения двух полных колебаний.',
+                'Нажмите «Запустить» и дождитесь измерения ' + NUM_OSCILLATIONS + ' полных колебаний.',
                 'Запишите результат в таблицу. Повторите опыт для амплитуд 5°, 10°, 20°, 40°, 60° и 80°.',
-                'Сравните экспериментальные точки с теоретической линией на графике.'
+                'Самостоятельно рассчитайте Tэксп, впишите в ячейку и нажмите «Проверить расчеты». График обновится автоматически.'
             ],
             sim: 'Симуляция математического маятника',
             angle: 'Текущий угол',
             dragHint: 'Задайте амплитуду ползунком или перетащите шар.',
             length: 'Длина нити L:',
             amplitude: 'Начальная амплитуда:',
-            expPeriod: 'Экспериментальный период Tэксп (с)',
-            theoryPeriod: 'Теоретический период Tтеор (с)',
-            deviation: 'Отклонение (%)',
+            dispNLabel: 'Колебаний N',
+            dispTimeLabel: 'Время t (с)',
+            theoryPeriod: 'Tтеор (с)',
             status: 'Статус',
             start: 'Запустить',
             reset: 'Сброс',
             record: 'Записать в таблицу',
+            btnCheck: 'Проверить расчеты Tэксп',
             clear: 'Очистить',
             journal: 'Таблица измерений',
-            thNum: '№', thLength: 'L (см)', thAmplitude: 'A (°)', thExp: 'Tэксп (с)', thTheory: 'Tтеор (с)', thDiff: 'ΔT (%)',
+            thNum: '№', thLength: 'L (см)', thAmplitude: 'A (°)', thN: 'N', thTime: 't (с)', thTheory: 'Tтеор (с)', thExp: 'Tэксп (ввод)',
             chart: 'Зависимость периода от амплитуды',
             chartHint: 'При малых углах период почти постоянен, а при больших немного возрастает.',
             chartExp: 'Эксперимент',
@@ -564,9 +270,9 @@
             theoryTitle: 'Формулы и вывод:',
             formulaPeriod: '— период при малых углах',
             formulaG: '— ускорение свободного падения',
-            formulaDiff: '— относительное отклонение',
-            conclusionEmpty: 'Проведите несколько опытов и сравните форму графика с теорией.',
-            conclusionReady: (count, maxAmp, growth) => `Проведено опытов: ${count}. При наибольшей амплитуде ${maxAmp}° период отличается от T₀ на ${growth}%.`,
+            formulaDiff: '— экспериментальный период',
+            conclusionEmpty: 'Проведите несколько опытов, заполните Tэксп и проверьте расчеты.',
+            conclusionReady: (count, maxAmp) => `Проведено опытов: ${count}. При наибольшей амплитуде ${maxAmp}° период заметно отличается от малых углов.`,
             statReady: 'Готов к запуску',
             statMove: 'Идёт измерение...',
             statDone: 'Измерение завершено. Запишите результат.',
@@ -579,30 +285,31 @@
             goalLbl: 'Жұмыстың мақсаты:',
             goal: 'Кіші бұрыштарда период амплитудаға дерлік тәуелді емес екенін тәжірибе жүзінде растау және үлкен бұрыштарда оның өсуін бақылау.',
             theoryLbl: 'Қысқаша теория:',
-            theory: 'Кіші ауытқуларда математикалық маятниктің периоды жіп ұзындығы мен еркін түсу үдеуіне байланысты. Үлкен бұрыштарда кіші тербелістер жуықтауы бұзылады, сондықтан период аздап артады.',
+            theory: 'Математикалық маятниктің тербеліс периоды Гюйгенс формуласымен есептеледі: <b>T<sub>теор</sub> = 2π√(L/g)</b>.<br>Эксперименттік период <b>N</b> толық тербеліс жасалатын <b>t</b> уақыт арқылы анықталады: <b>T<sub>тәж</sub> = t / N</b>.',
             procedureLbl: 'Жұмыс барысы:',
             procedure: [
                 'Жіптің L ұзындығын орнатып, тәжірибелер сериясында оны өзгертпеңіз.',
                 'Амплитуданы жүгірткімен немесе сызбадағы шарды сүйреп орнатуға болады.',
-                '«Бастау» түймесін басып, екі толық тербелістің өлшенуін күтіңіз.',
+                '«Бастау» түймесін басып, ' + NUM_OSCILLATIONS + ' толық тербелістің өлшенуін күтіңіз.',
                 'Нәтижені кестеге жазыңыз. Тәжірибені 5°, 10°, 20°, 40°, 60° және 80° амплитудалар үшін қайталаңыз.',
-                'Графиктегі тәжірибелік нүктелерді теориялық сызықпен салыстырыңыз.'
+                'Tтәж өзіңіз есептеп, ұяшыққа жазыңыз және «Есептеулерді тексеру» басыңыз. График жаңарады.'
             ],
             sim: 'Математикалық маятникті модельдеу',
             angle: 'Ағымдағы бұрыш',
             dragHint: 'Амплитуданы жүгірткімен немесе шарды сүйреп орнатыңыз.',
             length: 'Жіп ұзындығы L:',
             amplitude: 'Бастапқы амплитуда:',
-            expPeriod: 'Тәжірибелік период Tтәж (с)',
-            theoryPeriod: 'Теориялық период Tтеор (с)',
-            deviation: 'Ауытқу (%)',
+            dispNLabel: 'Тербелістер N',
+            dispTimeLabel: 'Уақыт t (с)',
+            theoryPeriod: 'Tтеор (с)',
             status: 'Күйі',
             start: 'Бастау',
             reset: 'Қалпына келтіру',
             record: 'Кестеге жазу',
+            btnCheck: 'Tтәж есептеулерін тексеру',
             clear: 'Тазалау',
             journal: 'Өлшеулер кестесі',
-            thNum: '№', thLength: 'L (см)', thAmplitude: 'A (°)', thExp: 'Tтәж (с)', thTheory: 'Tтеор (с)', thDiff: 'ΔT (%)',
+            thNum: '№', thLength: 'L (см)', thAmplitude: 'A (°)', thN: 'N', thTime: 't (с)', thTheory: 'Tтеор (с)', thExp: 'Tтәж (енгізу)',
             chart: 'Периодтың амплитудаға тәуелділігі',
             chartHint: 'Кіші бұрыштарда период тұрақты дерлік, ал үлкен бұрыштарда аздап артады.',
             chartExp: 'Тәжірибе',
@@ -612,9 +319,9 @@
             theoryTitle: 'Формулалар және қорытынды:',
             formulaPeriod: '— кіші бұрыштардағы период',
             formulaG: '— еркін түсу үдеуі',
-            formulaDiff: '— салыстырмалы ауытқу',
-            conclusionEmpty: 'Бірнеше тәжірибе жасап, график пішінін теориямен салыстырыңыз.',
-            conclusionReady: (count, maxAmp, growth) => `Тәжірибе саны: ${count}. Ең үлкен ${maxAmp}° амплитудада период T₀ мәнінен ${growth}% ерекшеленеді.`,
+            formulaDiff: '— тәжірибелік период',
+            conclusionEmpty: 'Бірнеше тәжірибе жасап, Tтәж толтырыңыз және есептеулерді тексеріңіз.',
+            conclusionReady: (count, maxAmp) => `Тәжірибе саны: ${count}. Ең үлкен ${maxAmp}° амплитудада период кіші бұрыштардан ерекшеленеді.`,
             statReady: 'Бастауға дайын',
             statMove: 'Өлшеу жүріп жатыр...',
             statDone: 'Өлшеу аяқталды. Нәтижені жазыңыз.',
@@ -632,12 +339,15 @@
         lengthVal: document.getElementById('length-val'),
         amplitudeVal: document.getElementById('amplitude-val'),
         angleLive: document.getElementById('angle-live'),
-        dispExp: document.getElementById('disp-exp'),
+        dispN: document.getElementById('disp-n'),
+        dispTime: document.getElementById('disp-time'),
         dispTheory: document.getElementById('disp-theory'),
-        dispDiff: document.getElementById('disp-diff'),
         status: document.getElementById('status-text'),
         btnStart: document.getElementById('btn-start'),
         btnRecord: document.getElementById('btn-record'),
+        btnCheck: document.getElementById('btn-check'),
+        btnClear: document.getElementById('btn-clear'),
+        btnReset: document.getElementById('btn-reset'),
         tableBody: document.querySelector('#data-table tbody'),
         conclusion: document.getElementById('conclusion-text')
     };
@@ -653,18 +363,18 @@
         document.title = t.title;
         document.getElementById('header-title').innerText = t.title;
         document.getElementById('lbl-theme').innerText = t.themeLbl;
-        document.getElementById('txt-theme').innerText = t.theme;
+        document.getElementById('txt-theme').innerHTML = t.theme;
         document.getElementById('lbl-goal').innerText = t.goalLbl;
         document.getElementById('txt-goal').innerText = t.goal;
         document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
-        document.getElementById('txt-theory').innerText = t.theory;
+        document.getElementById('txt-theory').innerHTML = t.theory;
         document.getElementById('lbl-procedure').innerText = t.procedureLbl;
 
         const list = document.getElementById('list-procedure');
         list.innerHTML = '';
         t.procedure.forEach(text => {
             const item = document.createElement('li');
-            item.innerText = text;
+            item.innerHTML = text;
             list.appendChild(item);
         });
 
@@ -673,29 +383,34 @@
         document.getElementById('drag-hint').innerText = t.dragHint;
         document.getElementById('lbl-length').innerText = t.length;
         document.getElementById('lbl-amplitude').innerText = t.amplitude;
-        document.getElementById('disp-exp-label').innerText = t.expPeriod;
+        document.getElementById('disp-n-label').innerText = t.dispNLabel;
+        document.getElementById('disp-time-label').innerText = t.dispTimeLabel;
         document.getElementById('disp-theory-label').innerText = t.theoryPeriod;
-        document.getElementById('disp-diff-label').innerText = t.deviation;
         document.getElementById('disp-status-label').innerText = t.status;
-        document.getElementById('btn-start').innerText = t.start;
-        document.getElementById('btn-reset').innerText = t.reset;
-        document.getElementById('btn-record').innerText = t.record;
-        document.getElementById('btn-clear').innerText = t.clear;
+        ui.btnStart.innerText = t.start;
+        ui.btnReset.innerText = t.reset;
+        ui.btnRecord.innerText = t.record;
+        ui.btnCheck.innerText = t.btnCheck;
+        ui.btnClear.innerText = t.clear;
         document.getElementById('lbl-journal').innerText = t.journal;
         document.getElementById('th-num').innerText = t.thNum;
         document.getElementById('th-length').innerText = t.thLength;
         document.getElementById('th-amplitude').innerText = t.thAmplitude;
-        document.getElementById('th-exp').innerText = t.thExp;
+        document.getElementById('th-n').innerText = t.thN;
+        document.getElementById('th-time').innerText = t.thTime;
         document.getElementById('th-theory').innerText = t.thTheory;
-        document.getElementById('th-diff').innerText = t.thDiff;
+        document.getElementById('th-exp').innerText = t.thExp;
         document.getElementById('lbl-chart').innerText = t.chart;
         document.getElementById('chart-hint').innerText = t.chartHint;
         document.getElementById('theory-title').innerText = t.theoryTitle;
         document.getElementById('formula-period-text').innerText = t.formulaPeriod;
         document.getElementById('formula-g-text').innerText = t.formulaG;
         document.getElementById('formula-diff-text').innerText = t.formulaDiff;
+        
         updateStateText(currentStateKey);
         updateConclusion();
+        
+        ui.dispN.innerText = NUM_OSCILLATIONS;
 
         if (periodChart) {
             periodChart.data.datasets[0].label = t.chartExp;
@@ -706,81 +421,32 @@
         }
     }
 
-    function updateStateText(key) {
-        currentStateKey = key;
-        ui.status.innerText = dict[currentLang][key];
-    }
-
-    function drawProtractor() {
-        ui.protractor.innerHTML = '';
-        const radius = 225;
-        for (let degree = -80; degree <= 80; degree += 10) {
-            const rad = degree * Math.PI / 180;
-            const major = degree % 20 === 0;
-            const innerRadius = radius - (major ? 15 : 9);
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', Math.sin(rad) * innerRadius);
-            line.setAttribute('y1', Math.cos(rad) * innerRadius);
-            line.setAttribute('x2', Math.sin(rad) * radius);
-            line.setAttribute('y2', Math.cos(rad) * radius);
-            line.setAttribute('class', 'protractor-line');
-            ui.protractor.appendChild(line);
-
-            if (major && degree !== 0) {
-                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                label.setAttribute('x', Math.sin(rad) * (radius + 18));
-                label.setAttribute('y', Math.cos(rad) * (radius + 18) + 4);
-                label.setAttribute('class', 'protractor-label');
-                label.textContent = Math.abs(degree) + '°';
-                ui.protractor.appendChild(label);
-            }
-        }
-    }
-
     function calculateTheoryPeriod() {
         theoryPeriod = 2 * Math.PI * Math.sqrt(lengthM / G);
-        return theoryPeriod;
     }
 
     function calculateLargeAnglePeriod() {
-        const theta = amplitudeDeg * Math.PI / 180;
-        const theta2 = theta * theta;
-        const correction = 1 + theta2 / 16 + 11 * theta2 * theta2 / 3072;
-        const measurementNoise = 1 + (Math.random() - 0.5) * 0.006;
-        return theoryPeriod * correction * measurementNoise;
+        // T_exp = T_theory * (1 + (1/4)*sin^2(a/2) + (9/64)*sin^4(a/2))
+        const aRad = amplitudeDeg * Math.PI / 180;
+        const sinHalf = Math.sin(aRad / 2);
+        return theoryPeriod * (1 + 0.25 * sinHalf * sinHalf + (9/64) * Math.pow(sinHalf, 4));
     }
 
-    function renderPendulum(angleRad) {
-        const lengthPx = lengthM * PIXELS_PER_METER;
-        const x = lengthPx * Math.sin(angleRad);
-        const y = lengthPx * Math.cos(angleRad);
-        ui.string.setAttribute('x2', x);
-        ui.string.setAttribute('y2', y);
-        ui.ball.setAttribute('cx', x);
-        ui.ball.setAttribute('cy', y);
-        ui.angleLive.innerText = Math.abs(angleRad * 180 / Math.PI).toFixed(0);
+    function updateStateText(key) {
+        currentStateKey = key;
+        if(dict[currentLang] && dict[currentLang][key]) {
+            ui.status.innerText = dict[currentLang][key];
+            ui.status.className = key === 'statReady' ? 'text-emerald-400 text-sm' : 
+                                  key === 'statMove' ? 'text-amber-400 text-sm' : 
+                                  'text-sky-400 text-sm';
+        }
     }
 
     function invalidateResult() {
         resultReady = false;
         ui.btnRecord.disabled = true;
-        ui.dispExp.innerText = '-.---';
-        ui.dispDiff.innerText = '-.-';
+        ui.dispTime.innerText = '-.---';
         updateStateText('statReady');
-    }
-
-    function updateSettings() {
-        if (isRunning) return;
-        lengthM = Number(ui.lengthRange.value) / 100;
-        amplitudeDeg = Number(ui.amplitudeRange.value);
-        ui.lengthVal.innerText = (lengthM * 100).toFixed(0);
-        ui.amplitudeVal.innerText = amplitudeDeg.toFixed(0);
-        ui.angleLive.innerText = amplitudeDeg.toFixed(0);
-        calculateTheoryPeriod();
-        ui.dispTheory.innerText = theoryPeriod.toFixed(3);
-        renderPendulum(amplitudeDeg * Math.PI / 180);
-        invalidateResult();
-        updateTheoryLine();
     }
 
     function setControlsDisabled(disabled) {
@@ -788,35 +454,92 @@
         ui.amplitudeRange.disabled = disabled;
     }
 
+    function drawProtractor() {
+        ui.protractor.innerHTML = '';
+        const r = 250;
+        for (let a = -90; a <= 90; a += 10) {
+            const rad = a * Math.PI / 180;
+            const x1 = PIVOT_X + Math.sin(rad) * (r - 10);
+            const y1 = PIVOT_Y + Math.cos(rad) * (r - 10);
+            const x2 = PIVOT_X + Math.sin(rad) * r;
+            const y2 = PIVOT_Y + Math.cos(rad) * r;
+            
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#e2e8f0");
+            ui.protractor.appendChild(line);
+
+            if (a % 30 === 0 && a !== 0) {
+                const tx = PIVOT_X + Math.sin(rad) * (r + 15);
+                const ty = PIVOT_Y + Math.cos(rad) * (r + 15) + 4;
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", tx); text.setAttribute("y", ty);
+                text.setAttribute("fill", "#94a3b8");
+                text.setAttribute("font-size", "10");
+                text.setAttribute("text-anchor", "middle");
+                text.textContent = Math.abs(a) + "°";
+                ui.protractor.appendChild(text);
+            }
+        }
+    }
+
+    function renderPendulum(angleRad) {
+        const lenPx = lengthM * PIXELS_PER_METER;
+        const x = PIVOT_X + lenPx * Math.sin(angleRad);
+        const y = PIVOT_Y + lenPx * Math.cos(angleRad);
+        
+        ui.string.setAttribute('x2', x);
+        ui.string.setAttribute('y2', y);
+        ui.ball.setAttribute('cx', x);
+        ui.ball.setAttribute('cy', y);
+        
+        ui.angleLive.innerText = Math.abs((angleRad * 180 / Math.PI)).toFixed(0) + '°';
+    }
+
+    function updateSettings() {
+        if(isRunning) return;
+        
+        lengthM = parseFloat(ui.lengthRange.value) / 100;
+        amplitudeDeg = parseFloat(ui.amplitudeRange.value);
+        
+        ui.lengthVal.innerText = (lengthM * 100).toFixed(0);
+        ui.amplitudeVal.innerText = amplitudeDeg.toFixed(0);
+        
+        calculateTheoryPeriod();
+        ui.dispTheory.innerText = theoryPeriod.toFixed(3);
+        renderPendulum(amplitudeDeg * Math.PI / 180);
+        invalidateResult();
+        updateTheoryLine();
+    }
+
     function startSimulation() {
         if (isRunning) return;
         isRunning = true;
         resultReady = false;
         measuredPeriod = calculateLargeAnglePeriod();
-        deviation = Math.abs(measuredPeriod - theoryPeriod) / theoryPeriod * 100;
+        
         setControlsDisabled(true);
         ui.btnStart.disabled = true;
         ui.btnRecord.disabled = true;
-        ui.dispExp.innerText = '-.---';
-        ui.dispDiff.innerText = '-.-';
+        ui.dispTime.innerText = '-.---';
         updateStateText('statMove');
 
         const start = performance.now();
         const amplitudeRad = amplitudeDeg * Math.PI / 180;
-        const cyclesToShow = 2;
+        const totalDuration = measuredPeriod * NUM_OSCILLATIONS * 1000;
 
         function animate(time) {
-            const elapsed = (time - start) / 1000;
-            const angleNow = amplitudeRad * Math.cos(2 * Math.PI * elapsed / measuredPeriod);
-            renderPendulum(angleNow);
-
-            if (elapsed < measuredPeriod * cyclesToShow) {
-                animationFrame = requestAnimationFrame(animate);
-            } else {
+            if(!isRunning) return;
+            const elapsed = time - start;
+            if (elapsed > totalDuration) {
                 finishRun();
+                return;
             }
+            const currentAngleRad = amplitudeRad * Math.cos(2 * Math.PI * elapsed / (measuredPeriod * 1000));
+            renderPendulum(currentAngleRad);
+            animationFrame = requestAnimationFrame(animate);
         }
-
         animationFrame = requestAnimationFrame(animate);
     }
 
@@ -828,8 +551,9 @@
         ui.btnStart.disabled = false;
         ui.btnRecord.disabled = false;
         renderPendulum(amplitudeDeg * Math.PI / 180);
-        ui.dispExp.innerText = measuredPeriod.toFixed(3);
-        ui.dispDiff.innerText = deviation.toFixed(1);
+        
+        const totalTime = measuredPeriod * NUM_OSCILLATIONS;
+        ui.dispTime.innerText = totalTime.toFixed(3);
         updateStateText('statDone');
     }
 
@@ -838,120 +562,190 @@
         isRunning = false;
         setControlsDisabled(false);
         ui.btnStart.disabled = false;
-        renderPendulum(amplitudeDeg * Math.PI / 180);
-        invalidateResult();
+        updateSettings();
     }
 
-    ui.ball.addEventListener('pointerdown', event => {
-        if (isRunning) return;
+    // Drag functionality
+    ui.ball.addEventListener('mousedown', startDrag);
+    ui.ball.addEventListener('touchstart', startDrag, {passive: false});
+    window.addEventListener('mousemove', dragMove);
+    window.addEventListener('touchmove', dragMove, {passive: false});
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+
+    function startDrag(e) {
+        if(isRunning) return;
+        e.preventDefault();
         isDragging = true;
-        event.preventDefault();
-    });
+    }
 
-    window.addEventListener('pointermove', event => {
-        if (!isDragging) return;
-        const point = ui.svg.createSVGPoint();
-        point.x = event.clientX;
-        point.y = event.clientY;
-        const local = point.matrixTransform(ui.svg.getScreenCTM().inverse());
-        const dx = local.x - PIVOT_X;
-        const dy = local.y - PIVOT_Y;
-        let degrees = Math.abs(Math.atan2(dx, dy) * 180 / Math.PI);
-        degrees = Math.max(5, Math.min(80, degrees));
-        amplitudeDeg = Math.round(degrees);
+    function dragMove(e) {
+        if(!isDragging || isRunning) return;
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        
+        const pt = ui.svg.createSVGPoint();
+        pt.x = clientX; pt.y = clientY;
+        const loc = pt.matrixTransform(ui.svg.getScreenCTM().inverse());
+        
+        const dx = loc.x - PIVOT_X;
+        const dy = loc.y - PIVOT_Y;
+        let aRad = Math.atan2(dx, dy);
+        
+        if(aRad > Math.PI/2) aRad = Math.PI/2;
+        if(aRad < -Math.PI/2) aRad = -Math.PI/2;
+        
+        amplitudeDeg = Math.abs(aRad * 180 / Math.PI);
+        if(amplitudeDeg < 5) amplitudeDeg = 5;
+        if(amplitudeDeg > 85) amplitudeDeg = 85;
+        
         ui.amplitudeRange.value = amplitudeDeg;
-        ui.amplitudeVal.innerText = amplitudeDeg;
-        renderPendulum((dx < 0 ? -1 : 1) * amplitudeDeg * Math.PI / 180);
-        invalidateResult();
-    });
+        updateSettings();
+    }
 
-    window.addEventListener('pointerup', () => {
-        if (!isDragging) return;
+    function endDrag() {
+        if(!isDragging) return;
         isDragging = false;
         renderPendulum(amplitudeDeg * Math.PI / 180);
-    });
+    }
 
     function recordData() {
         if (!resultReady) return;
         ui.btnRecord.disabled = true;
+        const totalTime = measuredPeriod * NUM_OSCILLATIONS;
+        
         const row = document.createElement('tr');
         row.dataset.amplitude = amplitudeDeg.toFixed(1);
-        row.dataset.period = measuredPeriod.toFixed(5);
-        row.dataset.theory = theoryPeriod.toFixed(5);
         row.innerHTML = `
             <td>${ui.tableBody.children.length + 1}</td>
             <td>${(lengthM * 100).toFixed(0)}</td>
             <td>${amplitudeDeg.toFixed(0)}</td>
-            <td>${measuredPeriod.toFixed(3)}</td>
+            <td>${NUM_OSCILLATIONS}</td>
+            <td>${totalTime.toFixed(3)}</td>
             <td>${theoryPeriod.toFixed(3)}</td>
-            <td>${deviation.toFixed(1)}</td>
+            <td><input type="number" step="0.001" class="calc-input" data-ans="${measuredPeriod.toFixed(3)}"></td>
         `;
         ui.tableBody.appendChild(row);
 
-        const points = collectChartPoints();
-        periodChart.data.datasets[0].data = points;
         updateTheoryLine();
-        periodChart.update();
-        updateConclusion();
         updateStateText('statRecorded');
+        
+        const wrapper = document.querySelector('.overflow-x-auto');
+        wrapper.scrollTop = wrapper.scrollHeight;
     }
 
-    function collectChartPoints() {
-        return Array.from(ui.tableBody.querySelectorAll('tr'))
-            .map(row => ({ x: Number(row.dataset.amplitude), y: Number(row.dataset.period) }))
-            .sort((a, b) => a.x - b.x);
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        let allCorrect = true;
+        inputs.forEach(input => {
+            if (input.value.trim() === "") {
+                allCorrect = false;
+                return;
+            }
+            const userVal = parseFloat(input.value.replace(',', '.'));
+            const target = parseFloat(input.dataset.ans);
+            if (!isNaN(userVal) && Math.abs(userVal - target) <= 0.05) {
+                input.classList.add('correct');
+                input.classList.remove('incorrect');
+            } else {
+                input.classList.add('incorrect');
+                input.classList.remove('correct');
+                allCorrect = false;
+            }
+        });
+        
+        if(allCorrect) {
+            updateChartFromTable();
+            updateConclusion();
+        }
+    }
+
+    function updateChartFromTable() {
+        const points = [];
+        const rows = ui.tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const input = row.querySelector('.calc-input');
+            if (input && input.classList.contains('correct')) {
+                points.push({
+                    x: Number(row.dataset.amplitude),
+                    y: parseFloat(input.value.replace(',', '.'))
+                });
+            }
+        });
+        periodChart.data.datasets[0].data = points.sort((a,b) => a.x - b.x);
+        periodChart.update();
     }
 
     function updateTheoryLine() {
-        if (!periodChart) return;
+        if(!periodChart) return;
+        const T_theo = 2 * Math.PI * Math.sqrt(lengthM / G);
         periodChart.data.datasets[1].data = [
-            { x: 0, y: theoryPeriod },
-            { x: 85, y: theoryPeriod }
+            {x: 0, y: T_theo},
+            {x: 90, y: T_theo}
         ];
-        periodChart.update('none');
+        periodChart.update();
     }
 
     function updateConclusion() {
         const rows = Array.from(ui.tableBody.querySelectorAll('tr'));
-        if (rows.length === 0) {
+        const correctInputs = ui.tableBody.querySelectorAll('.calc-input.correct');
+        if (rows.length === 0 || correctInputs.length === 0) {
             ui.conclusion.innerText = dict[currentLang].conclusionEmpty;
             return;
         }
-        const maxRow = rows.reduce((best, row) => Number(row.dataset.amplitude) > Number(best.dataset.amplitude) ? row : best);
-        const growth = Math.abs(Number(maxRow.dataset.period) - Number(maxRow.dataset.theory)) / Number(maxRow.dataset.theory) * 100;
-        ui.conclusion.innerText = dict[currentLang].conclusionReady(rows.length, Number(maxRow.dataset.amplitude).toFixed(0), growth.toFixed(1));
+        
+        let maxRow = null;
+        let maxAmp = -1;
+        rows.forEach(row => {
+            const input = row.querySelector('.calc-input');
+            if (input && input.classList.contains('correct')) {
+                const amp = Number(row.dataset.amplitude);
+                if(amp > maxAmp) {
+                    maxAmp = amp;
+                    maxRow = row;
+                }
+            }
+        });
+        
+        if (maxRow) {
+            ui.conclusion.innerText = dict[currentLang].conclusionReady(correctInputs.length, maxAmp.toFixed(0));
+        }
     }
 
     function clearTable() {
         ui.tableBody.innerHTML = '';
-        periodChart.data.datasets[0].data = [];
-        periodChart.update();
+        if(periodChart) {
+            periodChart.data.datasets[0].data = [];
+            periodChart.update();
+        }
         updateConclusion();
+        invalidateResult();
     }
 
-    function initChart() {
-        const context = document.getElementById('period-chart').getContext('2d');
-        periodChart = new Chart(context, {
+    window.onload = function() {
+        drawProtractor();
+        
+        const ctx = document.getElementById('periodChart').getContext('2d');
+        periodChart = new Chart(ctx, {
             type: 'scatter',
             data: {
                 datasets: [
                     {
-                        label: dict.ru.chartExp,
+                        label: 'Эксперимент',
                         data: [],
-                        backgroundColor: '#8e44ad',
-                        borderColor: '#71368a',
+                        backgroundColor: '#f39c12',
+                        borderColor: '#d68910',
                         pointRadius: 6,
                         pointHoverRadius: 8
                     },
                     {
-                        label: dict.ru.chartTheory,
-                        type: 'line',
+                        label: 'Теория малых углов',
                         data: [],
+                        type: 'line',
                         borderColor: '#2980b9',
-                        borderWidth: 2,
-                        borderDash: [6, 5],
-                        pointRadius: 0,
-                        fill: false
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
                     }
                 ]
             },
@@ -961,26 +755,23 @@
                 scales: {
                     x: {
                         type: 'linear',
-                        min: 0,
-                        max: 85,
-                        title: { display: true, text: dict.ru.chartX, font: { weight: 'bold' } },
-                        grid: { color: '#e2e8f0' }
+                        title: { display: true, text: 'Амплитуда A (°)' },
+                        min: 0, max: 90
                     },
                     y: {
-                        beginAtZero: false,
-                        title: { display: true, text: dict.ru.chartY, font: { weight: 'bold' } },
-                        grid: { color: '#e2e8f0' }
+                        title: { display: true, text: 'Период T (с)' }
                     }
-                },
-                plugins: { legend: { position: 'bottom' } }
+                }
             }
         });
-    }
-
-    drawProtractor();
-    initChart();
-    setLang('ru');
-    updateSettings();
+        
+        setLang('ru');
+        
+        ui.lengthRange.addEventListener('input', updateSettings);
+        ui.amplitudeRange.addEventListener('input', updateSettings);
+        
+        updateSettings();
+    };
 </script>
 </body>
 </html>
