@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Скорость и время</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --warning: #e67e22;
+            --danger: #e74c3c;
+            --rail: #95a5a6;
+            --cart: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--accent);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: radial-gradient(circle at center, #ffffff, #eef2f3);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg {
+            width: 100%;
+            height: 350px;
+            display: block;
+        }
+
+        .rail { stroke: #bdc3c7; stroke-width: 12; stroke-linecap: round; }
+        .rail-surface { stroke: #95a5a6; stroke-width: 2; }
+        .cart-body { fill: var(--cart); stroke: #2980b9; stroke-width: 2; }
+        .cart-wheel { fill: #2c3e50; }
+        .sensor { fill: #f39c12; stroke: #d35400; stroke-width: 1; } 
+        .sensor-line { stroke: #e67e22; stroke-width: 1; stroke-dasharray: 4; opacity: 0.6; }
+        .stand-pole { fill: #7f8c8d; stroke: #555; }
+        .floor { stroke: #2c3e50; stroke-width: 2; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1; min-width: 150px; padding: 12px 15px; border: none; border-radius: 5px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-start { background: var(--success); }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: var(--danger); }
+        .btn-reset:hover:not(:disabled) { background: #c0392b; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+
+        /* --- DISPLAYS --- */
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .display-item { text-align: center; flex: 1; min-width: 100px; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; margin-bottom: 5px; }
+        .display-item strong { font-size: 1.4rem; font-family: 'Courier New', Courier, monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 380px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input { width: 70px; padding: 4px; text-align: center; border: 1px solid var(--border); border-radius: 4px; font-weight: bold; color: var(--primary); outline: none; }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .btn-check { background: var(--warning); margin-top: 10px; padding: 8px 15px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; }
+        .btn-check:hover { background: #d68910; }
+        .btn-clear { background: var(--danger); margin-top: 10px; padding: 8px 15px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; float: right;}
+        .btn-clear:hover { background: #c0392b; }
+
+        /* --- CHART --- */
+        .chart-box {
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Зависимость скорости от времени</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Изучение равноускоренного движения</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Определить зависимость мгновенной скорости от времени при равноускоренном движении.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <!-- Будет заполнено через JS -->
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg id="sim-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#bdc3c7" stroke-width="0.5" opacity="0.5"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <line x1="50" y1="400" x2="750" y2="400" class="floor" />
+
+                <!-- Группа скамьи -->
+                <g id="bench-group" transform="translate(100, 400)">
+                    <line x1="0" y1="0" x2="600" y2="0" class="rail" />
+                    <line x1="0" y1="-6" x2="600" y2="-6" class="rail-surface" />
+                    <g id="ruler-group"></g>
+
+                    <g transform="translate(600, 0)">
+                        <rect x="-5" y="-18" width="10" height="15" class="sensor" />
+                        <text x="0" y="25" font-size="12" fill="#7f8c8d" text-anchor="middle">0</text>
+                    </g>
+
+                    <g id="sensor2-group">
+                        <rect x="-5" y="-18" width="10" height="15" class="sensor" />
+                        <line x1="0" y1="-18" x2="0" y2="-45" class="sensor-line" />
+                        <text x="0" y="25" font-size="12" fill="#d35400" text-anchor="middle" font-weight="bold" id="sensor2-text">40см</text>
+                    </g>
+
+                    <!-- Группа тележки -->
+                    <g id="cart-group" transform="translate(600, 0)">
+                        <rect x="-40" y="-35" width="80" height="24" class="cart-body" rx="2" />
+                        <circle cx="-25" cy="-6" r="6" class="cart-wheel" />
+                        <circle cx="25" cy="-6" r="6" class="cart-wheel" />
+                    </g>
+                </g>
+                
+                <!-- Штатив -->
+                <g id="stand-group" transform="translate(700, 0)">
+                    <rect x="-5" y="300" width="10" height="100" class="stand-pole" id="stand-pole-rect" />
+                    <rect x="-20" y="395" width="40" height="5" fill="#7f8c8d" />
+                    <text x="15" y="350" font-size="14" font-weight="bold" fill="#7f8c8d" id="h-label" text-anchor="start">h</text>
+                </g>
+
+                <text x="150" y="390" font-size="14" font-weight="bold" fill="#7f8c8d">&alpha;</text>
+                <path d="M 150,400 A 50,50 0 0 0 155,390" stroke="#bdc3c7" stroke-width="2" fill="none" id="angle-arc"/>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-h">Высота правого края (h): <span id="val-h" style="color:var(--accent)">15 см</span></label>
+                <input type="range" id="h-input" min="5" max="30" value="15" step="1" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-s">Путь S (м): <span id="val-s" style="color:var(--accent)">0.40 м</span></label>
+                <input type="range" id="s-input" min="0.2" max="0.9" value="0.40" step="0.1" oninput="updateSetup()">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-s">Расстояние S (м)</span>
+                <strong id="meas-s">0.40</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-t">Время t (с)</span>
+                <strong id="meas-t">0.000</strong>
+            </div>
+            <div class="display-item" style="flex: 2;">
+                <span id="disp-status">Статус</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1rem; margin-top: 5px;">Проведите 3 измерения для одной точки</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSimulation()">▶ Запуск</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">↺ Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>⬇ Записать в таблицу (t1, t2, t3)</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="table-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 class="panel-title" id="lbl-journal" style="border:none; margin:0; padding:0;">Журнал измерений (Усреднение 3-х опытов)</h2>
+            </div>
+            <div class="table-wrap">
+                <table id="data-table">
+                    <thead>
+                        <tr>
+                            <th id="th-no">№</th>
+                            <th id="th-s">S (м)</th>
+                            <th id="th-t1">t1 (с)</th>
+                            <th id="th-t2">t2 (с)</th>
+                            <th id="th-t3">t3 (с)</th>
+                            <th id="th-tavg">t_ср (с)</th>
+                            <th id="th-v">v = 2S/t_ср (м/с)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-table-body">
+                        <!-- Данные -->
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <button class="btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты</button>
+                <button class="btn-clear" id="btn-clear" onclick="clearTable()">Очистить таблицу</button>
+            </div>
+        </div>
+
+        <div class="chart-section" style="margin-top: 20px;">
+            <div class="chart-box">
+                <h3 id="lbl-chart" style="margin:0 0 5px 0; font-size:1rem; text-align:center; color: var(--primary);">График зависимости v(t)</h3>
+                <div class="chart-container">
+                    <canvas id="chartVt"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формулы для расчета:</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px; font-size: 0.95rem; color: var(--primary);">
+                <b>1. Среднее время:</b> t<sub>ср</sub> = (t<sub>1</sub> + t<sub>2</sub> + t<sub>3</sub>) / 3 <br>
+                <b>2. Мгновенная скорость:</b> v = <div class="frac"><span>2 &middot; S</span><span class="bottom">t<sub>ср</sub></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ЯЗЫКОВАЯ ЛОГИКА ---
+    let currentLang = 'ru';
+
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Зависимость скорости от времени",
+            themeLbl: "Тема:",
+            themeTxt: "Изучение равноускоренного движения",
+            goalLbl: "Цель работы:",
+            goalTxt: "Определить зависимость мгновенной скорости от времени при равноускоренном движении без начальной скорости.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `При равноускоренном движении из состояния покоя путь вычисляется по формуле: <b>S = at&sup2;/2</b>.<br>
+                        Мгновенная скорость в конце пути S равна <b>v = at</b>.<br>
+                        Из этих двух уравнений следует, что <b>v = 2S / t</b>.<br>
+                        Ускорение тележке сообщает скатывающая сила, зависящая от угла наклона &alpha;: <b>a = g &middot; sin(&alpha;)</b>.`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Установите высоту края скамьи (h) и требуемый путь (S).",
+                "Нажмите «Запуск». После остановки тележки нажмите «Записать в таблицу».",
+                "Для точного результата повторите опыт <b>3 раза</b> не меняя S.",
+                "Вычислите среднее время t<sub>ср</sub> и конечную скорость v, введите их в таблицу и проверьте.",
+                "Затем измените S и повторите процесс для новой точки, чтобы построить график."
+            ],
+            sim: "Симуляция эксперимента",
+            lblH: "Высота правого края (h): ",
+            lblS: "Путь S (м): ",
+            dispS: "Расстояние S (м)",
+            dispT: "Время t (с)",
+            dispStatus: "Статус",
+            
+            btnStart: "▶ Запуск",
+            btnReset: "↺ Сброс",
+            btnRecord: "⬇ Записать в таблицу",
+            btnClear: "Очистить таблицу",
+            btnCheck: "Проверить расчеты",
+            
+            journal: "Журнал измерений (Усреднение 3-х опытов)",
+            thNo: "№", thS: "S (м)", thT1: "t1 (с)", thT2: "t2 (с)", thT3: "t3 (с)", thTavg: "t_ср (с)", thV: "v = 2S/t_ср (м/с)",
+            chartTitle: "График зависимости v(t)",
+            chartX: "Время t (с)", chartY: "Скорость v (м/с)",
+            chartDs1: "Экспериментальные точки", chartDs2: "Линия тренда (v = at)",
+            theoryTitle: "Формулы для расчета:",
+            
+            statInit: "Проведите 3 измерения для одной точки.",
+            statReadyNext: "Готово. Запишите измерение №{n} для S={s}м",
+            statNewSReady: "Готово. Это будет первое измерение для нового S={s}м",
+            statDoneSeries: "Серия завершена. Измените S.",
+            statRecT1: "Записано t1. Сделайте еще 2 запуска.",
+            statRecT2: "Записано t{n}. Сделайте следующий запуск.",
+            statGraphAdded: "Серия завершена. Точка на графике. Вычислите значения.",
+            alert3Done: "Для этого расстояния уже сделано 3 измерения. Измените S!"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Жылдамдықтың уақытқа тәуелділігі",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Теңайнымалы қозғалысты зерттеу",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Бастапқы жылдамдықсыз теңайнымалы қозғалыс кезіндегі лездік жылдамдықтың уақытқа тәуелділігін анықтау.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Тыныштық күйінен басталған теңайнымалы қозғалыс жолы мына формуламен есептеледі: <b>S = at&sup2;/2</b>.<br>
+                        S жол соңындағы лездік жылдамдық <b>v = at</b> тең.<br>
+                        Осы екі теңдеуден <b>v = 2S / t</b> шығады.<br>
+                        Арбашаға үдеуді көлбеу бұрышына &alpha; тәуелді сырғанату күші береді: <b>a = g &middot; sin(&alpha;)</b>.`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Орындықтың шеткі биіктігін (h) және қажетті жолды (S) орнатыңыз.",
+                "«Іске қосу» түймесін басыңыз. Арбаша тоқтаған соң «Кестеге жазу» түймесін басыңыз.",
+                "Нақты нәтиже үшін S мәнін өзгертпей тәжірибені <b>3 рет</b> қайталаңыз.",
+                "Орташа уақыт t<sub>орт</sub> және соңғы жылдамдық v есептеп, оларды кестеге енгізіңіз және тексеріңіз.",
+                "Содан кейін график құру үшін S-ті өзгертіп, жаңа нүкте үшін процесті қайталаңыз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            lblH: "Оң жақ шетінің биіктігі (h): ",
+            lblS: "Жол S (м): ",
+            dispS: "Қашықтық S (м)",
+            dispT: "Уақыт t (с)",
+            dispStatus: "Статус",
+            
+            btnStart: "▶ Іске қосу",
+            btnReset: "↺ Қайтару",
+            btnRecord: "⬇ Кестеге жазу",
+            btnClear: "Кестені тазалау",
+            btnCheck: "Есептеулерді тексеру",
+            
+            journal: "Өлшеулер журналы (3 тәжірибенің орташа мәні)",
+            thNo: "№", thS: "S (м)", thT1: "t1 (с)", thT2: "t2 (с)", thT3: "t3 (с)", thTavg: "t_орт (с)", thV: "v = 2S/t_орт (м/с)",
+            chartTitle: "v(t) тәуелділік графигі",
+            chartX: "Уақыт t (с)", chartY: "Жылдамдық v (м/с)",
+            chartDs1: "Тәжірибелік нүктелер", chartDs2: "Тренд сызығы (v = at)",
+            theoryTitle: "Есептеу формулалары:",
+            
+            statInit: "Бір нүкте үшін 3 өлшеу жүргізіңіз.",
+            statReadyNext: "Дайын. S={s}м үшін №{n} өлшеуді жазыңыз",
+            statNewSReady: "Дайын. Бұл жаңа S={s}м үшін бірінші өлшеу болады",
+            statDoneSeries: "Серия аяқталды. S өзгертіңіз.",
+            statRecT1: "t1 жазылды. Тағы 2 рет іске қосыңыз.",
+            statRecT2: "t{n} жазылды. Келесі рет іске қосыңыз.",
+            statGraphAdded: "Серия аяқталды. Нүкте графикте. Мәндерді есептеңіз.",
+            alert3Done: "Бұл қашықтық үшін 3 өлшеу жасалды. S өзгертіңіз!"
+        }
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        const t = dict[lang];
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => {
+            let li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        
+        // Input labels handling (preserving the span inside)
+        document.getElementById('lbl-h').childNodes[0].nodeValue = t.lblH;
+        document.getElementById('lbl-s').childNodes[0].nodeValue = t.lblS;
+        
+        document.getElementById('disp-s').innerText = t.dispS;
+        document.getElementById('disp-t').innerText = t.dispT;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-no').innerText = t.thNo;
+        document.getElementById('th-s').innerText = t.thS;
+        document.getElementById('th-t1').innerText = t.thT1;
+        document.getElementById('th-t2').innerText = t.thT2;
+        document.getElementById('th-t3').innerText = t.thT3;
+        document.getElementById('th-tavg').innerText = t.thTavg;
+        document.getElementById('th-v').innerText = t.thV;
+        
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        
+        updateStatusDisplay();
+
+        if (chartVt) {
+            chartVt.data.datasets[0].label = t.chartDs1;
+            chartVt.data.datasets[1].label = t.chartDs2;
+            chartVt.options.scales.x.title.text = t.chartX;
+            chartVt.options.scales.y.title.text = t.chartY;
+            chartVt.update();
+        }
+    }
+
+    // --- ФИЗИКА И СИМУЛЯЦИЯ ---
+    const g = 9.81;
+    const PIXELS_PER_METER = 600;
+    const RAIL_LENGTH_PX = 600;
+    const PIVOT_X = 100;
+    const PIVOT_Y = 400;
+    const RAIL_START_LOCAL = 600; 
+
+    let h_cm = 15;
+    let S = 0.4;
+    let measuredTime = 0;
+    let currentAngleRad = 0;
+    
+    let trialCount = 0; 
+    let lastRecordedS = -1;
+    let currentRowId = null;
+
+    let isRunning = false;
+    let animFrame = null;
+    let lastStatusKey = 'statInit';
+    let lastStatusArgs = {};
+
+    // UI элементы SVG и форм
+    const els = {
+        hInput: document.getElementById('h-input'),
+        sInput: document.getElementById('s-input'),
+        hVal: document.getElementById('val-h'),
+        sVal: document.getElementById('val-s'),
+        measS: document.getElementById('meas-s'),
+        measT: document.getElementById('meas-t'),
+        
+        benchGroup: document.getElementById('bench-group'),
+        sensor2Group: document.getElementById('sensor2-group'),
+        sensor2Text: document.getElementById('sensor2-text'),
+        cartGroup: document.getElementById('cart-group'),
+        rulerGroup: document.getElementById('ruler-group'),
+        
+        standGroup: document.getElementById('stand-group'),
+        standPoleRect: document.getElementById('stand-pole-rect'),
+        hLabel: document.getElementById('h-label'),
+        angleArc: document.getElementById('angle-arc'),
+        
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        btnReset: document.getElementById('btn-reset'),
+        tableBody: document.getElementById('data-table-body')
+    };
+
+    function setStatus(key, args = {}) {
+        lastStatusKey = key;
+        lastStatusArgs = args;
+        updateStatusDisplay();
+    }
+
+    function updateStatusDisplay() {
+        let text = dict[currentLang][lastStatusKey];
+        if(!text) return;
+        for (let k in lastStatusArgs) {
+            text = text.replace('{'+k+'}', lastStatusArgs[k]);
+        }
+        const statEl = document.getElementById('meas-status');
+        statEl.innerHTML = text;
+        
+        if(lastStatusKey.includes('Done') || lastStatusKey.includes('Ready')) {
+            statEl.style.color = "var(--success)";
+        } else if (lastStatusKey.includes('Rec')) {
+            statEl.style.color = "var(--warning)";
+        } else {
+            statEl.style.color = "#ecf0f1";
+        }
+    }
+
+    function initRuler() {
+        let svgHtml = '';
+        for (let i = 0; i <= 10; i++) {
+            const px = RAIL_START_LOCAL - (i * 0.1 * PIXELS_PER_METER);
+            let h = 10;
+            if (i % 5 === 0) h = 15;
+            svgHtml += `<line x1="${px}" y1="0" x2="${px}" y2="${h}" stroke="#7f8c8d" stroke-width="1" />`;
+            svgHtml += `<text x="${px}" y="${h+12}" font-size="10" fill="#7f8c8d" text-anchor="middle">${i*10}</text>`;
+        }
+        els.rulerGroup.innerHTML = svgHtml;
+    }
+
+    function updateSetup() {
+        if (isRunning) return;
+
+        h_cm = parseInt(els.hInput.value);
+        S = parseFloat(els.sInput.value);
+
+        els.hVal.innerText = h_cm + " см";
+        els.sVal.innerText = S.toFixed(2) + " м";
+        els.measS.innerText = S.toFixed(2);
+        els.sensor2Text.textContent = Math.round(S*100) + 'см';
+
+        const sinA = h_cm / 100.0;
+        currentAngleRad = Math.asin(sinA);
+        const angleDeg = currentAngleRad * 180 / Math.PI;
+
+        els.benchGroup.setAttribute("transform", `translate(${PIVOT_X}, ${PIVOT_Y}) rotate(${-angleDeg})`);
+
+        const railProjX = RAIL_LENGTH_PX * Math.cos(currentAngleRad);
+        const standGlobalX = PIVOT_X + railProjX;
+        els.standGroup.setAttribute("transform", `translate(${standGlobalX}, 0)`);
+
+        const liftPx = RAIL_LENGTH_PX * sinA;
+        const standTopY = PIVOT_Y - liftPx;
+        const poleHeight = 395 - standTopY;
+        
+        els.standPoleRect.setAttribute("y", standTopY);
+        els.standPoleRect.setAttribute("height", poleHeight);
+        els.hLabel.setAttribute("y", standTopY + poleHeight/2);
+
+        const arcX = PIVOT_X + 50 * Math.cos(-currentAngleRad);
+        const arcY = PIVOT_Y + 50 * Math.sin(-currentAngleRad);
+        els.angleArc.setAttribute("d", `M ${PIVOT_X+50},${PIVOT_Y} A 50,50 0 0 0 ${arcX},${arcY}`);
+
+        const sensorLocalX = RAIL_START_LOCAL - (S * PIXELS_PER_METER);
+        els.sensor2Group.setAttribute("transform", `translate(${sensorLocalX}, 0)`);
+
+        els.cartGroup.setAttribute("transform", `translate(${RAIL_START_LOCAL}, 0)`);
+
+        els.measT.innerText = "0.000";
+        els.btnRecord.disabled = true;
+    }
+
+    function startSimulation() {
+        if (isRunning) return;
+        isRunning = true;
+        els.btnStart.disabled = true;
+        els.btnRecord.disabled = true;
+        els.hInput.disabled = true;
+        els.sInput.disabled = true;
+        
+        els.cartGroup.setAttribute("transform", `translate(${RAIL_START_LOCAL}, 0)`);
+
+        const a_theor = g * Math.sin(currentAngleRad);
+        const t_ideal = Math.sqrt((2 * S) / a_theor);
+        
+        const error = (Math.random() - 0.5) * 0.04;
+        measuredTime = t_ideal + error;
+        if(measuredTime < 0.05) measuredTime = t_ideal;
+
+        let startTime = null;
+        const duration = measuredTime * 1000;
+        const distPx = S * PIXELS_PER_METER;
+
+        function animate(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            const t_curr = Math.min(elapsed / 1000, measuredTime);
+
+            const a_vis = (2 * distPx) / (measuredTime * measuredTime);
+            const deltaX = 0.5 * a_vis * t_curr * t_curr;
+
+            const currentPos = RAIL_START_LOCAL - deltaX;
+            els.cartGroup.setAttribute("transform", `translate(${currentPos}, 0)`);
+            els.measT.innerText = t_curr.toFixed(3);
+
+            if (elapsed < duration) {
+                animFrame = requestAnimationFrame(animate);
+            } else {
+                finishRun();
+            }
+        }
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishRun() {
+        isRunning = false;
+        els.btnStart.disabled = false;
+        els.btnRecord.disabled = false;
+        els.hInput.disabled = false;
+        els.sInput.disabled = false;
+        
+        const finalPos = RAIL_START_LOCAL - (S * PIXELS_PER_METER);
+        els.cartGroup.setAttribute("transform", `translate(${finalPos}, 0)`);
+        els.measT.innerText = measuredTime.toFixed(3);
+        
+        if (Math.abs(S - lastRecordedS) < 0.001 && trialCount < 3) {
+            setStatus('statReadyNext', {n: trialCount + 1, s: S.toFixed(2)});
+        } else if (Math.abs(S - lastRecordedS) >= 0.001) {
+            setStatus('statNewSReady', {s: S.toFixed(2)});
+        } else {
+            setStatus('statDoneSeries');
+        }
+    }
+
+    function resetSim() {
+        if(animFrame) cancelAnimationFrame(animFrame);
+        isRunning = false;
+        els.btnStart.disabled = false;
+        els.btnRecord.disabled = true;
+        els.hInput.disabled = false;
+        els.sInput.disabled = false;
+        updateSetup();
+    }
+
+    function recordData() {
+        els.btnRecord.disabled = true;
+        const t = parseFloat(measuredTime.toFixed(3));
+        
+        if (Math.abs(S - lastRecordedS) > 0.001) {
+            createNewRow(t);
+        } else {
+            if (trialCount < 3) {
+                updateRow(t);
+            } else {
+                alert(dict[currentLang].alert3Done);
+            }
+        }
+    }
+
+    function createNewRow(t) {
+        lastRecordedS = S;
+        trialCount = 1;
+        currentRowId = 'row-' + Date.now();
+        
+        const tbody = els.tableBody;
+        const row = document.createElement('tr');
+        row.id = currentRowId;
+        const num = tbody.children.length + 1;
+        
+        row.innerHTML = `
+            <td>${num}</td>
+            <td>${S.toFixed(2)}</td>
+            <td id="t1-${currentRowId}">${t.toFixed(3)}</td>
+            <td id="t2-${currentRowId}">-</td>
+            <td id="t3-${currentRowId}">-</td>
+            <td id="tavg-${currentRowId}">-</td>
+            <td id="v-${currentRowId}">-</td>
+        `;
+        tbody.appendChild(row);
+        setStatus('statRecT1');
+    }
+
+    function updateRow(t) {
+        trialCount++;
+        document.getElementById(`t${trialCount}-${currentRowId}`).innerText = t.toFixed(3);
+        
+        if (trialCount === 3) {
+            const t1 = parseFloat(document.getElementById(`t1-${currentRowId}`).innerText);
+            const t2 = parseFloat(document.getElementById(`t2-${currentRowId}`).innerText);
+            const t3 = t;
+            
+            const t_avg = (t1 + t2 + t3) / 3.0;
+            const v = (2 * S) / t_avg;
+            
+            document.getElementById(`tavg-${currentRowId}`).innerHTML = `<input type="text" class="calc-input tavg-input" data-ans="${t_avg.toFixed(3)}">`;
+            document.getElementById(`v-${currentRowId}`).innerHTML = `<input type="text" class="calc-input v-input" data-ans="${v.toFixed(2)}">`;
+            
+            addPointToGraph(t_avg, v);
+            setStatus('statGraphAdded');
+        } else {
+            setStatus('statRecT2', {n: trialCount});
+        }
+    }
+
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        inputs.forEach(input => {
+            if(input.value.trim() === "") return;
+            const userVal = parseFloat(input.value.replace(',', '.'));
+            const target = parseFloat(input.dataset.ans);
+            
+            const tolerance = input.classList.contains('tavg-input') ? 0.005 : 0.05;
+            
+            if (!isNaN(userVal) && Math.abs(userVal - target) <= tolerance) {
+                input.classList.add('correct');
+                input.classList.remove('incorrect');
+            } else {
+                input.classList.add('incorrect');
+                input.classList.remove('correct');
+            }
+        });
+    }
+
+    function clearTable() {
+        els.tableBody.innerHTML = '';
+        chartVt.data.datasets[0].data = [];
+        chartVt.data.datasets[1].data = [];
+        chartVt.update();
+        lastRecordedS = -1;
+        trialCount = 0;
+        setStatus('statInit');
+    }
+
+    // --- CHART.JS ---
+    let chartVt;
+    function initChart() {
+        const ctx = document.getElementById('chartVt').getContext('2d');
+        chartVt = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: [{
+                label: 'Экспериментальные точки',
+                data: [],
+                backgroundColor: '#e67e22',
+                pointRadius: 7
+            },
+            {
+                label: 'Линия тренда (v = at)',
+                data: [],
+                showLine: true,
+                borderColor: '#34495e',
+                borderWidth: 2,
+                pointRadius: 0,
+                borderDash: [5, 5]
+            }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', position: 'bottom', title: {display:true, text: 'Время t (с)'}, min: 0 },
+                    y: { title: {display:true, text: 'Скорость v (м/с)'}, min: 0 }
+                }
+            }
+        });
+    }
+
+    function addPointToGraph(t, v) {
+        chartVt.data.datasets[0].data.push({x: t, y: v});
+        
+        const points = chartVt.data.datasets[0].data;
+        const maxT = Math.max(...points.map(d => d.x));
+        const a_avg = v/t; 
+        
+        chartVt.data.datasets[1].data = [
+            {x: 0, y: 0},
+            {x: maxT * 1.1, y: a_avg * maxT * 1.1}
+        ];
+        
+        chartVt.update();
+    }
+
+    // Инициализация при старте
+    window.onload = function() {
+        initChart();
+        initRuler();
+        setLang('ru');
+        updateSetup();
+    };
+
+</script>
+</body>
+</html>

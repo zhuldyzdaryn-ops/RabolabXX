@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лабораторная работа: Неупругое столкновение</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --cart-one: #3498db;
+            --cart-two: #e74c3c;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.3rem;
+            max-width: 80%;
+        }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid var(--primary);
+        }
+
+        .intro-box p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .intro-box ul {
+            margin: 5px 0 0 20px;
+            padding: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .intro-label {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #sim-svg {
+            width: 100%;
+            height: 330px;
+            display: block;
+        }
+
+        .rail-surface {
+            stroke: #95a5a6;
+            stroke-width: 3;
+        }
+
+        .cart-one {
+            fill: var(--cart-one);
+            stroke: #2980b9;
+            stroke-width: 2;
+        }
+
+        .cart-two {
+            fill: var(--cart-two);
+            stroke: #c0392b;
+            stroke-width: 2;
+        }
+
+        .cart-wheel { fill: #2c3e50; }
+        .magnet { fill: #2c3e50; }
+
+        .velocity-arrow {
+            stroke-width: 4;
+            marker-end: url(#arrowhead);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px 22px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            margin-bottom: 7px;
+            font-size: 0.9rem;
+        }
+
+        .control-value {
+            color: var(--accent);
+            float: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .direction-hint {
+            font-size: 0.78rem;
+            color: #7f8c8d;
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .display-item {
+            text-align: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .display-item span {
+            display: block;
+            font-size: 0.8rem;
+            color: #bdc3c7;
+            margin-bottom: 5px;
+        }
+
+        .display-item strong {
+            font-size: 1.25rem;
+            font-family: 'Courier New', monospace;
+            color: #f1c40f;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start { background: var(--success); }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; }
+        .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-clear {
+            flex: none;
+            padding: 7px 14px;
+            background: #95a5a6;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 20px;
+        }
+
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .section-heading .panel-title { flex: 1; }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 320px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th {
+            background: var(--bg);
+            color: var(--primary);
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .chart-container {
+            position: relative;
+            min-height: 290px;
+            width: 100%;
+        }
+
+        .chart-hint {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin: 10px 0 0;
+            text-align: center;
+        }
+
+        .theory-card {
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .formula-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+
+        .formula {
+            display: inline-block;
+            padding: 5px 9px;
+            background: white;
+            border: 1px solid #dfe6e9;
+            border-radius: 4px;
+            color: var(--primary);
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+            font-size: 1.05rem;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            h1 { max-width: 70%; font-size: 1.1rem; }
+            .container { padding: 12px; }
+            .controls { grid-template-columns: 1fr; }
+            .display-board { flex-wrap: wrap; }
+            .display-item { flex: 1 1 45%; }
+            .btn-group { flex-direction: column; }
+            #sim-svg { height: 280px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Неупругое столкновение</h1>
+    <div class="lang-switch" aria-label="Выбор языка">
+        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="kz" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<main class="container">
+    <section class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme"></span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal"></span></p>
+        <div style="display:flex; align-items:flex-start; flex-wrap:wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right:5px; margin-top:8px;">Краткая теория:</span>
+            <div id="txt-theory" style="margin-top:8px; font-size:0.95rem; line-height:1.5;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure"></ul>
+    </section>
+
+    <section class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+
+        <div class="sim-area">
+            <svg id="sim-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet" aria-label="Модель неупругого столкновения двух тележек">
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#dfe6e9" stroke-width="1" opacity="0.65"/>
+                    </pattern>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#7f8c8d"/>
+                    </marker>
+                </defs>
+
+                <rect width="100%" height="100%" fill="url(#grid)"/>
+                <line x1="0" y1="200" x2="800" y2="200" class="rail-surface"/>
+                <g id="ruler-group"></g>
+
+                <line id="arrow-v1" x1="100" y1="125" x2="140" y2="125" class="velocity-arrow" stroke="#3498db"/>
+                <line id="arrow-v2" x1="500" y1="125" x2="500" y2="125" class="velocity-arrow" stroke="#e74c3c" visibility="hidden"/>
+                <line id="arrow-u" x1="300" y1="105" x2="300" y2="105" class="velocity-arrow" stroke="#27ae60" visibility="hidden"/>
+
+                <g id="cart1-group" transform="translate(100, 175)">
+                    <rect x="-40" y="-15" width="80" height="30" class="cart-one" rx="4"/>
+                    <text x="0" y="5" font-size="12" fill="white" text-anchor="middle" id="cart1-text">200 г</text>
+                    <circle cx="-25" cy="15" r="8" class="cart-wheel"/>
+                    <circle cx="25" cy="15" r="8" class="cart-wheel"/>
+                    <rect x="40" y="-10" width="5" height="20" class="magnet"/>
+                </g>
+
+                <g id="cart2-group" transform="translate(500, 175)">
+                    <rect x="-40" y="-15" width="80" height="30" class="cart-two" rx="4"/>
+                    <text x="0" y="5" font-size="12" fill="white" text-anchor="middle" id="cart2-text">200 г</text>
+                    <circle cx="-25" cy="15" r="8" class="cart-wheel"/>
+                    <circle cx="25" cy="15" r="8" class="cart-wheel"/>
+                    <rect x="-45" y="-10" width="5" height="20" class="magnet"/>
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label><span id="lbl-m1">Масса синей тележки m₁:</span> <span class="control-value"><span id="m1-val">200</span> г</span></label>
+                <input type="range" id="m1-input" min="100" max="500" value="200" step="50" oninput="updateSetup()">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-m2">Масса красной тележки m₂:</span> <span class="control-value"><span id="m2-val">200</span> г</span></label>
+                <input type="range" id="m2-input" min="100" max="500" value="200" step="50" oninput="updateSetup()">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-v1">Начальная скорость v₁:</span> <span class="control-value"><span id="v1-val">0.40</span> м/с</span></label>
+                <input type="range" id="v1-input" min="0.20" max="0.80" value="0.40" step="0.05" oninput="updateSetup()">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-v2">Начальная скорость v₂:</span> <span class="control-value"><span id="v2-val">0.00</span> м/с</span></label>
+                <input type="range" id="v2-input" min="-0.40" max="0.30" value="0.00" step="0.05" oninput="updateSetup()">
+                <div class="direction-hint">
+                    <span id="txt-left">← Навстречу</span>
+                    <span id="txt-stop">Стоп</span>
+                    <span id="txt-right">Убегает →</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-v1-label">Скорость синей v₁ (м/с)</span>
+                <strong id="display-v1">0.40</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-v2-label">Скорость красной v₂ (м/с)</span>
+                <strong id="display-v2">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-u-label">Общая скорость u (м/с)</span>
+                <strong id="display-u" style="color:#2ecc71;">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status">Статус</span>
+                <strong id="status-text" style="color:#ecf0f1; font-size:1rem;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSimulation()">Запустить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <div class="section-heading">
+                    <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                    <button class="btn btn-clear" id="btn-clear" onclick="clearTable()">Очистить</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-num">№</th>
+                                <th id="th-m1">m₁ (кг)</th>
+                                <th id="th-m2">m₂ (кг)</th>
+                                <th id="th-v1">v₁ (м/с)</th>
+                                <th id="th-v2">v₂ (м/с)</th>
+                                <th id="th-u">u (м/с)</th>
+                                <th id="th-p-before">P до</th>
+                                <th id="th-p-after">P после</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">Сравнение импульса</h2>
+                <div class="chart-container">
+                    <canvas id="momentum-chart"></canvas>
+                </div>
+                <p class="chart-hint" id="lbl-chart-hint">Импульс системы до и после столкновения должен совпадать.</p>
+            </div>
+        </div>
+
+        <div class="theory-card">
+            <strong id="lbl-theory-title">Формулы для расчётов:</strong>
+            <div id="lbl-theory-formulas"></div>
+        </div>
+    </section>
+</main>
+
+<script>
+    const PIXELS_PER_METER = 500;
+    const CART1_START_X = 100;
+    const CART2_START_X = 500;
+    const COLLISION_DISTANCE = 90;
+    const ANIMATION_SPEED = 1.4;
+
+    let m1 = 200;
+    let m2 = 200;
+    let v1Initial = 0.40;
+    let v2Initial = 0.00;
+    let finalVelocity = 0;
+    let momentumBefore = 0;
+    let momentumAfter = 0;
+    let isRunning = false;
+    let isCollided = false;
+    let animFrame = null;
+    let currentLang = 'ru';
+    let currentStateKey = 'statReady';
+    let momentumChart;
+
+    const formulaMath = `
+        <div class="formula-row"><span class="formula">m₁v₁ + m₂v₂ = (m₁ + m₂)u</span><span>— <span data-formula-text="law">закон сохранения импульса</span></span></div>
+        <div class="formula-row"><span class="formula">u = (m₁v₁ + m₂v₂) / (m₁ + m₂)</span><span>— <span data-formula-text="velocity">скорость тележек после столкновения</span></span></div>
+        <div class="formula-row"><span class="formula">Pдо = Pпосле</span><span>— <span data-formula-text="balance">баланс импульса замкнутой системы</span></span></div>
+    `;
+
+    const dict = {
+        ru: {
+            title: 'Лабораторная работа: Неупругое столкновение',
+            themeLbl: 'Тема:',
+            themeTxt: 'Исследование неупругого столкновения двух тележек',
+            goalLbl: 'Цель работы:',
+            goalTxt: 'Экспериментально проверить закон сохранения импульса при движении и неупругом столкновении двух тележек.',
+            theoryLbl: 'Краткая теория:',
+            theoryTxt: 'При абсолютно неупругом столкновении тележки соединяются и продолжают двигаться вместе со скоростью u. В замкнутой системе суммарный импульс до столкновения равен суммарному импульсу после него.',
+            procLbl: 'Ход работы:',
+            procList: [
+                'Установите массы тележек и их начальные скорости. Отрицательная скорость v₂ означает движение навстречу.',
+                'Нажмите «Запустить» и наблюдайте движение тележек до столкновения.',
+                'После соединения тележек сравните начальные скорости с общей скоростью u.',
+                'Запишите опыт в таблицу и убедитесь по графику, что импульс системы сохраняется.'
+            ],
+            sim: 'Симуляция эксперимента',
+            m1Label: 'Масса синей тележки m₁:',
+            m2Label: 'Масса красной тележки m₂:',
+            v1Label: 'Начальная скорость v₁:',
+            v2Label: 'Начальная скорость v₂:',
+            left: '← Навстречу',
+            stop: 'Стоп',
+            right: 'Убегает →',
+            displayV1: 'Скорость синей v₁ (м/с)',
+            displayV2: 'Скорость красной v₂ (м/с)',
+            displayU: 'Общая скорость u (м/с)',
+            displayStatus: 'Статус',
+            btnStart: 'Запустить',
+            btnReset: 'Сброс',
+            btnRecord: 'Записать в таблицу',
+            btnClear: 'Очистить',
+            journal: 'Таблица измерений',
+            thNum: '№', thM1: 'm₁ (кг)', thM2: 'm₂ (кг)', thV1: 'v₁ (м/с)', thV2: 'v₂ (м/с)', thU: 'u (м/с)',
+            thPBefore: 'P до', thPAfter: 'P после',
+            chartTitle: 'Сравнение импульса',
+            chartHint: 'Импульс системы до и после столкновения должен совпадать.',
+            chartBefore: 'До столкновения',
+            chartAfter: 'После столкновения',
+            chartX: 'Номер опыта',
+            chartY: 'Импульс (кг·м/с)',
+            theoryTitle: 'Формулы для расчётов:',
+            formulaLaw: 'закон сохранения импульса',
+            formulaVelocity: 'скорость тележек после столкновения',
+            formulaBalance: 'баланс импульса замкнутой системы',
+            statReady: 'Готов к запуску',
+            statMove: 'Тележки движутся...',
+            statCollision: 'Столкновение!',
+            statDone: 'Опыт завершён. Запишите данные.',
+            statRecorded: 'Данные записаны.',
+            statNoCollision: 'Тележки не столкнутся: синяя тележка не догоняет красную.'
+        },
+        kz: {
+            title: '№16 зертханалық жұмыс: Серпімсіз соқтығысу',
+            themeLbl: 'Тақырыбы:',
+            themeTxt: 'Екі арбаның серпімсіз соқтығысуын зерттеу',
+            goalLbl: 'Жұмыстың мақсаты:',
+            goalTxt: 'Екі арбаның қозғалысы мен серпімсіз соқтығысуы кезінде импульстің сақталу заңын тәжірибе жүзінде тексеру.',
+            theoryLbl: 'Қысқаша теория:',
+            theoryTxt: 'Абсолют серпімсіз соқтығысу кезінде арбалар бірігіп, u жылдамдықпен бірге қозғалады. Тұйық жүйеде соқтығысуға дейінгі толық импульс соқтығысудан кейінгі толық импульске тең.',
+            procLbl: 'Жұмыс барысы:',
+            procList: [
+                'Арбалардың массалары мен бастапқы жылдамдықтарын орнатыңыз. v₂ теріс болса, қызыл арба қарсы бағытта қозғалады.',
+                '«Бастау» түймесін басып, арбалардың соқтығысқанға дейінгі қозғалысын бақылаңыз.',
+                'Арбалар қосылғаннан кейін бастапқы жылдамдықтарды ортақ u жылдамдығымен салыстырыңыз.',
+                'Тәжірибені кестеге жазып, график бойынша жүйе импульсінің сақталатынына көз жеткізіңіз.'
+            ],
+            sim: 'Тәжірибені модельдеу',
+            m1Label: 'Көк арбаның массасы m₁:',
+            m2Label: 'Қызыл арбаның массасы m₂:',
+            v1Label: 'Бастапқы жылдамдық v₁:',
+            v2Label: 'Бастапқы жылдамдық v₂:',
+            left: '← Қарсы қозғалады',
+            stop: 'Тоқтау',
+            right: 'Алыстайды →',
+            displayV1: 'Көк арбаның v₁ жылдамдығы (м/с)',
+            displayV2: 'Қызыл арбаның v₂ жылдамдығы (м/с)',
+            displayU: 'Ортақ u жылдамдығы (м/с)',
+            displayStatus: 'Күйі',
+            btnStart: 'Бастау',
+            btnReset: 'Қалпына келтіру',
+            btnRecord: 'Кестеге жазу',
+            btnClear: 'Тазалау',
+            journal: 'Өлшеулер кестесі',
+            thNum: '№', thM1: 'm₁ (кг)', thM2: 'm₂ (кг)', thV1: 'v₁ (м/с)', thV2: 'v₂ (м/с)', thU: 'u (м/с)',
+            thPBefore: 'P дейін', thPAfter: 'P кейін',
+            chartTitle: 'Импульстерді салыстыру',
+            chartHint: 'Соқтығысуға дейінгі және кейінгі жүйе импульстары тең болуы керек.',
+            chartBefore: 'Соқтығысуға дейін',
+            chartAfter: 'Соқтығысудан кейін',
+            chartX: 'Тәжірибе нөмірі',
+            chartY: 'Импульс (кг·м/с)',
+            theoryTitle: 'Есептеу формулалары:',
+            formulaLaw: 'импульстің сақталу заңы',
+            formulaVelocity: 'соқтығысудан кейінгі арбалардың жылдамдығы',
+            formulaBalance: 'тұйық жүйедегі импульс теңгерімі',
+            statReady: 'Бастауға дайын',
+            statMove: 'Арбалар қозғалып келеді...',
+            statCollision: 'Соқтығысу!',
+            statDone: 'Тәжірибе аяқталды. Деректерді жазыңыз.',
+            statRecorded: 'Деректер жазылды.',
+            statNoCollision: 'Арбалар соқтығыспайды: көк арба қызыл арбаны қуып жете алмайды.'
+        }
+    };
+
+    const ui = {
+        m1Input: document.getElementById('m1-input'),
+        m2Input: document.getElementById('m2-input'),
+        v1Input: document.getElementById('v1-input'),
+        v2Input: document.getElementById('v2-input'),
+        m1Val: document.getElementById('m1-val'),
+        m2Val: document.getElementById('m2-val'),
+        v1Val: document.getElementById('v1-val'),
+        v2Val: document.getElementById('v2-val'),
+        displayV1: document.getElementById('display-v1'),
+        displayV2: document.getElementById('display-v2'),
+        displayU: document.getElementById('display-u'),
+        status: document.getElementById('status-text'),
+        cart1: document.getElementById('cart1-group'),
+        cart2: document.getElementById('cart2-group'),
+        cart1Text: document.getElementById('cart1-text'),
+        cart2Text: document.getElementById('cart2-text'),
+        arrowV1: document.getElementById('arrow-v1'),
+        arrowV2: document.getElementById('arrow-v2'),
+        arrowU: document.getElementById('arrow-u'),
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody')
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.documentElement.lang = lang === 'kz' ? 'kk' : 'ru';
+        document.querySelectorAll('.lang-btn').forEach(button => {
+            button.classList.toggle('active', button.dataset.lang === lang);
+        });
+
+        const t = dict[lang];
+        document.title = t.title;
+        document.getElementById('header-title').innerText = t.title;
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+
+        const procedure = document.getElementById('list-procedure');
+        procedure.innerHTML = '';
+        t.procList.forEach(item => {
+            const li = document.createElement('li');
+            li.innerText = item;
+            procedure.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-m1').innerText = t.m1Label;
+        document.getElementById('lbl-m2').innerText = t.m2Label;
+        document.getElementById('lbl-v1').innerText = t.v1Label;
+        document.getElementById('lbl-v2').innerText = t.v2Label;
+        document.getElementById('txt-left').innerText = t.left;
+        document.getElementById('txt-stop').innerText = t.stop;
+        document.getElementById('txt-right').innerText = t.right;
+        document.getElementById('disp-v1-label').innerText = t.displayV1;
+        document.getElementById('disp-v2-label').innerText = t.displayV2;
+        document.getElementById('disp-u-label').innerText = t.displayU;
+        document.getElementById('disp-status').innerText = t.displayStatus;
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-num').innerText = t.thNum;
+        document.getElementById('th-m1').innerText = t.thM1;
+        document.getElementById('th-m2').innerText = t.thM2;
+        document.getElementById('th-v1').innerText = t.thV1;
+        document.getElementById('th-v2').innerText = t.thV2;
+        document.getElementById('th-u').innerText = t.thU;
+        document.getElementById('th-p-before').innerText = t.thPBefore;
+        document.getElementById('th-p-after').innerText = t.thPAfter;
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-chart-hint').innerText = t.chartHint;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = formulaMath;
+
+        const formulaLabels = document.querySelectorAll('[data-formula-text]');
+        formulaLabels[0].innerText = t.formulaLaw;
+        formulaLabels[1].innerText = t.formulaVelocity;
+        formulaLabels[2].innerText = t.formulaBalance;
+        updateStateText(currentStateKey);
+
+        if (momentumChart) {
+            momentumChart.data.datasets[0].label = t.chartBefore;
+            momentumChart.data.datasets[1].label = t.chartAfter;
+            momentumChart.options.scales.x.title.text = t.chartX;
+            momentumChart.options.scales.y.title.text = t.chartY;
+            momentumChart.update();
+        }
+    }
+
+    function updateStateText(stateKey) {
+        currentStateKey = stateKey;
+        ui.status.innerText = dict[currentLang][stateKey];
+    }
+
+    function initRuler() {
+        const ruler = document.getElementById('ruler-group');
+        let html = '';
+        for (let i = 0; i <= 16; i++) {
+            const x = i * 50;
+            const height = i % 2 === 0 ? 15 : 10;
+            html += `<line x1="${x}" y1="200" x2="${x}" y2="${200 + height}" stroke="#95a5a6" stroke-width="1"/>`;
+        }
+        ruler.innerHTML = html;
+    }
+
+    function setControlsDisabled(disabled) {
+        ui.m1Input.disabled = disabled;
+        ui.m2Input.disabled = disabled;
+        ui.v1Input.disabled = disabled;
+        ui.v2Input.disabled = disabled;
+    }
+
+    function updateArrow(line, startX, velocity, visible = true) {
+        const scale = 120;
+        line.setAttribute('x1', startX);
+        line.setAttribute('x2', startX + velocity * scale);
+        line.setAttribute('visibility', visible && Math.abs(velocity) >= 0.01 ? 'visible' : 'hidden');
+    }
+
+    function updateSetup() {
+        if (isRunning) return;
+
+        m1 = parseInt(ui.m1Input.value, 10);
+        m2 = parseInt(ui.m2Input.value, 10);
+        v1Initial = parseFloat(ui.v1Input.value);
+        v2Initial = parseFloat(ui.v2Input.value);
+
+        ui.m1Val.innerText = m1;
+        ui.m2Val.innerText = m2;
+        ui.v1Val.innerText = v1Initial.toFixed(2);
+        ui.v2Val.innerText = v2Initial.toFixed(2);
+        ui.cart1Text.innerText = `${m1} г`;
+        ui.cart2Text.innerText = `${m2} г`;
+        ui.cart1.setAttribute('transform', `translate(${CART1_START_X}, 175)`);
+        ui.cart2.setAttribute('transform', `translate(${CART2_START_X}, 175)`);
+
+        updateArrow(ui.arrowV1, CART1_START_X, v1Initial);
+        updateArrow(ui.arrowV2, CART2_START_X, v2Initial);
+        ui.arrowU.setAttribute('visibility', 'hidden');
+
+        ui.displayV1.innerText = v1Initial.toFixed(2);
+        ui.displayV2.innerText = v2Initial.toFixed(2);
+        ui.displayU.innerText = '0.00';
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = true;
+        isCollided = false;
+        updateStateText('statReady');
+    }
+
+    function startSimulation() {
+        if (isRunning) return;
+
+        if (v1Initial <= v2Initial) {
+            ui.btnRecord.disabled = true;
+            updateStateText('statNoCollision');
+            return;
+        }
+
+        isRunning = true;
+        isCollided = false;
+        setControlsDisabled(true);
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+
+        const m1Kg = m1 / 1000;
+        const m2Kg = m2 / 1000;
+        momentumBefore = m1Kg * v1Initial + m2Kg * v2Initial;
+        finalVelocity = momentumBefore / (m1Kg + m2Kg);
+        momentumAfter = (m1Kg + m2Kg) * finalVelocity;
+
+        const v1Pixels = v1Initial * PIXELS_PER_METER;
+        const v2Pixels = v2Initial * PIXELS_PER_METER;
+        const uPixels = finalVelocity * PIXELS_PER_METER;
+        let lastTime = null;
+        let collisionTimestamp = null;
+        let x1 = CART1_START_X;
+        let x2 = CART2_START_X;
+
+        updateStateText('statMove');
+        ui.arrowV1.setAttribute('visibility', 'hidden');
+        ui.arrowV2.setAttribute('visibility', 'hidden');
+
+        function animate(timestamp) {
+            if (lastTime === null) lastTime = timestamp;
+            const deltaTime = Math.min((timestamp - lastTime) / 1000, 0.05) * ANIMATION_SPEED;
+            lastTime = timestamp;
+
+            if (!isCollided) {
+                x1 += v1Pixels * deltaTime;
+                x2 += v2Pixels * deltaTime;
+
+                if (x2 - x1 <= COLLISION_DISTANCE) {
+                    isCollided = true;
+                    collisionTimestamp = timestamp;
+                    x2 = x1 + COLLISION_DISTANCE;
+                    ui.displayV1.innerText = finalVelocity.toFixed(2);
+                    ui.displayV2.innerText = finalVelocity.toFixed(2);
+                    ui.displayU.innerText = finalVelocity.toFixed(2);
+                    updateStateText('statCollision');
+                }
+            } else {
+                const movement = uPixels * deltaTime;
+                x1 += movement;
+                x2 = x1 + COLLISION_DISTANCE;
+                updateArrow(ui.arrowU, (x1 + x2) / 2, finalVelocity);
+            }
+
+            ui.cart1.setAttribute('transform', `translate(${x1}, 175)`);
+            ui.cart2.setAttribute('transform', `translate(${x2}, 175)`);
+
+            const outsideTrack = x1 > 760 || x2 > 760 || x1 < 40 || x2 < 40;
+            const collisionShown = isCollided && collisionTimestamp !== null && timestamp - collisionTimestamp >= 1600;
+            if (outsideTrack || collisionShown) {
+                finishRun();
+                return;
+            }
+
+            if (isRunning) animFrame = requestAnimationFrame(animate);
+        }
+
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishRun() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        isRunning = false;
+        setControlsDisabled(false);
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = !isCollided;
+        updateStateText(isCollided ? 'statDone' : 'statNoCollision');
+    }
+
+    function resetSim() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        isRunning = false;
+        setControlsDisabled(false);
+        updateSetup();
+    }
+
+    function recordData() {
+        if (!isCollided) return;
+
+        ui.btnRecord.disabled = true;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${ui.tableBody.children.length + 1}</td>
+            <td>${(m1 / 1000).toFixed(2)}</td>
+            <td>${(m2 / 1000).toFixed(2)}</td>
+            <td>${v1Initial.toFixed(2)}</td>
+            <td>${v2Initial.toFixed(2)}</td>
+            <td><b>${finalVelocity.toFixed(2)}</b></td>
+            <td>${momentumBefore.toFixed(3)}</td>
+            <td>${momentumAfter.toFixed(3)}</td>
+        `;
+        ui.tableBody.appendChild(row);
+
+        const experimentLabel = String(ui.tableBody.children.length);
+        momentumChart.data.labels.push(experimentLabel);
+        momentumChart.data.datasets[0].data.push(Number(momentumBefore.toFixed(4)));
+        momentumChart.data.datasets[1].data.push(Number(momentumAfter.toFixed(4)));
+        momentumChart.update();
+
+        const tableWrap = document.querySelector('.table-wrap');
+        tableWrap.scrollTop = tableWrap.scrollHeight;
+        updateStateText('statRecorded');
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+        momentumChart.data.labels = [];
+        momentumChart.data.datasets[0].data = [];
+        momentumChart.data.datasets[1].data = [];
+        momentumChart.update();
+    }
+
+    function initChart() {
+        const context = document.getElementById('momentum-chart').getContext('2d');
+        momentumChart = new Chart(context, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: dict.ru.chartBefore,
+                        data: [],
+                        backgroundColor: 'rgba(52, 152, 219, 0.75)',
+                        borderColor: '#2980b9',
+                        borderWidth: 1
+                    },
+                    {
+                        label: dict.ru.chartAfter,
+                        data: [],
+                        backgroundColor: 'rgba(39, 174, 96, 0.75)',
+                        borderColor: '#219a52',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: dict.ru.chartX, font: { weight: 'bold' } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: { display: true, text: dict.ru.chartY, font: { weight: 'bold' } },
+                        grid: { color: '#e2e8f0' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    initRuler();
+    initChart();
+    setLang('ru');
+    updateSetup();
+</script>
+</body>
+</html>

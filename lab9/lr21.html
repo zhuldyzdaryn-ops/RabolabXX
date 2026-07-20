@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Сохранение энергии</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            
+            --fric-stat: #e74c3c;
+            --fric-slide: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active {
+            background: var(--accent);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ HTML) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--primary);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg { width: 100%; height: 350px; display: block; cursor: default; }
+
+        .rail { fill: #bdc3c7; stroke: #95a5a6; stroke-width: 2; }
+        .block { fill: #3498db; stroke: #2980b9; stroke-width: 2;}
+        .magnet { fill: #e74c3c; }
+        
+        .sensor-body { fill: #f1c40f; stroke: #d68910; stroke-width: 2; }
+        .sensor-drag { cursor: ns-resize; }
+        .sensor-drag:hover .sensor-body { fill: #f39c12; }
+        .sensor-beam { stroke: #e74c3c; stroke-width: 2; stroke-dasharray: 4; opacity: 0; }
+        
+        .measure-line { stroke: #2c3e50; stroke-width: 2; marker-end: url(#arrow); marker-start: url(#arrow); }
+        .measure-text { fill: #2c3e50; font-weight: bold; font-size: 14px; text-anchor: middle; background: white;}
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group { display: flex; gap: 10px; }
+        .btn {
+            flex: 1; padding: 10px; border: none; border-radius: 5px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: #27ae60; } .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; } .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); } .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-check { background: #f39c12; margin-top: 10px; } .btn-check:hover:not(:disabled) { background: #d68910; }
+
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .display-item { text-align: center; flex: 1; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; margin-bottom: 5px;}
+        .display-item strong { font-size: 1.3rem; font-family: 'Courier New', monospace; color: #f1c40f; }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 300px;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 55px; padding: 4px; text-align: center; border: 1px solid var(--border);
+            border-radius: 4px; font-weight: bold; color: var(--primary); outline: none;
+        }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        .chart-container { position: relative; min-height: 250px; width: 100%; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Сохранение энергии</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Проверка закона сохранения механической энергии при свободном падении</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Экспериментально убедиться, что убыль потенциальной энергии падающего тела равна приращению его кинетической энергии.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Измените массу груза или расстояние между датчиками (перемещая нижний датчик мышью).</li>
+            <li>Нажмите «Запустить» и зафиксируйте время прохождения обоих датчиков.</li>
+            <li>Запишите данные. Программа автоматически рассчитает скорости v<sub>1</sub> и v<sub>2</sub>.</li>
+            <li>Самостоятельно рассчитайте убыль потенциальной энергии (ΔE<sub>p</sub>) и приращение кинетической (ΔE<sub>k</sub>).</li>
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg id="scene" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+                        <path d="M0,2 L8,5 L0,8 z" fill="#2c3e50" />
+                    </marker>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+                    </pattern>
+                </defs>
+                
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <!-- Линейка -->
+                <g id="ruler-marks" transform="translate(320, 0)"></g>
+
+                <!-- Направляющая рейка (Вертикальная) -->
+                <rect x="380" y="20" width="40" height="360" class="rail" rx="4" />
+
+                <!-- Датчик 1 (Верхний, неподвижный) -->
+                <g id="sensor1-group" transform="translate(340, 80)">
+                    <rect x="0" y="-10" width="120" height="20" class="sensor-body" fill-opacity="0.8"/>
+                    <line id="beam1" x1="15" y1="0" x2="105" y2="0" class="sensor-beam" />
+                    <text x="-10" y="4" font-size="12" font-weight="bold" fill="#d68910" text-anchor="end">Gate 1</text>
+                </g>
+
+                <!-- Датчик 2 (Нижний, подвижный) -->
+                <g id="sensor2-group" transform="translate(340, 280)" class="sensor-drag" id="sensor-drag-area">
+                    <rect x="-20" y="-15" width="160" height="30" fill="transparent" /> <!-- Hitbox -->
+                    <rect x="0" y="-10" width="120" height="20" class="sensor-body" />
+                    <line id="beam2" x1="15" y1="0" x2="105" y2="0" class="sensor-beam" />
+                    <text x="-10" y="4" font-size="12" font-weight="bold" fill="#d68910" text-anchor="end">Gate 2</text>
+                </g>
+
+                <!-- Падающий груз -->
+                <g id="block-group" transform="translate(400, 30)">
+                    <rect x="-10" y="0" width="20" height="40" class="block" rx="2" />
+                    <!-- Магнит (флажок) шириной 25мм -->
+                    <rect id="magnet-flag" x="-12" y="15" width="24" height="10" class="magnet" rx="1"/>
+                </g>
+
+                <!-- Линия измерения Δh -->
+                <g transform="translate(480, 0)">
+                    <line id="h-line" x1="0" y1="80" x2="0" y2="280" class="measure-line" />
+                    <text id="h-text" x="15" y="180" class="measure-text" alignment-baseline="middle" text-anchor="start">Δh = 0.40 м</text>
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-mass">Масса груза m (г): <span id="val-mass" style="color:var(--accent); float:right;">100</span></label>
+                <input type="range" id="mass-range" min="50" max="250" value="100" step="10" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-dist">Расстояние Δh (м): <span id="val-h" style="color:var(--accent); float:right;">0.40</span></label>
+                <input type="range" id="dist-range" min="0.1" max="0.5" value="0.40" step="0.01" oninput="updateSetup()">
+                <small style="color: #7f8c8d; font-size: 0.75rem; margin-top: 3px;" id="lbl-drag-hint">Можно двигать датчик 2 мышью</small>
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-t1-lbl">Gate 1: Время t₁ (с)</span>
+                <strong id="meas-t1">0.0000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-t2-lbl">Gate 2: Время t₂ (с)</span>
+                <strong id="meas-t2">0.0000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status">Статус</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1.1rem; margin-top: 5px;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSim()">Запустить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()" disabled>Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th id="th-v1">v₁ (м/с)</th>
+                                <th id="th-v2">v₂ (м/с)</th>
+                                <th id="th-dep">ΔE<sub>p</sub> (Дж)</th>
+                                <th id="th-dek">ΔE<sub>k</sub> (Дж)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Данные будут здесь -->
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты энергий</button>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">Сравнение энергий (ΔE<sub>p</sub> и ΔE<sub>k</sub>)</h2>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+                <p id="lbl-chart-hint" style="font-size:0.8rem; color:#7f8c8d; margin-top:10px; text-align: center;">
+                    По закону сохранения столбики убыли потенциальной и приращения кинетической энергии должны быть равны.
+                </p>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формулы для расчета (выполняет ученик):</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const formulaMath = `
+        ΔE<sub>p</sub> = m · g · Δh <br><br>
+        ΔE<sub>k</sub> = <div class="frac"><span>m · v<sub>2</sub>²</span><span class="bottom">2</span></div> - <div class="frac"><span>m · v<sub>1</sub>²</span><span class="bottom">2</span></div>
+    `;
+
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Сохранение энергии",
+            themeLbl: "Тема:",
+            themeTxt: "Проверка закона сохранения механической энергии при свободном падении",
+            goalLbl: "Цель работы:",
+            goalTxt: "Экспериментально убедиться, что убыль потенциальной энергии падающего тела равна приращению его кинетической энергии.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `Для любых двух точек траектории (1 - верхняя, 2 - нижняя) при отсутствии сил сопротивления полная энергия сохраняется: <b>E<sub>p1</sub> + E<sub>k1</sub> = E<sub>p2</sub> + E<sub>k2</sub></b>.<br>
+                        Следовательно, убыль потенциальной энергии <b>ΔE<sub>p</sub></b> равна приращению кинетической <b>ΔE<sub>k</sub></b>.<br>
+                        Скорости груза в точках 1 и 2 вычисляются по времени прохождения магнитом-флажком шириной L = 0.025 м через фотодатчики: <b>v = L / t</b>. Ускорение свободного падения g ≈ 9.81 м/с².`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Измените массу груза m или расстояние между датчиками Δh (перемещая нижний датчик мышью).",
+                "Нажмите «Запустить» и зафиксируйте время прохождения обоих датчиков.",
+                "Нажмите «Записать в таблицу». Программа автоматически рассчитает скорости v<sub>1</sub> и v<sub>2</sub>.",
+                "Самостоятельно рассчитайте убыль потенциальной энергии (ΔE<sub>p</sub>) и приращение кинетической (ΔE<sub>k</sub>). Нажмите «Проверить».",
+                "Проанализируйте столбчатую диаграмму."
+            ],
+            sim: "Симуляция эксперимента",
+            massLbl: "Масса груза m (г):",
+            distLbl: "Расстояние Δh (м):",
+            dragHint: "Можно двигать датчик 2 мышью",
+            dispT1: "Gate 1: Время t₁ (с)",
+            dispT2: "Gate 2: Время t₂ (с)",
+            dispStatus: "Статус",
+            btnStart: "Запустить",
+            btnReset: "Сброс",
+            btnRecord: "Записать в таблицу",
+            btnCheck: "Проверить расчеты энергий",
+            journal: "Таблица измерений",
+            thV1: "v₁ (м/с)", thV2: "v₂ (м/с)", 
+            thDep: "ΔE<sub>p</sub> (ввод)", thDek: "ΔE<sub>k</sub> (ввод)",
+            chartTitle: "Сравнение энергий (ΔE<sub>p</sub> и ΔE<sub>k</sub>)",
+            chartHint: "По закону сохранения столбики убыли потенциальной и приращения кинетической энергии должны быть примерно равны.",
+            theoryTitle: "Формулы для расчета (выполняет ученик):",
+            theoryFormulas: formulaMath,
+            
+            statReady: "Готов к запуску",
+            statRunning: "Падение...",
+            statSensor: "Пересечение!",
+            statDone: "Завершено",
+            
+            legEp: "Убыль ΔEp (Дж)",
+            legEk: "Приращение ΔEk (Дж)"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Энергияның сақталуы",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Еркін түсу кезіндегі механикалық энергияның сақталу заңын тексеру",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Түсіп келе жатқан дененің потенциалдық энергиясының кемуі оның кинетикалық энергиясының артуына тең екеніне эксперимент жүзінде көз жеткізу.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Траекторияның кез келген екі нүктесі үшін (1 - жоғарғы, 2 - төменгі) кедергі күштері болмаған кезде толық энергия сақталады: <b>E<sub>p1</sub> + E<sub>k1</sub> = E<sub>p2</sub> + E<sub>k2</sub></b>.<br>
+                        Демек, потенциалдық энергияның кемуі <b>ΔE<sub>p</sub></b> кинетикалық энергияның артуына <b>ΔE<sub>k</sub></b> тең.<br>
+                        1 және 2 нүктелеріндегі жүктің жылдамдықтары ені L = 0.025 м магнит-жалаушаның фотодатчиктер арқылы өту уақыты бойынша есептеледі: <b>v = L / t</b>. Еркін түсу үдеуі g ≈ 9.81 м/с².`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Жүк массасын m немесе датчиктер арасындағы қашықтықты Δh өзгертіңіз (төменгі датчикті тышқанмен жылжытуға болады).",
+                "«Бастау» түймесін басып, екі датчиктен өту уақытын бекітіңіз.",
+                "«Кестеге жазу» түймесін басыңыз. Бағдарлама v<sub>1</sub> және v<sub>2</sub> жылдамдықтарын автоматты түрде есептейді.",
+                "Потенциалдық энергияның кемуін (ΔE<sub>p</sub>) және кинетикалық энергияның артуын (ΔE<sub>k</sub>) өзіңіз есептеңіз. «Тексеру» түймесін басыңыз.",
+                "Бағаналы диаграмманы талдаңыз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            massLbl: "Жүк массасы m (г):",
+            distLbl: "Қашықтық Δh (м):",
+            dragHint: "2-ші датчикті тышқанмен жылжытуға болады",
+            dispT1: "Gate 1: Уақыт t₁ (с)",
+            dispT2: "Gate 2: Уақыт t₂ (с)",
+            dispStatus: "Статус",
+            btnStart: "Бастау",
+            btnReset: "Қалпына келтіру",
+            btnRecord: "Кестеге жазу",
+            btnCheck: "Энергия есептеулерін тексеру",
+            journal: "Өлшеулер кестесі",
+            thV1: "v₁ (м/с)", thV2: "v₂ (м/с)", 
+            thDep: "ΔE<sub>p</sub> (енгізу)", thDek: "ΔE<sub>k</sub> (енгізу)",
+            chartTitle: "Энергияларды салыстыру (ΔE<sub>p</sub> және ΔE<sub>k</sub>)",
+            chartHint: "Сақталу заңы бойынша потенциалдық энергияның кемуі мен кинетикалық энергияның артуы бағаналары шамамен тең болуы тиіс.",
+            theoryTitle: "Есептеу формулалары (оқушы орындайды):",
+            theoryFormulas: formulaMath,
+            
+            statReady: "Бастауға дайын",
+            statRunning: "Құлау...",
+            statSensor: "Қиылысу!",
+            statDone: "Аяқталды",
+            
+            legEp: "Кему ΔEp (Дж)",
+            legEk: "Арту ΔEk (Дж)"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        const t = dict[lang];
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerHTML = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerHTML = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => { let li = document.createElement('li'); li.innerHTML = item; ul.appendChild(li); });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-mass').childNodes[0].nodeValue = t.massLbl + " ";
+        document.getElementById('lbl-dist').childNodes[0].nodeValue = t.distLbl + " ";
+        document.getElementById('lbl-drag-hint').innerText = t.dragHint;
+        
+        document.getElementById('disp-t1-lbl').innerText = t.dispT1;
+        document.getElementById('disp-t2-lbl').innerText = t.dispT2;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-v1').innerHTML = t.thV1;
+        document.getElementById('th-v2').innerHTML = t.thV2;
+        document.getElementById('th-dep').innerHTML = t.thDep;
+        document.getElementById('th-dek').innerHTML = t.thDek;
+        
+        document.getElementById('lbl-chart').innerHTML = t.chartTitle;
+        document.getElementById('lbl-chart-hint').innerText = t.chartHint;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = t.theoryFormulas;
+
+        if(!isRunning) document.getElementById('meas-status').innerText = t.statReady;
+
+        chartObj.data.datasets[0].label = t.legEp;
+        chartObj.data.datasets[1].label = t.legEk;
+        chartObj.update();
+    }
+
+    const PIXELS_PER_METER = 500; 
+    const G = 9.81;
+    const SENSOR_WIDTH_M = 0.025; // 25mm
+
+    const START_Y_PX = 30;
+    const GATE1_Y_PX = 80;
+
+    let mass_kg = 0.1;
+    let gate2Y_PX = 280;
+    let deltaH_m = 0.40;
+    
+    let isRunning = false;
+    let isDragging = false;
+    let animFrame;
+    
+    let t1_meas = 0;
+    let t2_meas = 0;
+    let v1_calc = 0;
+    let v2_calc = 0;
+    
+    let trialsCount = 0;
+
+    const ui = {
+        block: document.getElementById('block-group'),
+        sensor2: document.getElementById('sensor2-group'),
+        beam1: document.getElementById('beam1'),
+        beam2: document.getElementById('beam2'),
+        hLine: document.getElementById('h-line'),
+        hText: document.getElementById('h-text'),
+        svg: document.getElementById('scene'),
+        distRange: document.getElementById('dist-range')
+    };
+
+    function updateSetup() {
+        if(isRunning) return;
+
+        mass_kg = parseFloat(document.getElementById('mass-range').value) / 1000;
+        document.getElementById('val-mass').innerText = (mass_kg * 1000).toFixed(0);
+        
+        if(!isDragging) {
+            deltaH_m = parseFloat(ui.distRange.value);
+            gate2Y_PX = GATE1_Y_PX + deltaH_m * PIXELS_PER_METER;
+        }
+
+        document.getElementById('val-h').innerText = deltaH_m.toFixed(2);
+
+        // Обновление графики
+        ui.sensor2.setAttribute('transform', `translate(340, ${gate2Y_PX})`);
+        ui.hLine.setAttribute('y1', GATE1_Y_PX);
+        ui.hLine.setAttribute('y2', gate2Y_PX);
+        ui.hText.setAttribute('y', (GATE1_Y_PX + gate2Y_PX)/2);
+        ui.hText.textContent = `Δh = ${deltaH_m.toFixed(2)} м`;
+
+        resetSimUI();
+    }
+
+    function resetSimUI() {
+        ui.block.setAttribute('transform', `translate(400, ${START_Y_PX})`);
+        document.getElementById('meas-t1').innerText = "0.0000";
+        document.getElementById('meas-t2').innerText = "0.0000";
+        document.getElementById('meas-t1').style.color = "#ecf0f1";
+        document.getElementById('meas-t2').style.color = "#ecf0f1";
+        ui.beam1.style.opacity = 0;
+        ui.beam2.style.opacity = 0;
+        
+        document.getElementById('meas-status').innerText = dict[currentLang].statReady;
+        document.getElementById('meas-status').style.color = "#ecf0f1";
+        
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('btn-record').disabled = true;
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        document.getElementById('mass-range').disabled = false;
+        document.getElementById('dist-range').disabled = false;
+        document.getElementById('btn-reset').disabled = true;
+        resetSimUI();
+    }
+
+    function startSim() {
+        if(isRunning) return;
+        isRunning = true;
+        
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-reset').disabled = true;
+        document.getElementById('btn-record').disabled = true;
+        document.getElementById('mass-range').disabled = true;
+        document.getElementById('dist-range').disabled = true;
+
+        document.getElementById('meas-status').innerText = dict[currentLang].statRunning;
+        document.getElementById('meas-status').style.color = "#3498db";
+
+        // Расчет физики
+        const y1_m = (GATE1_Y_PX - START_Y_PX) / PIXELS_PER_METER;
+        const y2_m = (gate2Y_PX - START_Y_PX) / PIXELS_PER_METER;
+        
+        // Время входа и выхода из сенсоров
+        const t1_front = Math.sqrt(2 * y1_m / G);
+        const t1_back = Math.sqrt(2 * (y1_m + SENSOR_WIDTH_M) / G);
+        
+        const t2_front = Math.sqrt(2 * y2_m / G);
+        const t2_back = Math.sqrt(2 * (y2_m + SENSOR_WIDTH_M) / G);
+        
+        // Добавление шума (погрешности)
+        const noise = () => 1 + (Math.random() - 0.5) * 0.015;
+        t1_meas = (t1_back - t1_front) * noise();
+        t2_meas = (t2_back - t2_front) * noise();
+        
+        v1_calc = SENSOR_WIDTH_M / t1_meas;
+        v2_calc = SENSOR_WIDTH_M / t2_meas;
+
+        const stopY_m = y2_m + 0.1; // Упасть чуть ниже 2 датчика
+        const t_stop = Math.sqrt(2 * stopY_m / G);
+
+        let startTime = performance.now();
+
+        function animate(now) {
+            const elapsed = (now - startTime) / 1000;
+            const currentTime = Math.min(elapsed, t_stop);
+            
+            const distM = 0.5 * G * currentTime * currentTime;
+            const currentY_px = START_Y_PX + distM * PIXELS_PER_METER;
+            
+            ui.block.setAttribute('transform', `translate(400, ${currentY_px})`);
+            
+            // Логика лазера 1
+            if(currentTime >= t1_front && currentTime <= t1_back) {
+                ui.beam1.style.opacity = 1;
+                document.getElementById('meas-t1').style.color = "#e74c3c";
+                document.getElementById('meas-status').innerText = dict[currentLang].statSensor;
+                document.getElementById('meas-status').style.color = "#f1c40f";
+            } else {
+                ui.beam1.style.opacity = 0;
+                if(currentTime > t1_back && currentTime < t2_front) {
+                    document.getElementById('meas-t1').style.color = "#2ecc71";
+                    document.getElementById('meas-t1').innerText = t1_meas.toFixed(4);
+                    document.getElementById('meas-status').innerText = dict[currentLang].statRunning;
+                    document.getElementById('meas-status').style.color = "#3498db";
+                }
+            }
+
+            // Логика лазера 2
+            if(currentTime >= t2_front && currentTime <= t2_back) {
+                ui.beam2.style.opacity = 1;
+                document.getElementById('meas-t2').style.color = "#e74c3c";
+                document.getElementById('meas-status').innerText = dict[currentLang].statSensor;
+                document.getElementById('meas-status').style.color = "#f1c40f";
+            } else {
+                ui.beam2.style.opacity = 0;
+                if(currentTime > t2_back) {
+                    document.getElementById('meas-t2').style.color = "#2ecc71";
+                    document.getElementById('meas-t2').innerText = t2_meas.toFixed(4);
+                }
+            }
+
+            if(elapsed >= t_stop) {
+                finishSim();
+            } else {
+                animFrame = requestAnimationFrame(animate);
+            }
+        }
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishSim() {
+        isRunning = false;
+        document.getElementById('btn-reset').disabled = false;
+        document.getElementById('btn-record').disabled = false;
+        document.getElementById('meas-status').innerText = dict[currentLang].statDone;
+        document.getElementById('meas-status').style.color = "#2ecc71";
+    }
+
+    const dragArea = document.getElementById('sensor2-group');
+    dragArea.addEventListener('mousedown', startDrag);
+    dragArea.addEventListener('touchstart', startDrag, {passive: false});
+
+    function startDrag(evt) {
+        if(isRunning) return;
+        isDragging = true;
+        evt.preventDefault();
+    }
+
+    window.addEventListener('mousemove', dragSensor);
+    window.addEventListener('touchmove', dragSensor, {passive: false});
+
+    function dragSensor(evt) {
+        if(!isDragging) return;
+        
+        let clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+        const pt = ui.svg.createSVGPoint();
+        pt.x = 0; pt.y = clientY;
+        const loc = pt.matrixTransform(ui.svg.getScreenCTM().inverse());
+        
+        let newY = loc.y;
+        if(newY < GATE1_Y_PX + 50) newY = GATE1_Y_PX + 50; // Минимум 0.1м
+        if(newY > 350) newY = 350;
+        
+        deltaH_m = (newY - GATE1_Y_PX) / PIXELS_PER_METER;
+        ui.distRange.value = deltaH_m;
+        updateSetup();
+    }
+
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('touchend', () => isDragging = false);
+
+    function recordData() {
+        if(t1_meas === 0) return;
+        
+        document.getElementById('btn-record').disabled = true;
+        
+        // Правильные ответы для проверки (скрыты в атрибутах)
+        const dEp_correct = (mass_kg * G * deltaH_m).toFixed(3);
+        const dEk_correct = (0.5 * mass_kg * v2_calc * v2_calc - 0.5 * mass_kg * v1_calc * v1_calc).toFixed(3);
+        
+        trialsCount++;
+        
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${trialsCount}</td>
+            <td>${v1_calc.toFixed(2)}</td>
+            <td>${v2_calc.toFixed(2)}</td>
+            <td><input type="text" class="calc-input ep-input" data-ans="${dEp_correct}"></td>
+            <td><input type="text" class="calc-input ek-input" data-ans="${dEk_correct}"></td>
+        `;
+        tbody.appendChild(row);
+
+        // Обновление столбчатой диаграммы
+        chartObj.data.labels.push(`Опыт ${trialsCount}`);
+        chartObj.data.datasets[0].data.push(parseFloat(dEp_correct));
+        chartObj.data.datasets[1].data.push(parseFloat(dEk_correct));
+        chartObj.update();
+        
+        const wrapper = document.querySelector('.table-wrap');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        inputs.forEach(input => {
+            if(input.value.trim() === "") return;
+            const userVal = parseFloat(input.value.replace(',', '.'));
+            const target = parseFloat(input.dataset.ans);
+            
+            // Допуск на округление +-0.02
+            if (!isNaN(userVal) && Math.abs(userVal - target) <= 0.02) {
+                input.classList.add('correct'); input.classList.remove('incorrect');
+            } else {
+                input.classList.add('incorrect'); input.classList.remove('correct');
+            }
+        });
+    }
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chartObj = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Убыль ΔEp (Дж)',
+                    data: [],
+                    backgroundColor: '#e74c3c',
+                    borderColor: '#c0392b',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Приращение ΔEk (Дж)',
+                    data: [],
+                    backgroundColor: '#3498db',
+                    borderColor: '#2980b9',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Энергия (Дж)', font: {weight: 'bold'} },
+                    grid: { color: '#e2e8f0' }
+                }
+            },
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Отрисовка делений линейки
+    function createRuler() {
+        const g = document.getElementById('ruler-marks');
+        for(let i=0; i<=0.6; i+=0.05) {
+            const y = START_Y_PX + (i * PIXELS_PER_METER);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", 50); line.setAttribute("y1", y);
+            line.setAttribute("x2", (Math.round(i*100)%10===0)? 60 : 55); line.setAttribute("y2", y);
+            line.setAttribute("stroke", "#95a5a6");
+            line.setAttribute("stroke-width", 1);
+            g.appendChild(line);
+            
+            if(Math.round(i*100)%10===0) {
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", 45); text.setAttribute("y", y+4);
+                text.setAttribute("font-size", "11");
+                text.setAttribute("fill", "#7f8c8d");
+                text.setAttribute("text-anchor", "end");
+                text.textContent = (i*100).toFixed(0);
+                g.appendChild(text);
+            }
+        }
+    }
+
+    createRuler();
+    setLang('ru');
+    updateSetup();
+
+</script>
+</body>
+</html>

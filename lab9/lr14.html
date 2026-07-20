@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа №14: Определение коэффициента трения</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.3rem;
+            max-width: 80%;
+        }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid var(--primary);
+        }
+
+        .intro-box p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .intro-box ul {
+            margin: 5px 0 0 20px;
+            padding: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .intro-label {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #sim-svg {
+            width: 100%;
+            height: 350px;
+            display: block;
+        }
+
+        .rail {
+            stroke: #7f8c8d;
+            stroke-width: 14;
+            stroke-linecap: round;
+        }
+
+        .block {
+            fill: #e67e22;
+            stroke: #d35400;
+            stroke-width: 2;
+        }
+
+        .sensor {
+            fill: #f1c40f;
+            stroke: #f39c12;
+        }
+
+        .floor {
+            stroke: #2c3e50;
+            stroke-width: 3;
+            stroke-dasharray: 10;
+        }
+
+        .stand {
+            fill: #bdc3c7;
+            stroke: #7f8c8d;
+            stroke-width: 1;
+        }
+
+        .arrow {
+            stroke-width: 2;
+            marker-end: url(#arrowhead);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            margin-bottom: 7px;
+            font-size: 0.9rem;
+        }
+
+        .control-value {
+            color: var(--accent);
+            float: right;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+        }
+
+        .stuck-message {
+            color: var(--accent);
+            display: none;
+            margin-top: 7px;
+            font-size: 0.82rem;
+            font-weight: bold;
+        }
+
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .display-item {
+            text-align: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .display-item span {
+            display: block;
+            font-size: 0.8rem;
+            color: #bdc3c7;
+            margin-bottom: 5px;
+        }
+
+        .display-item strong {
+            font-size: 1.25rem;
+            font-family: 'Courier New', monospace;
+            color: #f1c40f;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start { background: var(--success); }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; }
+        .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-clear {
+            flex: none;
+            padding: 7px 14px;
+            background: #95a5a6;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 20px;
+        }
+
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .section-heading .panel-title { flex: 1; }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 310px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg);
+            color: var(--primary);
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .chart-container {
+            position: relative;
+            min-height: 280px;
+            width: 100%;
+        }
+
+        .chart-hint {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin: 10px 0 0;
+            text-align: center;
+        }
+
+        .theory-card {
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .formula-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+
+        .formula {
+            display: inline-block;
+            padding: 5px 9px;
+            background: white;
+            border: 1px solid #dfe6e9;
+            border-radius: 4px;
+            color: var(--primary);
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+            font-size: 1.05rem;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            h1 { max-width: 70%; font-size: 1.1rem; }
+            .container { padding: 12px; }
+            .controls { grid-template-columns: 1fr; }
+            .display-board { flex-wrap: wrap; }
+            .display-item { flex: 1 1 45%; }
+            .btn-group { flex-direction: column; }
+            #sim-svg { height: 300px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа №14: Определение коэффициента трения</h1>
+    <div class="lang-switch" aria-label="Выбор языка">
+        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="kz" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<main class="container">
+    <section class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme"></span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal"></span></p>
+        <div style="display:flex; align-items:flex-start; flex-wrap:wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right:5px; margin-top:8px;">Краткая теория:</span>
+            <div id="txt-theory" style="margin-top:8px; font-size:0.95rem; line-height:1.5;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure"></ul>
+    </section>
+
+    <section class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+
+        <div class="sim-area">
+            <svg id="sim-svg" viewBox="0 0 750 360" preserveAspectRatio="xMidYMid meet" aria-label="Модель бруска на наклонной плоскости">
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#dfe6e9" stroke-width="1" opacity="0.6"/>
+                    </pattern>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <path d="M0,0 L10,3.5 L0,7 Z" fill="#2c3e50"/>
+                    </marker>
+                </defs>
+
+                <rect x="0" y="-200" width="750" height="600" fill="url(#grid)"/>
+                <line x1="20" y1="300" x2="730" y2="300" class="floor"/>
+
+                <g id="bench-group" transform="translate(100, 300)">
+                    <line x1="0" y1="0" x2="500" y2="0" class="rail"/>
+                    <g id="ruler-group"></g>
+
+                    <g transform="translate(500, 0)">
+                        <rect x="-5" y="-18" width="10" height="15" class="sensor"/>
+                        <text x="0" y="25" font-size="12" fill="#7f8c8d" text-anchor="middle">0</text>
+                    </g>
+
+                    <g id="sensor2-group">
+                        <rect x="-5" y="-18" width="10" height="15" class="sensor"/>
+                        <line x1="0" y1="-18" x2="0" y2="-45" stroke="#f39c12" stroke-dasharray="4"/>
+                        <text x="0" y="25" font-size="12" fill="#d35400" text-anchor="middle" font-weight="bold" id="sensor2-text">50 см</text>
+                    </g>
+
+                    <g id="block-group" transform="translate(500, 0)">
+                        <rect x="-25" y="-22" width="50" height="20" class="block" rx="2"/>
+                        <line x1="0" y1="-22" x2="0" y2="-60" stroke="#2c3e50" class="arrow" opacity="0.65"/>
+                        <text x="5" y="-55" fill="#2c3e50" font-size="12">N</text>
+                        <g id="p-vector-group" transform="translate(0, -10)">
+                            <line x1="0" y1="0" x2="0" y2="60" stroke="#2c3e50" class="arrow" opacity="0.65"/>
+                            <text x="5" y="55" fill="#2c3e50" font-size="12" font-weight="bold">mg</text>
+                        </g>
+                    </g>
+                </g>
+
+                <g id="stand-group" transform="translate(600, 0)">
+                    <rect x="-5" y="100" width="10" height="200" class="stand" id="stand-pole-rect"/>
+                    <rect x="-20" y="295" width="40" height="5" class="stand"/>
+                    <text x="15" y="200" font-size="14" fill="#7f8c8d" id="h-label">h</text>
+                </g>
+
+                <text x="165" y="290" font-size="14" fill="#7f8c8d">α</text>
+                <path d="M 160,300 A 60,60 0 0 0 160,240" stroke="#95a5a6" fill="none" id="angle-arc"/>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-material">Материалы (пара трения):</label>
+                <select id="material-select" onchange="changeMaterial()">
+                    <option value="0.25" id="opt-material-1">Дерево по дереву (μ ≈ 0.25)</option>
+                    <option value="0.40" id="opt-material-2">Пластик по пластику (μ ≈ 0.40)</option>
+                    <option value="0.60" id="opt-material-3">Резина по металлу (μ ≈ 0.60)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-angle-text">Угол наклона α:</span> <span class="control-value"><span id="angle-val">30</span>°</span></label>
+                <input type="range" id="angle-input" min="0" max="60" value="30" step="1" oninput="updateSetup()">
+                <small class="stuck-message" id="stuck-msg">Брусок не скользит!</small>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-s-text">Путь S (м):</span> <span class="control-value"><span id="s-val">0.50</span> м</span></label>
+                <input type="range" id="s-input" min="0.30" max="0.90" value="0.50" step="0.05" oninput="updateSetup()">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-time">Время движения t (с)</span>
+                <strong id="timer-display">0.000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-a">Ускорение a (м/с²)</span>
+                <strong id="meas-a">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-mu">Коэффициент трения μ</span>
+                <strong id="meas-mu">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status">Статус</span>
+                <strong id="status-text" style="color:#ecf0f1; font-size:1rem;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSimulation()">Запустить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <div class="section-heading">
+                    <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                    <button class="btn btn-clear" id="btn-clear" onclick="clearTable()">Очистить</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-num">№</th>
+                                <th id="th-angle">α (град)</th>
+                                <th id="th-s">S (м)</th>
+                                <th id="th-t">t (с)</th>
+                                <th id="th-a">a (м/с²)</th>
+                                <th id="th-mu">μ</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">Зависимость ускорения от угла</h2>
+                <div class="chart-container">
+                    <canvas id="chartAa"></canvas>
+                </div>
+                <p class="chart-hint" id="lbl-chart-hint">Изменяйте угол и сравнивайте полученные значения ускорения.</p>
+            </div>
+        </div>
+
+        <div class="theory-card">
+            <strong id="lbl-theory-title">Формулы для расчётов:</strong>
+            <div id="lbl-theory-formulas"></div>
+        </div>
+    </section>
+</main>
+
+<script>
+    const G = 9.81;
+    const PIXELS_PER_METER = 500;
+    const RAIL_LENGTH_PX = 500;
+    const PIVOT_X = 100;
+    const PIVOT_Y = 300;
+    const RAIL_START_LOCAL = 500;
+
+    let angleDeg = 30;
+    let distanceS = 0.50;
+    let mu = 0.25;
+    let measuredTime = 0;
+    let accResult = 0;
+    let muResult = 0;
+    let isRunning = false;
+    let animFrame = null;
+    let currentLang = 'ru';
+    let currentStateKey = 'statReady';
+    let chartAa;
+
+    const formulaMath = `
+        <div class="formula-row"><span class="formula">a = 2S / t²</span><span>— <span data-formula-text="accel">ускорение бруска</span></span></div>
+        <div class="formula-row"><span class="formula">μ = (g · sin α − a) / (g · cos α)</span><span>— <span data-formula-text="friction">коэффициент трения скольжения</span></span></div>
+        <div class="formula-row"><span class="formula">a = g(sin α − μ · cos α)</span><span>— <span data-formula-text="motion">уравнение движения вдоль плоскости</span></span></div>
+    `;
+
+    const dict = {
+        ru: {
+            title: 'Лабораторная работа №14: Определение коэффициента трения',
+            themeLbl: 'Тема:',
+            themeTxt: 'Определение коэффициента трения скольжения бруска по наклонной плоскости',
+            goalLbl: 'Цель работы:',
+            goalTxt: 'Экспериментально определить коэффициент трения скольжения по времени движения бруска на наклонной плоскости.',
+            theoryLbl: 'Краткая теория:',
+            theoryTxt: 'На брусок действуют сила тяжести и сила трения. Ускорение вдоль плоскости описывается формулой <b>a = g(sin α − μ cos α)</b>. Измерив путь S и время t, можно найти ускорение, а затем коэффициент трения μ.',
+            procLbl: 'Ход работы:',
+            procList: [
+                'Выберите пару материалов, установите угол наклона и путь движения.',
+                'Нажмите «Запустить» и дождитесь окончания движения бруска.',
+                'Запишите измеренные значения времени, ускорения и коэффициента трения в таблицу.',
+                'Повторите опыт для других углов и проанализируйте график зависимости ускорения от угла.'
+            ],
+            sim: 'Симуляция эксперимента',
+            materialLbl: 'Материалы (пара трения):',
+            materials: ['Дерево по дереву (μ ≈ 0.25)', 'Пластик по пластику (μ ≈ 0.40)', 'Резина по металлу (μ ≈ 0.60)'],
+            angleLbl: 'Угол наклона α:',
+            stuck: 'Брусок не скользит!',
+            distLbl: 'Путь S (м):',
+            dispTime: 'Время движения t (с)',
+            dispA: 'Ускорение a (м/с²)',
+            dispMu: 'Коэффициент трения μ',
+            dispStatus: 'Статус',
+            btnStart: 'Запустить',
+            btnReset: 'Сброс',
+            btnRecord: 'Записать в таблицу',
+            btnClear: 'Очистить',
+            journal: 'Таблица измерений',
+            thNum: '№', thAngle: 'α (град)', thS: 'S (м)', thT: 't (с)', thA: 'a (м/с²)', thMu: 'μ',
+            chartTitle: 'Зависимость ускорения от угла',
+            chartHint: 'Изменяйте угол и сравнивайте полученные значения ускорения.',
+            chartDataset: 'Эксперимент (α, a)',
+            chartX: 'Угол α (градусы)',
+            chartY: 'Ускорение a (м/с²)',
+            theoryTitle: 'Формулы для расчётов:',
+            formulaAccel: 'ускорение бруска',
+            formulaFriction: 'коэффициент трения скольжения',
+            formulaMotion: 'уравнение движения вдоль плоскости',
+            statInit: 'Выберите материал и угол.',
+            statReady: 'Готов к запуску',
+            statStuck: 'Угол мал: сила трения удерживает брусок.',
+            statMove: 'Движение...',
+            statFinish: 'Опыт завершён. Запишите данные.',
+            statRecorded: 'Данные записаны.',
+            statNoMove: 'Брусок не движется. Увеличьте угол.'
+        },
+        kz: {
+            title: '№14 зертханалық жұмыс: Үйкеліс коэффициентін анықтау',
+            themeLbl: 'Тақырыбы:',
+            themeTxt: 'Көлбеу жазықтықтағы білеушенің сырғанау үйкеліс коэффициентін анықтау',
+            goalLbl: 'Жұмыстың мақсаты:',
+            goalTxt: 'Көлбеу жазықтықтағы білеушенің қозғалыс уақыты бойынша сырғанау үйкеліс коэффициентін тәжірибе жүзінде анықтау.',
+            theoryLbl: 'Қысқаша теория:',
+            theoryTxt: 'Білеушеге ауырлық күші мен үйкеліс күші әсер етеді. Жазықтық бойындағы үдеу <b>a = g(sin α − μ cos α)</b> формуласымен сипатталады. S жолы мен t уақытын өлшеп, үдеуді, содан кейін μ үйкеліс коэффициентін табуға болады.',
+            procLbl: 'Жұмыс барысы:',
+            procList: [
+                'Материалдар жұбын, көлбеу бұрышын және қозғалыс жолын таңдаңыз.',
+                '«Бастау» түймесін басып, білеушенің қозғалысы аяқталғанша күтіңіз.',
+                'Уақыт, үдеу және үйкеліс коэффициентінің мәндерін кестеге жазыңыз.',
+                'Тәжірибені басқа бұрыштарда қайталап, үдеудің бұрышқа тәуелділік графигін талдаңыз.'
+            ],
+            sim: 'Тәжірибені модельдеу',
+            materialLbl: 'Материалдар (үйкеліс жұбы):',
+            materials: ['Ағаш пен ағаш (μ ≈ 0.25)', 'Пластик пен пластик (μ ≈ 0.40)', 'Резеңке мен металл (μ ≈ 0.60)'],
+            angleLbl: 'Көлбеу бұрышы α:',
+            stuck: 'Білеуше сырғанамайды!',
+            distLbl: 'Жол S (м):',
+            dispTime: 'Қозғалыс уақыты t (с)',
+            dispA: 'Үдеу a (м/с²)',
+            dispMu: 'Үйкеліс коэффициенті μ',
+            dispStatus: 'Күйі',
+            btnStart: 'Бастау',
+            btnReset: 'Қалпына келтіру',
+            btnRecord: 'Кестеге жазу',
+            btnClear: 'Тазалау',
+            journal: 'Өлшеулер кестесі',
+            thNum: '№', thAngle: 'α (град)', thS: 'S (м)', thT: 't (с)', thA: 'a (м/с²)', thMu: 'μ',
+            chartTitle: 'Үдеудің бұрышқа тәуелділігі',
+            chartHint: 'Бұрышты өзгертіп, алынған үдеу мәндерін салыстырыңыз.',
+            chartDataset: 'Тәжірибе (α, a)',
+            chartX: 'α бұрышы (градус)',
+            chartY: 'Үдеу a (м/с²)',
+            theoryTitle: 'Есептеу формулалары:',
+            formulaAccel: 'білеушенің үдеуі',
+            formulaFriction: 'сырғанау үйкеліс коэффициенті',
+            formulaMotion: 'жазықтық бойындағы қозғалыс теңдеуі',
+            statInit: 'Материал мен бұрышты таңдаңыз.',
+            statReady: 'Бастауға дайын',
+            statStuck: 'Бұрыш аз: үйкеліс күші білеушені ұстап тұр.',
+            statMove: 'Қозғалыс...',
+            statFinish: 'Тәжірибе аяқталды. Деректерді жазыңыз.',
+            statRecorded: 'Деректер жазылды.',
+            statNoMove: 'Білеуше қозғалмайды. Бұрышты үлкейтіңіз.'
+        }
+    };
+
+    const ui = {
+        angleInput: document.getElementById('angle-input'),
+        sInput: document.getElementById('s-input'),
+        materialSelect: document.getElementById('material-select'),
+        angleVal: document.getElementById('angle-val'),
+        sVal: document.getElementById('s-val'),
+        timer: document.getElementById('timer-display'),
+        measA: document.getElementById('meas-a'),
+        measMu: document.getElementById('meas-mu'),
+        status: document.getElementById('status-text'),
+        stuckMsg: document.getElementById('stuck-msg'),
+        simSvg: document.getElementById('sim-svg'),
+        benchGroup: document.getElementById('bench-group'),
+        sensor2Group: document.getElementById('sensor2-group'),
+        sensor2Text: document.getElementById('sensor2-text'),
+        blockGroup: document.getElementById('block-group'),
+        rulerGroup: document.getElementById('ruler-group'),
+        standGroup: document.getElementById('stand-group'),
+        standPoleRect: document.getElementById('stand-pole-rect'),
+        angleArc: document.getElementById('angle-arc'),
+        pVectorGroup: document.getElementById('p-vector-group'),
+        btnStart: document.getElementById('btn-start'),
+        btnReset: document.getElementById('btn-reset'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody')
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.documentElement.lang = lang === 'kz' ? 'kk' : 'ru';
+
+        document.querySelectorAll('.lang-btn').forEach(button => {
+            button.classList.toggle('active', button.dataset.lang === lang);
+        });
+
+        const t = dict[lang];
+        document.title = t.title;
+        document.getElementById('header-title').innerText = t.title;
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+
+        const procedure = document.getElementById('list-procedure');
+        procedure.innerHTML = '';
+        t.procList.forEach(item => {
+            const li = document.createElement('li');
+            li.innerText = item;
+            procedure.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-material').innerText = t.materialLbl;
+        document.getElementById('opt-material-1').innerText = t.materials[0];
+        document.getElementById('opt-material-2').innerText = t.materials[1];
+        document.getElementById('opt-material-3').innerText = t.materials[2];
+        document.getElementById('lbl-angle-text').innerText = t.angleLbl;
+        document.getElementById('stuck-msg').innerText = t.stuck;
+        document.getElementById('lbl-s-text').innerText = t.distLbl;
+        document.getElementById('disp-time').innerText = t.dispTime;
+        document.getElementById('disp-a').innerText = t.dispA;
+        document.getElementById('disp-mu').innerText = t.dispMu;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-num').innerText = t.thNum;
+        document.getElementById('th-angle').innerText = t.thAngle;
+        document.getElementById('th-s').innerText = t.thS;
+        document.getElementById('th-t').innerText = t.thT;
+        document.getElementById('th-a').innerText = t.thA;
+        document.getElementById('th-mu').innerText = t.thMu;
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-chart-hint').innerText = t.chartHint;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = formulaMath;
+
+        const formulaLabels = document.querySelectorAll('[data-formula-text]');
+        formulaLabels[0].innerText = t.formulaAccel;
+        formulaLabels[1].innerText = t.formulaFriction;
+        formulaLabels[2].innerText = t.formulaMotion;
+
+        updateStateText(currentStateKey);
+
+        if (chartAa) {
+            chartAa.data.datasets[0].label = t.chartDataset;
+            chartAa.options.scales.x.title.text = t.chartX;
+            chartAa.options.scales.y.title.text = t.chartY;
+            chartAa.update();
+        }
+    }
+
+    function updateStateText(stateKey) {
+        currentStateKey = stateKey;
+        ui.status.innerText = dict[currentLang][stateKey];
+    }
+
+    function changeMaterial() {
+        mu = parseFloat(ui.materialSelect.value);
+        updateSetup();
+    }
+
+    function initRuler() {
+        let svgHtml = '';
+        for (let i = 0; i <= 10; i++) {
+            const px = RAIL_START_LOCAL - i * 0.1 * PIXELS_PER_METER;
+            const markHeight = i % 5 === 0 ? 15 : 10;
+            svgHtml += `<line x1="${px}" y1="0" x2="${px}" y2="${markHeight}" stroke="#95a5a6" stroke-width="1"/>`;
+            svgHtml += `<text x="${px}" y="${markHeight + 12}" font-size="10" fill="#7f8c8d" text-anchor="middle">${i * 10}</text>`;
+        }
+        ui.rulerGroup.innerHTML = svgHtml;
+    }
+
+    function setControlsDisabled(disabled) {
+        ui.angleInput.disabled = disabled;
+        ui.sInput.disabled = disabled;
+        ui.materialSelect.disabled = disabled;
+    }
+
+    function updateSetup() {
+        if (isRunning) return;
+
+        angleDeg = parseInt(ui.angleInput.value, 10);
+        distanceS = parseFloat(ui.sInput.value);
+        mu = parseFloat(ui.materialSelect.value);
+
+        ui.angleVal.innerText = angleDeg;
+        ui.sVal.innerText = distanceS.toFixed(2);
+        ui.sensor2Text.textContent = `${Math.round(distanceS * 100)} см`;
+
+        const angleRad = angleDeg * Math.PI / 180;
+        ui.benchGroup.setAttribute('transform', `translate(${PIVOT_X}, ${PIVOT_Y}) rotate(${-angleDeg})`);
+        ui.pVectorGroup.setAttribute('transform', `translate(0, -10) rotate(${angleDeg}, 0, 0)`);
+
+        const railEndX = PIVOT_X + RAIL_LENGTH_PX * Math.cos(angleRad);
+        const liftPx = RAIL_LENGTH_PX * Math.sin(angleRad);
+        const standTopY = PIVOT_Y - liftPx;
+        ui.standGroup.setAttribute('transform', `translate(${railEndX}, 0)`);
+        ui.standPoleRect.setAttribute('y', standTopY);
+        ui.standPoleRect.setAttribute('height', Math.max(PIVOT_Y - standTopY, 1));
+        document.getElementById('h-label').setAttribute('y', standTopY + (PIVOT_Y - standTopY) / 2);
+
+        const minY = Math.min(standTopY - 55, PIVOT_Y - 170);
+        const viewHeight = PIVOT_Y + 60 - minY;
+        ui.simSvg.setAttribute('viewBox', `0 ${minY} 750 ${viewHeight}`);
+
+        const arcX = PIVOT_X + 60 * Math.cos(-angleRad);
+        const arcY = PIVOT_Y + 60 * Math.sin(-angleRad);
+        ui.angleArc.setAttribute('d', `M ${PIVOT_X + 60},${PIVOT_Y} A 60,60 0 0 0 ${arcX},${arcY}`);
+
+        const sensorX = RAIL_START_LOCAL - distanceS * PIXELS_PER_METER;
+        ui.sensor2Group.setAttribute('transform', `translate(${sensorX}, 0)`);
+        ui.blockGroup.setAttribute('transform', `translate(${RAIL_START_LOCAL}, 0)`);
+
+        ui.timer.innerText = '0.000';
+        ui.measA.innerText = '0.00';
+        ui.measMu.innerText = '0.00';
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = true;
+
+        if (Math.tan(angleRad) <= mu) {
+            ui.stuckMsg.style.display = 'block';
+            updateStateText('statStuck');
+        } else {
+            ui.stuckMsg.style.display = 'none';
+            updateStateText('statReady');
+        }
+    }
+
+    function startSimulation() {
+        if (isRunning) return;
+
+        const angleRad = angleDeg * Math.PI / 180;
+        const acceleration = G * (Math.sin(angleRad) - mu * Math.cos(angleRad));
+
+        if (acceleration <= 0.001) {
+            updateStateText('statNoMove');
+            return;
+        }
+
+        isRunning = true;
+        setControlsDisabled(true);
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+
+        const idealTime = Math.sqrt(2 * distanceS / acceleration);
+        const errorFactor = 1 + (Math.random() - 0.5) * 0.03;
+        measuredTime = idealTime * errorFactor;
+        accResult = 2 * distanceS / (measuredTime * measuredTime);
+        muResult = (G * Math.sin(angleRad) - accResult) / (G * Math.cos(angleRad));
+
+        const duration = measuredTime * 1000;
+        const distancePx = distanceS * PIXELS_PER_METER;
+        let startTime = null;
+        updateStateText('statMove');
+
+        function animate(timestamp) {
+            if (startTime === null) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            const currentTime = Math.min(elapsed / 1000, measuredTime);
+            const visualAcceleration = 2 * distancePx / (measuredTime * measuredTime);
+            const deltaX = 0.5 * visualAcceleration * currentTime * currentTime;
+            const currentPosition = RAIL_START_LOCAL - deltaX;
+
+            ui.blockGroup.setAttribute('transform', `translate(${currentPosition}, 0)`);
+            ui.timer.innerText = currentTime.toFixed(3);
+
+            if (elapsed < duration) {
+                animFrame = requestAnimationFrame(animate);
+            } else {
+                finishRun();
+            }
+        }
+
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishRun() {
+        isRunning = false;
+        setControlsDisabled(false);
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = false;
+        ui.blockGroup.setAttribute('transform', `translate(${RAIL_START_LOCAL - distanceS * PIXELS_PER_METER}, 0)`);
+        ui.timer.innerText = measuredTime.toFixed(3);
+        ui.measA.innerText = accResult.toFixed(2);
+        ui.measMu.innerText = Math.max(muResult, 0).toFixed(2);
+        updateStateText('statFinish');
+    }
+
+    function resetSim() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        isRunning = false;
+        setControlsDisabled(false);
+        updateSetup();
+    }
+
+    function recordData() {
+        if (!measuredTime) return;
+
+        ui.btnRecord.disabled = true;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${ui.tableBody.children.length + 1}</td>
+            <td>${angleDeg}</td>
+            <td>${distanceS.toFixed(2)}</td>
+            <td>${measuredTime.toFixed(3)}</td>
+            <td>${accResult.toFixed(2)}</td>
+            <td><b>${Math.max(muResult, 0).toFixed(2)}</b></td>
+        `;
+        ui.tableBody.appendChild(row);
+
+        chartAa.data.datasets[0].data.push({ x: angleDeg, y: Number(accResult.toFixed(3)) });
+        chartAa.data.datasets[0].data.sort((a, b) => a.x - b.x);
+        chartAa.update();
+
+        const tableWrap = document.querySelector('.table-wrap');
+        tableWrap.scrollTop = tableWrap.scrollHeight;
+        updateStateText('statRecorded');
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+        chartAa.data.datasets[0].data = [];
+        chartAa.update();
+        updateSetup();
+    }
+
+    function initChart() {
+        const context = document.getElementById('chartAa').getContext('2d');
+        chartAa = new Chart(context, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: dict.ru.chartDataset,
+                    data: [],
+                    backgroundColor: '#e74c3c',
+                    borderColor: '#c0392b',
+                    borderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: 0,
+                        max: 60,
+                        title: { display: true, text: dict.ru.chartX, font: { weight: 'bold' } },
+                        grid: { color: '#e2e8f0' }
+                    },
+                    y: {
+                        min: 0,
+                        title: { display: true, text: dict.ru.chartY, font: { weight: 'bold' } },
+                        grid: { color: '#e2e8f0' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    initRuler();
+    initChart();
+    setLang('ru');
+    updateSetup();
+</script>
+</body>
+</html>

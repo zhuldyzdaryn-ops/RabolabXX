@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Сохранение энергии (Маятник)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active {
+            background: var(--accent);
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--primary);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg { width: 100%; height: 350px; display: block; cursor: default; }
+
+        /* SVG Specifics for Pendulum */
+        .thread { stroke: #2c3e50; stroke-width: 2; }
+        .ball { fill: url(#grad-ball); stroke: #2c3e50; stroke-width: 1; cursor: grab; }
+        .ball:active { cursor: grabbing; }
+        .pivot { fill: #7f8c8d; }
+        .sensor { fill: #f39c12; stroke: #e67e22; stroke-width: 2; opacity: 0.8; }
+        .sensor-beam { stroke: #e74c3c; stroke-width: 2; stroke-dasharray: 4; opacity: 0.5; }
+        .ruler-line { stroke: #bdc3c7; stroke-width: 1; stroke-dasharray: 5; }
+        .h-indicator { stroke: #3498db; stroke-width: 2; marker-end: url(#arrow); marker-start: url(#arrow); }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group { display: flex; gap: 10px; }
+        .btn {
+            flex: 1; padding: 10px; border: none; border-radius: 5px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: #27ae60; } .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; } .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); } .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-check { background: #f39c12; margin-top: 10px; } .btn-check:hover:not(:disabled) { background: #d68910; }
+
+        /* --- DISPLAYS --- */
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .display-item { text-align: center; flex: 1; border-right: 1px solid #475569; }
+        .display-item:last-child { border-right: none; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; margin-bottom: 5px;}
+        .display-item strong { font-size: 1.3rem; font-family: 'Courier New', monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 60px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-weight: bold;
+            color: var(--primary);
+            outline: none;
+        }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        /* --- CHART --- */
+        .chart-container {
+            position: relative;
+            min-height: 250px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Сохранение энергии (Маятник)</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- TOP PANEL: Intro -->
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Проверка закона сохранения механической энергии при колебаниях маятника</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Экспериментально убедиться, что потенциальная энергия отклоненного маятника переходит в кинетическую энергию в нижней точке.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Установите массу шара и длину нити.</li>
+            <li>Оттяните шар в сторону мышью (или пальцем), задав высоту подъема h.</li>
+            <li>Отпустите шар. Зафиксируйте скорость прохождения датчика в нижней точке.</li>
+            <li>Нажмите «Записать в таблицу». Вычислите E<sub>p</sub> и E<sub>k</sub>, проверьте правильность расчетов.</li>
+        </ul>
+    </div>
+
+    <!-- LEFT PANEL: Simulation -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg id="scene" viewBox="0 0 500 400" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <radialGradient id="grad-ball" cx="30%" cy="30%" r="70%">
+                        <stop offset="0%" style="stop-color: #ecf0f1" />
+                        <stop offset="100%" style="stop-color: #3498db" />
+                    </radialGradient>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                        <path d="M0,0 L0,10 L10,5 z" fill="#3498db" />
+                    </marker>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+                    </pattern>
+                </defs>
+                
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <!-- Крепление (Pivot) -->
+                <rect x="210" y="10" width="80" height="10" class="pivot" rx="3" />
+
+                <!-- Датчик скорости -->
+                <g transform="translate(250, 310)" id="sensor-group">
+                    <rect x="-30" y="-15" width="60" height="30" class="sensor" rx="3" />
+                    <line x1="0" y1="-15" x2="0" y2="15" class="sensor-beam" />
+                    <text x="35" y="4" font-size="11" fill="#d68910" font-weight="bold">Gate</text>
+                </g>
+
+                <!-- Измерение высоты -->
+                <g id="h-indicator-group" visibility="hidden">
+                    <line id="h-line-ref" x1="100" y1="0" x2="400" y2="0" class="ruler-line" />
+                    <line id="h-line-cur" x1="100" y1="0" x2="400" y2="0" class="ruler-line" />
+                    <line id="h-arrow" x1="150" y1="0" x2="150" y2="0" class="h-indicator" />
+                    <text id="h-text" x="160" y="0" fill="#2980b9" font-weight="bold" font-size="14" alignment-baseline="middle">h = 0.10 m</text>
+                </g>
+
+                <!-- Маятник -->
+                <g id="pendulum">
+                    <line id="string" x1="0" y1="0" x2="0" y2="250" class="thread" />
+                    <circle id="ball" cx="0" cy="250" r="15" class="ball" />
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-mass">Масса груза m (г): <span id="val-mass" style="color:var(--accent); float:right;">100</span></label>
+                <input type="range" id="mass-range" min="50" max="500" value="100" step="10" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-len">Длина нити L (см): <span id="val-len" style="color:var(--accent); float:right;">50</span></label>
+                <input type="range" id="len-range" min="30" max="70" value="50" step="1" oninput="updateSetup()">
+                <small style="color: #7f8c8d; font-size: 0.75rem; margin-top: 3px;" id="lbl-drag-hint">Оттяните шар мышью</small>
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-h-lbl">Высота старта h (м)</span>
+                <strong id="meas-h">0.000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-v-lbl">Скорость внизу v (м/с)</span>
+                <strong id="meas-v" style="color: #2ecc71;">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status">Статус</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1.1rem; margin-top: 5px;">Ожидание</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Остановить / Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM PANEL: Data & Theory -->
+    <div class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th id="th-h">h (м)</th>
+                                <th id="th-v">v (м/с)</th>
+                                <th id="th-ep">E<sub>p</sub> (Дж)</th>
+                                <th id="th-ek">E<sub>k</sub> (Дж)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Данные будут здесь -->
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты энергий</button>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">Сравнение энергий (Начальная E<sub>p</sub> и Макс. E<sub>k</sub>)</h2>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+                <p id="lbl-chart-hint" style="font-size:0.8rem; color:#7f8c8d; margin-top:10px; text-align: center;">
+                    По закону сохранения столбики начальной потенциальной и максимальной кинетической энергии должны быть равны.
+                </p>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формулы для расчета (выполняет ученик):</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const formulaMath = `
+        Начальная энергия: E<sub>p</sub> = m · g · h <br><br>
+        В нижней точке: E<sub>k</sub> = <div class="frac"><span>m · v²</span><span class="bottom">2</span></div>
+    `;
+
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Сохранение энергии (Маятник)",
+            themeLbl: "Тема:",
+            themeTxt: "Проверка закона сохранения механической энергии при колебаниях маятника",
+            goalLbl: "Цель работы:",
+            goalTxt: "Экспериментально убедиться, что потенциальная энергия отклоненного маятника переходит в кинетическую энергию в нижней точке траектории.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `В верхней точке отклонения скорость маятника равна нулю, следовательно, он обладает только потенциальной энергией: <b>E<sub>p</sub> = mgh</b>.<br>
+                        При прохождении положения равновесия (нижней точки) высота равна нулю, и маятник обладает только кинетической энергией: <b>E<sub>k</sub> = mv²/2</b>.<br>
+                        Если пренебречь сопротивлением воздуха, полная механическая энергия сохраняется, и должно выполняться равенство: <b>E<sub>p</sub> = E<sub>k</sub></b>.`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Установите массу шара (m) и длину нити (L).",
+                "Оттяните шар в сторону мышью (или пальцем), задав высоту подъема h.",
+                "Отпустите шар. Зафиксируйте скорость (v) прохождения датчика в нижней точке.",
+                "Нажмите «Записать в таблицу». Вычислите E<sub>p</sub> и E<sub>k</sub>, впишите в ячейки и проверьте расчеты.",
+                "Проанализируйте столбчатую диаграмму равенства энергий."
+            ],
+            sim: "Симуляция эксперимента",
+            massLbl: "Масса груза m (г):",
+            lenLbl: "Длина нити L (см):",
+            dragHint: "Оттяните шар мышью",
+            dispH: "Высота старта h (м)",
+            dispV: "Скорость внизу v (м/с)",
+            dispStatus: "Статус",
+            btnReset: "Остановить / Сброс",
+            btnRecord: "Записать в таблицу",
+            btnCheck: "Проверить расчеты энергий",
+            journal: "Таблица измерений",
+            thH: "h (м)", thV: "v (м/с)", 
+            thEp: "E<sub>p</sub> (ввод)", thEk: "E<sub>k</sub> (ввод)",
+            chartTitle: "Сравнение энергий (Начальная E<sub>p</sub> и Макс. E<sub>k</sub>)",
+            chartHint: "По закону сохранения столбики начальной потенциальной и максимальной кинетической энергии должны быть примерно равны.",
+            theoryTitle: "Формулы для расчета (выполняет ученик):",
+            theoryFormulas: formulaMath,
+            
+            statReady: "Ожидание",
+            statDrag: "Отклонение...",
+            statSwing: "Колебания",
+            statSensor: "Фиксация v!",
+            
+            legEp: "Начальная Ep (Дж)",
+            legEk: "Макс. Ek (Дж)"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Энергияның сақталуы (Маятник)",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Маятник тербелістері кезіндегі механикалық энергияның сақталу заңын тексеру",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Ауытқыған маятниктің потенциалдық энергиясы төменгі нүктеде кинетикалық энергияға ауысатынына эксперимент жүзінде көз жеткізу.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Жоғарғы ауытқу нүктесінде маятниктің жылдамдығы нөлге тең, сондықтан оның тек потенциалдық энергиясы болады: <b>E<sub>p</sub> = mgh</b>.<br>
+                        Тепе-теңдік қалыптан (төменгі нүктеден) өткен кезде биіктік нөлге тең, және маятниктің тек кинетикалық энергиясы болады: <b>E<sub>k</sub> = mv²/2</b>.<br>
+                        Егер ауа кедергісін ескермесек, толық механикалық энергия сақталады және мына теңдік орындалуы тиіс: <b>E<sub>p</sub> = E<sub>k</sub></b>.`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Шар массасын (m) және жіп ұзындығын (L) орнатыңыз.",
+                "Шарды тышқанмен (немесе саусақпен) шетке тартып, h биіктігін беріңіз.",
+                "Шарды жіберіңіз. Төменгі нүктедегі датчиктен өту жылдамдығын (v) тіркеңіз.",
+                "«Кестеге жазу» түймесін басыңыз. E<sub>p</sub> және E<sub>k</sub> есептеп, ұяшықтарға жазыңыз және тексеріңіз.",
+                "Энергиялар теңдігінің бағаналы диаграммасын талдаңыз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            massLbl: "Шар массасы m (г):",
+            lenLbl: "Жіп ұзындығы L (см):",
+            dragHint: "Шарды тышқанмен тартыңыз",
+            dispH: "Бастапқы биіктік h (м)",
+            dispV: "Төменгі жылдамдық v (м/с)",
+            dispStatus: "Статус",
+            btnReset: "Тоқтату / Қалпына келтіру",
+            btnRecord: "Кестеге жазу",
+            btnCheck: "Энергия есептеулерін тексеру",
+            journal: "Өлшеулер кестесі",
+            thH: "h (м)", thV: "v (м/с)", 
+            thEp: "E<sub>p</sub> (енгізу)", thEk: "E<sub>k</sub> (енгізу)",
+            chartTitle: "Энергияларды салыстыру (Бастапқы E<sub>p</sub> және Макс. E<sub>k</sub>)",
+            chartHint: "Сақталу заңы бойынша бастапқы потенциалдық және максимал кинетикалық энергия бағаналары шамамен тең болуы тиіс.",
+            theoryTitle: "Есептеу формулалары (оқушы орындайды):",
+            theoryFormulas: formulaMath,
+            
+            statReady: "Күту",
+            statDrag: "Ауытқу...",
+            statSwing: "Тербеліс",
+            statSensor: "v тіркеу!",
+            
+            legEp: "Бастапқы Ep (Дж)",
+            legEk: "Макс. Ek (Дж)"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        const t = dict[lang];
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerHTML = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerHTML = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => { let li = document.createElement('li'); li.innerHTML = item; ul.appendChild(li); });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-mass').childNodes[0].nodeValue = t.massLbl + " ";
+        document.getElementById('lbl-len').childNodes[0].nodeValue = t.lenLbl + " ";
+        document.getElementById('lbl-drag-hint').innerText = t.dragHint;
+        
+        document.getElementById('disp-h-lbl').innerText = t.dispH;
+        document.getElementById('disp-v-lbl').innerText = t.dispV;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-h').innerHTML = t.thH;
+        document.getElementById('th-v').innerHTML = t.thV;
+        document.getElementById('th-ep').innerHTML = t.thEp;
+        document.getElementById('th-ek').innerHTML = t.thEk;
+        
+        document.getElementById('lbl-chart').innerHTML = t.chartTitle;
+        document.getElementById('lbl-chart-hint').innerText = t.chartHint;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = t.theoryFormulas;
+
+        if(!isRunning && !isDragging) document.getElementById('meas-status').innerText = t.statReady;
+
+        chartObj.data.datasets[0].label = t.legEp;
+        chartObj.data.datasets[1].label = t.legEk;
+        chartObj.update();
+    }
+
+    const PIXELS_PER_METER = 500; 
+    const PIVOT_X = 250;
+    const PIVOT_Y = 20;
+    const G = 9.81;
+
+    let mass_kg = 0.1;
+    let lengthM = 0.5; 
+    let angle = 0; 
+    let angularVel = 0; 
+    let isDragging = false;
+    let isRunning = false;
+    let animFrame;
+    
+    let startH = 0; 
+    let measuredV = 0; 
+    let justPassedSensor = false;
+    let trialsCount = 0;
+
+    const ui = {
+        pendulum: document.getElementById('pendulum'),
+        string: document.getElementById('string'),
+        ball: document.getElementById('ball'),
+        sensor: document.getElementById('sensor-group'),
+        sensorRect: document.querySelector('#sensor-group rect'),
+        svg: document.getElementById('scene'),
+        hGroup: document.getElementById('h-indicator-group'),
+        hLineRef: document.getElementById('h-line-ref'),
+        hLineCur: document.getElementById('h-line-cur'),
+        hArrow: document.getElementById('h-arrow'),
+        hText: document.getElementById('h-text'),
+        measH: document.getElementById('meas-h'),
+        measV: document.getElementById('meas-v'),
+        measStatus: document.getElementById('meas-status'),
+        btnRecord: document.getElementById('btn-record')
+    };
+
+    function updateSetup() {
+        mass_kg = parseFloat(document.getElementById('mass-range').value) / 1000;
+        lengthM = parseFloat(document.getElementById('len-range').value) / 100;
+        
+        document.getElementById('val-mass').innerText = (mass_kg * 1000).toFixed(0);
+        document.getElementById('val-len').innerText = (lengthM * 100).toFixed(0);
+        
+        // Sensor Pos
+        const sensorY = PIVOT_Y + lengthM * PIXELS_PER_METER;
+        ui.sensor.setAttribute('transform', `translate(${PIVOT_X}, ${sensorY})`);
+        
+        if (!isRunning && !isDragging) {
+            angle = 0;
+            angularVel = 0;
+            renderPendulum();
+        }
+    }
+
+    ui.pendulum.setAttribute('transform', `translate(${PIVOT_X}, ${PIVOT_Y})`);
+
+    function renderPendulum() {
+        const lenPx = lengthM * PIXELS_PER_METER;
+        const x = lenPx * Math.sin(angle);
+        const y = lenPx * Math.cos(angle);
+        
+        ui.string.setAttribute('x2', x);
+        ui.string.setAttribute('y2', y);
+        ui.ball.setAttribute('cx', x);
+        ui.ball.setAttribute('cy', y);
+    }
+
+    ui.ball.addEventListener('mousedown', startDrag);
+    ui.ball.addEventListener('touchstart', startDrag, {passive: false});
+
+    function startDrag(evt) {
+        evt.preventDefault();
+        isDragging = true;
+        isRunning = false;
+        cancelAnimationFrame(animFrame);
+        angularVel = 0;
+        measuredV = 0;
+        
+        ui.measV.innerText = "0.00";
+        ui.measV.style.color = "#ecf0f1";
+        ui.measStatus.innerText = dict[currentLang].statDrag;
+        ui.measStatus.style.color = "#f1c40f";
+        ui.hGroup.setAttribute('visibility', 'visible');
+        ui.btnRecord.disabled = true;
+    }
+
+    window.addEventListener('mousemove', dragPendulum);
+    window.addEventListener('touchmove', dragPendulum, {passive: false});
+
+    function dragPendulum(evt) {
+        if (!isDragging) return;
+        
+        let clientX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+        let clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+
+        const pt = ui.svg.createSVGPoint();
+        pt.x = clientX; pt.y = clientY;
+        const svgP = pt.matrixTransform(ui.svg.getScreenCTM().inverse());
+        
+        const dx = svgP.x - PIVOT_X;
+        const dy = svgP.y - PIVOT_Y;
+        
+        angle = Math.atan2(dx, dy);
+        
+        // Ограничение угла до ~85 градусов (1.5 рад)
+        if (angle > 1.5) angle = 1.5;
+        if (angle < -1.5) angle = -1.5;
+
+        renderPendulum();
+        updateHeightIndicator();
+    }
+
+    function updateHeightIndicator() {
+        const lenPx = lengthM * PIXELS_PER_METER;
+        const bottomY = PIVOT_Y + lenPx;
+        const currentY = PIVOT_Y + lenPx * Math.cos(angle);
+        
+        ui.hLineRef.setAttribute('y1', bottomY);
+        ui.hLineRef.setAttribute('y2', bottomY);
+        ui.hLineCur.setAttribute('y1', currentY);
+        ui.hLineCur.setAttribute('y2', currentY);
+        
+        // Линия слева от маятника
+        ui.hArrow.setAttribute('x1', PIVOT_X - 100);
+        ui.hArrow.setAttribute('x2', PIVOT_X - 100);
+        ui.hArrow.setAttribute('y1', bottomY);
+        ui.hArrow.setAttribute('y2', currentY);
+        
+        startH = lengthM * (1 - Math.cos(angle));
+        
+        ui.hText.setAttribute('x', PIVOT_X - 90);
+        ui.hText.setAttribute('y', (bottomY + currentY)/2);
+        ui.hText.textContent = "h = " + startH.toFixed(3) + " m";
+        
+        ui.measH.innerText = startH.toFixed(3);
+    }
+
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+
+    function endDrag() {
+        if (isDragging) {
+            isDragging = false;
+            ui.hGroup.setAttribute('visibility', 'hidden');
+            startSim();
+        }
+    }
+
+    function startSim() {
+        isRunning = true;
+        justPassedSensor = false;
+        ui.measStatus.innerText = dict[currentLang].statSwing;
+        ui.measStatus.style.color = "#3498db";
+
+        let lastTime = performance.now();
+
+        function animate(time) {
+            if (!isRunning) return;
+            const dt = Math.min((time - lastTime) / 1000, 0.05); // max dt for stability
+            lastTime = time;
+
+            // Simple Pendulum Physics
+            const acc = -(G / lengthM) * Math.sin(angle);
+            angularVel += acc * dt;
+            angularVel *= 0.9995; // Small air drag / damping
+            angle += angularVel * dt;
+
+            // Sensor Logic (Crossing Equilibrium)
+            if (Math.abs(angle) < 0.05 && !justPassedSensor) {
+                const v_lin = Math.abs(lengthM * angularVel);
+                if (measuredV === 0) { // Record max speed on first pass
+                    measuredV = v_lin;
+                    ui.measV.innerText = measuredV.toFixed(2);
+                    ui.measV.style.color = "#2ecc71";
+                    ui.measStatus.innerText = dict[currentLang].statSensor;
+                    ui.measStatus.style.color = "#2ecc71";
+                    ui.btnRecord.disabled = false;
+                }
+                justPassedSensor = true;
+                
+                // Visual Flash
+                ui.sensorRect.setAttribute('fill', '#e74c3c');
+                setTimeout(() => ui.sensorRect.setAttribute('fill', '#f39c12'), 200);
+            }
+            
+            if (Math.abs(angle) > 0.1) {
+                justPassedSensor = false;
+                if(measuredV !== 0) {
+                    ui.measStatus.innerText = dict[currentLang].statSwing;
+                    ui.measStatus.style.color = "#3498db";
+                }
+            }
+
+            renderPendulum();
+            animFrame = requestAnimationFrame(animate);
+        }
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        isDragging = false;
+        angle = 0;
+        angularVel = 0;
+        measuredV = 0;
+        startH = 0;
+        
+        ui.measH.innerText = "0.000";
+        ui.measV.innerText = "0.00";
+        ui.measV.style.color = "#ecf0f1";
+        ui.measStatus.innerText = dict[currentLang].statReady;
+        ui.measStatus.style.color = "#ecf0f1";
+        
+        ui.hGroup.setAttribute('visibility', 'hidden');
+        ui.btnRecord.disabled = true;
+        
+        renderPendulum();
+    }
+
+    function recordData() {
+        if (measuredV === 0) return;
+        ui.btnRecord.disabled = true;
+        
+        // Correct internal values
+        const Ep_correct = (mass_kg * G * startH).toFixed(3);
+        const Ek_correct = (0.5 * mass_kg * measuredV * measuredV).toFixed(3);
+        
+        trialsCount++;
+        
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${trialsCount}</td>
+            <td>${startH.toFixed(3)}</td>
+            <td>${measuredV.toFixed(2)}</td>
+            <td><input type="text" class="calc-input ep-input" data-ans="${Ep_correct}"></td>
+            <td><input type="text" class="calc-input ek-input" data-ans="${Ek_correct}"></td>
+        `;
+        tbody.appendChild(row);
+
+        // Update Chart
+        chartObj.data.labels.push(`Опыт ${trialsCount}`);
+        chartObj.data.datasets[0].data.push(parseFloat(Ep_correct));
+        chartObj.data.datasets[1].data.push(parseFloat(Ek_correct));
+        chartObj.update();
+        
+        const wrapper = document.querySelector('.table-wrap');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        inputs.forEach(input => {
+            if(input.value.trim() === "") return;
+            const userVal = parseFloat(input.value.replace(',', '.'));
+            const target = parseFloat(input.dataset.ans);
+            
+            // Allow rounding tolerance +/- 0.02
+            if (!isNaN(userVal) && Math.abs(userVal - target) <= 0.02) {
+                input.classList.add('correct'); input.classList.remove('incorrect');
+            } else {
+                input.classList.add('incorrect'); input.classList.remove('correct');
+            }
+        });
+    }
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chartObj = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Начальная Ep (Дж)',
+                    data: [],
+                    backgroundColor: '#9b59b6', // Purple for Potential
+                    borderColor: '#8e44ad',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Макс. Ek (Дж)',
+                    data: [],
+                    backgroundColor: '#f1c40f', // Yellow for Kinetic
+                    borderColor: '#f39c12',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Энергия (Дж)', font: {weight: 'bold'} },
+                    grid: { color: '#e2e8f0' }
+                }
+            },
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Run Initialization
+    setLang('ru');
+    updateSetup();
+
+</script>
+</body>
+</html>

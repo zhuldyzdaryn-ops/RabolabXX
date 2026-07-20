@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лабораторная работа №19: Столкновение шаров</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --cart-one: #3498db;
+            --cart-two: #e74c3c;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.3rem;
+            max-width: 80%;
+        }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid var(--primary);
+        }
+
+        .intro-box p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .intro-box ul {
+            margin: 5px 0 0 20px;
+            padding: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .intro-label {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #sim-svg {
+            width: 100%;
+            height: 400px;
+            display: block;
+        }
+
+        .rail-surface {
+            stroke: #95a5a6;
+            stroke-width: 3;
+        }
+
+        .cart-one {
+            fill: var(--cart-one);
+            stroke: #2980b9;
+            stroke-width: 2;
+        }
+
+        .cart-two {
+            fill: var(--cart-two);
+            stroke: #c0392b;
+            stroke-width: 2;
+        }
+
+        .cart-wheel { fill: #2c3e50; }
+        .magnet { fill: #2c3e50; }
+
+        .velocity-arrow {
+            stroke-width: 4;
+            marker-end: url(#arrowhead);
+        }
+
+        .ball { stroke: #2c3e50; stroke-width: 2; }
+        .ball-one { fill: #3498db; }
+        .ball-two { fill: #95a5a6; }
+        .pendulum-string { stroke: #bdc3c7; stroke-width: 2; }
+        .roof { stroke: #2c3e50; stroke-width: 4; }
+        .plasticine { fill: #e74c3c; visibility: hidden; }
+        .angle-arc { fill: none; stroke: #e67e22; stroke-width: 2.5; stroke-dasharray: 6 4; }
+        .impact-wave { fill: none; stroke: #f39c12; stroke-width: 3; opacity: 0; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 15px 22px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            margin-bottom: 7px;
+            font-size: 0.9rem;
+        }
+
+        .control-value {
+            color: var(--accent);
+            float: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+        }
+
+        .direction-hint {
+            font-size: 0.78rem;
+            color: #7f8c8d;
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .display-item {
+            text-align: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .display-item span {
+            display: block;
+            font-size: 0.8rem;
+            color: #bdc3c7;
+            margin-bottom: 5px;
+        }
+
+        .display-item strong {
+            font-size: 1.25rem;
+            font-family: 'Courier New', monospace;
+            color: #f1c40f;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start { background: var(--success); }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; }
+        .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-clear {
+            flex: none;
+            padding: 7px 14px;
+            background: #95a5a6;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 20px;
+        }
+
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .section-heading .panel-title { flex: 1; }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 320px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th {
+            background: var(--bg);
+            color: var(--primary);
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .chart-container {
+            position: relative;
+            min-height: 290px;
+            width: 100%;
+        }
+
+        .chart-hint {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin: 10px 0 0;
+            text-align: center;
+        }
+
+        .theory-card {
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .formula-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+
+        .formula {
+            display: inline-block;
+            padding: 5px 9px;
+            background: white;
+            border: 1px solid #dfe6e9;
+            border-radius: 4px;
+            color: var(--primary);
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+            font-size: 1.05rem;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            h1 { max-width: 70%; font-size: 1.1rem; }
+            .container { padding: 12px; }
+            .controls { grid-template-columns: 1fr; }
+            .display-board { flex-wrap: wrap; }
+            .display-item { flex: 1 1 45%; }
+            .btn-group { flex-direction: column; }
+            #sim-svg { height: 280px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа №19: Столкновение шаров</h1>
+    <div class="lang-switch" aria-label="Выбор языка">
+        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="kz" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<main class="container">
+    <section class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme"></span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal"></span></p>
+        <div style="display:flex; align-items:flex-start; flex-wrap:wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right:5px; margin-top:8px;">Краткая теория:</span>
+            <div id="txt-theory" style="margin-top:8px; font-size:0.95rem; line-height:1.5;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure"></ul>
+    </section>
+
+    <section class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+
+        <div class="sim-area">
+            <svg id="sim-svg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet" aria-label="Маятниковая модель столкновения двух шаров">
+                <line x1="100" y1="20" x2="300" y2="20" class="roof"/>
+                <g transform="translate(200, 20)">
+                    <path id="angle-arc" d="" class="angle-arc"/>
+                    <text id="angle-text" x="-30" y="80" font-size="14" font-weight="bold" fill="#e67e22" text-anchor="middle">30°</text>
+
+                    <g id="pendulum-1">
+                        <line x1="0" y1="0" x2="0" y2="300" class="pendulum-string"/>
+                        <circle cx="0" cy="300" r="20" class="ball ball-one"/>
+                    </g>
+                    <g id="pendulum-2">
+                        <line x1="0" y1="0" x2="0" y2="300" class="pendulum-string"/>
+                        <circle cx="0" cy="300" r="20" class="ball ball-two"/>
+                        <circle cx="-18" cy="300" r="8" class="plasticine" id="plasticine-blob"/>
+                    </g>
+                    <circle id="impact-wave" cx="-10" cy="300" r="10" class="impact-wave"/>
+                </g>
+
+                <line x1="350" y1="320" x2="350" y2="200" stroke="#bdc3c7" stroke-width="1"/>
+                <text x="360" y="325" font-size="10" fill="#7f8c8d">0</text>
+                <text x="360" y="220" font-size="10" fill="#7f8c8d">h</text>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-type">Тип удара:</label>
+                <select id="collision-type" onchange="updateSetup()">
+                    <option value="elastic" id="opt-elastic">Упругий (стальные шары)</option>
+                    <option value="inelastic" id="opt-inelastic">Неупругий (с пластилином)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label><span id="lbl-angle">Угол отклонения α:</span> <span class="control-value"><span id="angle-val">30</span>°</span></label>
+                <input type="range" id="angle-input" min="10" max="60" value="30" step="5" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-length">Длина нити L:</label>
+                <div class="formula" style="text-align:center;">0.50 м</div>
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-h1-label">Начальная высота h₁ (см)</span>
+                <strong id="display-h1">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-h2-label">Конечная высота h₂ (см)</span>
+                <strong id="display-h2">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-angle-label">Конечный угол α₂</span>
+                <strong id="display-angle" style="color:#2ecc71;">0.0°</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status">Статус</span>
+                <strong id="status-text" style="color:#ecf0f1; font-size:1rem;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSimulation()">Запустить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <div class="section-heading">
+                    <h2 class="panel-title" id="lbl-journal">Таблица наблюдений</h2>
+                    <button class="btn btn-clear" id="btn-clear" onclick="clearTable()">Очистить</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-num">№</th>
+                                <th id="th-type">Тип удара</th>
+                                <th id="th-angle-initial">α₁ (°)</th>
+                                <th id="th-h-initial">h₁ (см)</th>
+                                <th id="th-h-final">h₂ (см)</th>
+                                <th id="th-angle-final">α₂ (°)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">Сравнение высот подъёма</h2>
+                <div class="chart-container">
+                    <canvas id="momentum-chart"></canvas>
+                </div>
+                <p class="chart-hint" id="lbl-chart-hint">При неупругом ударе конечная высота заметно меньше начальной.</p>
+            </div>
+        </div>
+
+        <div class="theory-card">
+            <strong id="lbl-theory-title">Формулы для расчётов:</strong>
+            <div id="lbl-theory-formulas"></div>
+        </div>
+    </section>
+</main>
+
+<script>
+    const STRING_LENGTH_M = 0.50;
+    let startAngleDeg = 30;
+    let endAngleDeg = 0;
+    let initialHeightCm = 0;
+    let finalHeightCm = 0;
+    let isElastic = true;
+    let isRunning = false;
+    let resultReady = false;
+    let animFrame = null;
+    let currentLang = 'ru';
+    let currentStateKey = 'statReady';
+    let momentumChart;
+    let audioContext = null;
+
+    const formulaMath = `
+        <div class="formula-row"><span class="formula">mv = mu₁ + mu₂</span><span>— <span data-formula-text="elastic">импульс при упругом ударе</span></span></div>
+        <div class="formula-row"><span class="formula">mv = 2mu</span><span>— <span data-formula-text="inelastic">импульс при неупругом ударе</span></span></div>
+        <div class="formula-row"><span class="formula">h = L(1 − cos α)</span><span>— <span data-formula-text="height">высота подъёма шара</span></span></div>
+        <div class="formula-row"><span class="formula">h₂ = h₁ / 4</span><span>— <span data-formula-text="loss">конечная высота при слипании равных шаров</span></span></div>
+    `;
+
+    const dict = {
+        ru: {
+            title: 'Лабораторная работа №19: Столкновение шаров',
+            themeLbl: 'Тема:',
+            themeTxt: 'Сравнение упругого и неупругого столкновения шаров равной массы',
+            goalLbl: 'Цель работы:',
+            goalTxt: 'Сравнить результаты упругого и неупругого удара шаров и проверить закон сохранения импульса.',
+            theoryLbl: 'Краткая теория:',
+            theoryTxt: 'При упругом ударе одинаковых шаров движущийся шар передаёт скорость покоящемуся, и второй шар поднимается на исходную высоту. При неупругом ударе шары слипаются, движутся вместе и поднимаются на меньшую высоту из-за потери механической энергии.',
+            procLbl: 'Ход работы:',
+            procList: [
+                'Выберите тип удара и установите начальный угол отклонения синего шара.',
+                'Нажмите «Запустить» и наблюдайте падение, удар и последующий подъём шаров.',
+                'Сравните начальную и конечную высоты, а также конечный угол отклонения.',
+                'Запишите оба типа опыта и сравните результаты в таблице и на графике.'
+            ],
+            sim: 'Симуляция эксперимента',
+            typeLabel: 'Тип удара:',
+            elasticOption: 'Упругий (стальные шары)',
+            inelasticOption: 'Неупругий (с пластилином)',
+            angleLabel: 'Угол отклонения α:',
+            lengthLabel: 'Длина нити L:',
+            displayH1: 'Начальная высота h₁ (см)',
+            displayH2: 'Конечная высота h₂ (см)',
+            displayAngle: 'Конечный угол α₂',
+            displayStatus: 'Статус',
+            btnStart: 'Запустить',
+            btnReset: 'Сброс',
+            btnRecord: 'Записать в таблицу',
+            btnClear: 'Очистить',
+            journal: 'Таблица наблюдений',
+            thNum: '№', thType: 'Тип удара', thAngleInitial: 'α₁ (°)', thHInitial: 'h₁ (см)', thHFinal: 'h₂ (см)', thAngleFinal: 'α₂ (°)',
+            elasticShort: 'Упругий',
+            inelasticShort: 'Неупругий',
+            chartTitle: 'Сравнение высот подъёма',
+            chartHint: 'При неупругом ударе конечная высота заметно меньше начальной.',
+            chartInitial: 'Начальная высота h₁',
+            chartFinal: 'Конечная высота h₂',
+            chartX: 'Номер опыта',
+            chartY: 'Высота (см)',
+            theoryTitle: 'Формулы для расчётов:',
+            formulaElastic: 'импульс при упругом ударе',
+            formulaInelastic: 'импульс при неупругом ударе',
+            formulaHeight: 'высота подъёма шара',
+            formulaLoss: 'конечная высота при слипании равных шаров',
+            statReady: 'Готов к запуску',
+            statMove: 'Шар движется...',
+            statImpact: 'Удар!',
+            statDone: 'Опыт завершён. Запишите данные.',
+            statRecorded: 'Данные записаны.'
+        },
+        kz: {
+            title: '№19 зертханалық жұмыс: Шарлардың соқтығысуы',
+            themeLbl: 'Тақырыбы:',
+            themeTxt: 'Массалары бірдей шарлардың серпімді және серпімсіз соқтығысуын салыстыру',
+            goalLbl: 'Жұмыстың мақсаты:',
+            goalTxt: 'Шарлардың серпімді және серпімсіз соққыларының нәтижелерін салыстырып, импульстің сақталу заңын тексеру.',
+            theoryLbl: 'Қысқаша теория:',
+            theoryTxt: 'Бірдей шарлардың серпімді соққысында қозғалып келе жатқан шар жылдамдығын тыныштықтағы шарға береді, сондықтан екінші шар бастапқы биіктікке көтеріледі. Серпімсіз соққыда шарлар жабысып, бірге қозғалады және механикалық энергияның жоғалуына байланысты төменірек биіктікке көтеріледі.',
+            procLbl: 'Жұмыс барысы:',
+            procList: [
+                'Соққы түрін таңдап, көк шардың бастапқы ауытқу бұрышын орнатыңыз.',
+                '«Бастау» түймесін басып, шарлардың түсуін, соғылуын және кейінгі көтерілуін бақылаңыз.',
+                'Бастапқы және соңғы биіктіктерді, сондай-ақ соңғы ауытқу бұрышын салыстырыңыз.',
+                'Екі соққы түрінің нәтижелерін кестеге жазып, графикте салыстырыңыз.'
+            ],
+            sim: 'Тәжірибені модельдеу',
+            typeLabel: 'Соққы түрі:',
+            elasticOption: 'Серпімді (болат шарлар)',
+            inelasticOption: 'Серпімсіз (ермексазбен)',
+            angleLabel: 'Ауытқу бұрышы α:',
+            lengthLabel: 'Жіптің ұзындығы L:',
+            displayH1: 'Бастапқы биіктік h₁ (см)',
+            displayH2: 'Соңғы биіктік h₂ (см)',
+            displayAngle: 'Соңғы бұрыш α₂',
+            displayStatus: 'Күйі',
+            btnStart: 'Бастау',
+            btnReset: 'Қалпына келтіру',
+            btnRecord: 'Кестеге жазу',
+            btnClear: 'Тазалау',
+            journal: 'Бақылаулар кестесі',
+            thNum: '№', thType: 'Соққы түрі', thAngleInitial: 'α₁ (°)', thHInitial: 'h₁ (см)', thHFinal: 'h₂ (см)', thAngleFinal: 'α₂ (°)',
+            elasticShort: 'Серпімді',
+            inelasticShort: 'Серпімсіз',
+            chartTitle: 'Көтерілу биіктіктерін салыстыру',
+            chartHint: 'Серпімсіз соққы кезінде соңғы биіктік бастапқы биіктіктен едәуір аз болады.',
+            chartInitial: 'Бастапқы биіктік h₁',
+            chartFinal: 'Соңғы биіктік h₂',
+            chartX: 'Тәжірибе нөмірі',
+            chartY: 'Биіктік (см)',
+            theoryTitle: 'Есептеу формулалары:',
+            formulaElastic: 'серпімді соққы кезіндегі импульс',
+            formulaInelastic: 'серпімсіз соққы кезіндегі импульс',
+            formulaHeight: 'шардың көтерілу биіктігі',
+            formulaLoss: 'бірдей шарлар жабысқандағы соңғы биіктік',
+            statReady: 'Бастауға дайын',
+            statMove: 'Шар қозғалып келеді...',
+            statImpact: 'Соққы!',
+            statDone: 'Тәжірибе аяқталды. Деректерді жазыңыз.',
+            statRecorded: 'Деректер жазылды.'
+        }
+    };
+
+    const ui = {
+        typeSelect: document.getElementById('collision-type'),
+        angleInput: document.getElementById('angle-input'),
+        angleVal: document.getElementById('angle-val'),
+        displayH1: document.getElementById('display-h1'),
+        displayH2: document.getElementById('display-h2'),
+        displayAngle: document.getElementById('display-angle'),
+        status: document.getElementById('status-text'),
+        pendulum1: document.getElementById('pendulum-1'),
+        pendulum2: document.getElementById('pendulum-2'),
+        plasticine: document.getElementById('plasticine-blob'),
+        angleArc: document.getElementById('angle-arc'),
+        angleText: document.getElementById('angle-text'),
+        impactWave: document.getElementById('impact-wave'),
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody')
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.documentElement.lang = lang === 'kz' ? 'kk' : 'ru';
+        document.querySelectorAll('.lang-btn').forEach(button => {
+            button.classList.toggle('active', button.dataset.lang === lang);
+        });
+
+        const t = dict[lang];
+        document.title = t.title;
+        document.getElementById('header-title').innerText = t.title;
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+
+        const procedure = document.getElementById('list-procedure');
+        procedure.innerHTML = '';
+        t.procList.forEach(item => {
+            const li = document.createElement('li');
+            li.innerText = item;
+            procedure.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-type').innerText = t.typeLabel;
+        document.getElementById('opt-elastic').innerText = t.elasticOption;
+        document.getElementById('opt-inelastic').innerText = t.inelasticOption;
+        document.getElementById('lbl-angle').innerText = t.angleLabel;
+        document.getElementById('lbl-length').innerText = t.lengthLabel;
+        document.getElementById('disp-h1-label').innerText = t.displayH1;
+        document.getElementById('disp-h2-label').innerText = t.displayH2;
+        document.getElementById('disp-angle-label').innerText = t.displayAngle;
+        document.getElementById('disp-status').innerText = t.displayStatus;
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-num').innerText = t.thNum;
+        document.getElementById('th-type').innerText = t.thType;
+        document.getElementById('th-angle-initial').innerText = t.thAngleInitial;
+        document.getElementById('th-h-initial').innerText = t.thHInitial;
+        document.getElementById('th-h-final').innerText = t.thHFinal;
+        document.getElementById('th-angle-final').innerText = t.thAngleFinal;
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-chart-hint').innerText = t.chartHint;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = formulaMath;
+
+        const formulaLabels = document.querySelectorAll('[data-formula-text]');
+        formulaLabels[0].innerText = t.formulaElastic;
+        formulaLabels[1].innerText = t.formulaInelastic;
+        formulaLabels[2].innerText = t.formulaHeight;
+        formulaLabels[3].innerText = t.formulaLoss;
+        updateStateText(currentStateKey);
+
+        if (momentumChart) {
+            momentumChart.data.datasets[0].label = t.chartInitial;
+            momentumChart.data.datasets[1].label = t.chartFinal;
+            momentumChart.options.scales.x.title.text = t.chartX;
+            momentumChart.options.scales.y.title.text = t.chartY;
+            momentumChart.update();
+        }
+    }
+
+    function updateStateText(stateKey) {
+        currentStateKey = stateKey;
+        ui.status.innerText = dict[currentLang][stateKey];
+    }
+
+    function initAudio() {
+        const AudioConstructor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioConstructor) return;
+        if (!audioContext) audioContext = new AudioConstructor();
+        if (audioContext.state === 'suspended') audioContext.resume();
+    }
+
+    function playImpactSound(elastic) {
+        if (!audioContext) return;
+        const time = audioContext.currentTime;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.type = elastic ? 'sine' : 'triangle';
+        oscillator.frequency.setValueAtTime(elastic ? 1500 : 150, time);
+        oscillator.frequency.exponentialRampToValueAtTime(elastic ? 3000 : 40, time + 0.1);
+        gain.gain.setValueAtTime(0.001, time);
+        gain.gain.linearRampToValueAtTime(elastic ? 0.45 : 0.35, time + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + (elastic ? 0.2 : 0.12));
+        oscillator.start(time);
+        oscillator.stop(time + (elastic ? 0.2 : 0.12));
+    }
+
+    function setControlsDisabled(disabled) {
+        ui.typeSelect.disabled = disabled;
+        ui.angleInput.disabled = disabled;
+    }
+
+    function updateAngleVisuals(angleOne, angleTwo) {
+        if (Math.abs(angleOne - angleTwo) < 0.5) {
+            ui.angleArc.setAttribute('d', '');
+            ui.angleText.textContent = '';
+            return;
+        }
+
+        const minAngle = Math.min(angleOne, angleTwo);
+        const maxAngle = Math.max(angleOne, angleTwo);
+        const radius = 100;
+        const radOne = minAngle * Math.PI / 180;
+        const radTwo = maxAngle * Math.PI / 180;
+        const x1 = -radius * Math.sin(radOne);
+        const y1 = radius * Math.cos(radOne);
+        const x2 = -radius * Math.sin(radTwo);
+        const y2 = radius * Math.cos(radTwo);
+        ui.angleArc.setAttribute('d', `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2}`);
+
+        const middleAngle = (minAngle + maxAngle) / 2;
+        const middleRad = middleAngle * Math.PI / 180;
+        const textRadius = radius + 20;
+        ui.angleText.setAttribute('x', -textRadius * Math.sin(middleRad));
+        ui.angleText.setAttribute('y', textRadius * Math.cos(middleRad));
+        ui.angleText.textContent = `${Math.round(maxAngle - minAngle)}°`;
+    }
+
+    function showImpactEffect() {
+        let radius = 10;
+        let opacity = 1;
+        ui.impactWave.setAttribute('r', radius);
+        ui.impactWave.setAttribute('opacity', opacity);
+
+        function expand() {
+            radius += 1.5;
+            opacity -= 0.05;
+            ui.impactWave.setAttribute('r', radius);
+            ui.impactWave.setAttribute('opacity', Math.max(opacity, 0));
+            if (opacity > 0) requestAnimationFrame(expand);
+        }
+        requestAnimationFrame(expand);
+    }
+
+    function updateSetup() {
+        if (isRunning) return;
+
+        startAngleDeg = parseInt(ui.angleInput.value, 10);
+        isElastic = ui.typeSelect.value === 'elastic';
+        ui.angleVal.innerText = startAngleDeg;
+        ui.plasticine.style.visibility = isElastic ? 'hidden' : 'visible';
+        ui.pendulum1.setAttribute('transform', `rotate(${-startAngleDeg})`);
+        ui.pendulum2.setAttribute('transform', 'rotate(0)');
+        updateAngleVisuals(-startAngleDeg, 0);
+
+        const startRadians = startAngleDeg * Math.PI / 180;
+        initialHeightCm = STRING_LENGTH_M * (1 - Math.cos(startRadians)) * 100;
+        finalHeightCm = 0;
+        endAngleDeg = 0;
+        ui.displayH1.innerText = initialHeightCm.toFixed(2);
+        ui.displayH2.innerText = '0.00';
+        ui.displayAngle.innerText = '0.0°';
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = true;
+        resultReady = false;
+        updateStateText('statReady');
+    }
+
+    function startSimulation() {
+        if (isRunning) return;
+
+        initAudio();
+        isRunning = true;
+        resultReady = false;
+        setControlsDisabled(true);
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+        updateStateText('statMove');
+        const duration = 1000;
+        let startTime = null;
+
+        function animateDrop(timestamp) {
+            if (startTime === null) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            if (elapsed < duration) {
+                const progress = elapsed / duration;
+                const angle = -startAngleDeg * Math.cos(Math.PI * progress / 2);
+                ui.pendulum1.setAttribute('transform', `rotate(${angle})`);
+                updateAngleVisuals(angle, 0);
+                animFrame = requestAnimationFrame(animateDrop);
+            } else {
+                handleCollision();
+            }
+        }
+        animFrame = requestAnimationFrame(animateDrop);
+    }
+
+    function handleCollision() {
+        ui.pendulum1.setAttribute('transform', 'rotate(0)');
+        updateAngleVisuals(0, 0);
+        updateStateText('statImpact');
+        playImpactSound(isElastic);
+        showImpactEffect();
+
+        const startRadians = startAngleDeg * Math.PI / 180;
+        const initialHeightM = STRING_LENGTH_M * (1 - Math.cos(startRadians));
+        const finalHeightM = isElastic ? initialHeightM : initialHeightM / 4;
+        endAngleDeg = Math.acos(1 - finalHeightM / STRING_LENGTH_M) * 180 / Math.PI;
+        finalHeightCm = finalHeightM * 100;
+        ui.displayH2.innerText = finalHeightCm.toFixed(2);
+        ui.displayAngle.innerText = `${endAngleDeg.toFixed(1)}°`;
+        animateRise(endAngleDeg);
+    }
+
+    function animateRise(targetAngle) {
+        const duration = 1000;
+        let startTime = null;
+
+        function rise(timestamp) {
+            if (startTime === null) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            if (elapsed < duration) {
+                const progress = elapsed / duration;
+                const angle = targetAngle * Math.sin(Math.PI * progress / 2);
+                if (isElastic) {
+                    ui.pendulum1.setAttribute('transform', 'rotate(0)');
+                    ui.pendulum2.setAttribute('transform', `rotate(${angle})`);
+                    updateAngleVisuals(0, angle);
+                } else {
+                    ui.pendulum1.setAttribute('transform', `rotate(${angle})`);
+                    ui.pendulum2.setAttribute('transform', `rotate(${angle})`);
+                    updateAngleVisuals(angle, angle);
+                }
+                animFrame = requestAnimationFrame(rise);
+            } else {
+                finishRun();
+            }
+        }
+        animFrame = requestAnimationFrame(rise);
+    }
+
+    function finishRun() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        isRunning = false;
+        resultReady = true;
+        setControlsDisabled(false);
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = false;
+        updateStateText('statDone');
+    }
+
+    function resetSim() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        isRunning = false;
+        setControlsDisabled(false);
+        updateSetup();
+    }
+
+    function recordData() {
+        if (!resultReady) return;
+
+        ui.btnRecord.disabled = true;
+        const typeText = isElastic ? dict[currentLang].elasticShort : dict[currentLang].inelasticShort;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${ui.tableBody.children.length + 1}</td>
+            <td>${typeText}</td>
+            <td>${startAngleDeg}</td>
+            <td>${initialHeightCm.toFixed(2)}</td>
+            <td><b>${finalHeightCm.toFixed(2)}</b></td>
+            <td>${endAngleDeg.toFixed(1)}</td>
+        `;
+        ui.tableBody.appendChild(row);
+
+        momentumChart.data.labels.push(String(ui.tableBody.children.length));
+        momentumChart.data.datasets[0].data.push(Number(initialHeightCm.toFixed(3)));
+        momentumChart.data.datasets[1].data.push(Number(finalHeightCm.toFixed(3)));
+        momentumChart.update();
+
+        const tableWrap = document.querySelector('.table-wrap');
+        tableWrap.scrollTop = tableWrap.scrollHeight;
+        updateStateText('statRecorded');
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+        momentumChart.data.labels = [];
+        momentumChart.data.datasets[0].data = [];
+        momentumChart.data.datasets[1].data = [];
+        momentumChart.update();
+    }
+
+    function initChart() {
+        const context = document.getElementById('momentum-chart').getContext('2d');
+        momentumChart = new Chart(context, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: dict.ru.chartInitial,
+                        data: [],
+                        backgroundColor: 'rgba(52, 152, 219, 0.75)',
+                        borderColor: '#2980b9',
+                        borderWidth: 1
+                    },
+                    {
+                        label: dict.ru.chartFinal,
+                        data: [],
+                        backgroundColor: 'rgba(231, 76, 60, 0.75)',
+                        borderColor: '#c0392b',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: dict.ru.chartX, font: { weight: 'bold' } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: dict.ru.chartY, font: { weight: 'bold' } },
+                        grid: { color: '#e2e8f0' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    initChart();
+    setLang('ru');
+    updateSetup();
+</script>
+</body>
+</html>

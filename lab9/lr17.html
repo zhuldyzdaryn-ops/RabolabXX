@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лабораторная работа №17: Расталкивание тележек</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --cart-one: #3498db;
+            --cart-two: #e74c3c;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.3rem;
+            max-width: 80%;
+        }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid var(--primary);
+        }
+
+        .intro-box p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .intro-box ul {
+            margin: 5px 0 0 20px;
+            padding: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .intro-label {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #sim-svg {
+            width: 100%;
+            height: 330px;
+            display: block;
+        }
+
+        .rail-surface {
+            stroke: #95a5a6;
+            stroke-width: 3;
+        }
+
+        .cart-one {
+            fill: var(--cart-one);
+            stroke: #2980b9;
+            stroke-width: 2;
+        }
+
+        .cart-two {
+            fill: var(--cart-two);
+            stroke: #c0392b;
+            stroke-width: 2;
+        }
+
+        .cart-wheel { fill: #2c3e50; }
+        .sensor { fill: #f1c40f; stroke: #f39c12; stroke-width: 1.5; }
+        .spring { fill: none; stroke: #2c3e50; stroke-width: 2.5; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px 22px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            margin-bottom: 7px;
+            font-size: 0.9rem;
+        }
+
+        .control-value {
+            color: var(--accent);
+            float: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .direction-hint {
+            font-size: 0.78rem;
+            color: #7f8c8d;
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .display-item {
+            text-align: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .display-item span {
+            display: block;
+            font-size: 0.8rem;
+            color: #bdc3c7;
+            margin-bottom: 5px;
+        }
+
+        .display-item strong {
+            font-size: 1.25rem;
+            font-family: 'Courier New', monospace;
+            color: #f1c40f;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start { background: var(--success); }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; }
+        .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-clear {
+            flex: none;
+            padding: 7px 14px;
+            background: #95a5a6;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 20px;
+        }
+
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .section-heading .panel-title { flex: 1; }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 320px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th {
+            background: var(--bg);
+            color: var(--primary);
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .chart-container {
+            position: relative;
+            min-height: 290px;
+            width: 100%;
+        }
+
+        .chart-hint {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin: 10px 0 0;
+            text-align: center;
+        }
+
+        .theory-card {
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .formula-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+
+        .formula {
+            display: inline-block;
+            padding: 5px 9px;
+            background: white;
+            border: 1px solid #dfe6e9;
+            border-radius: 4px;
+            color: var(--primary);
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+            font-size: 1.05rem;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            h1 { max-width: 70%; font-size: 1.1rem; }
+            .container { padding: 12px; }
+            .controls { grid-template-columns: 1fr; }
+            .display-board { flex-wrap: wrap; }
+            .display-item { flex: 1 1 45%; }
+            .btn-group { flex-direction: column; }
+            #sim-svg { height: 280px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа №17: Расталкивание тележек</h1>
+    <div class="lang-switch" aria-label="Выбор языка">
+        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="kz" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<main class="container">
+    <section class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme"></span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal"></span></p>
+        <div style="display:flex; align-items:flex-start; flex-wrap:wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right:5px; margin-top:8px;">Краткая теория:</span>
+            <div id="txt-theory" style="margin-top:8px; font-size:0.95rem; line-height:1.5;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure"></ul>
+    </section>
+
+    <section class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+
+        <div class="sim-area">
+            <svg id="sim-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid meet" aria-label="Модель расталкивания двух тележек пружиной">
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#dfe6e9" stroke-width="1" opacity="0.65"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)"/>
+                <line x1="0" y1="200" x2="800" y2="200" class="rail-surface"/>
+                <g id="ruler-group"></g>
+
+                <g transform="translate(150, 0)">
+                    <rect x="-5" y="160" width="10" height="30" class="sensor"/>
+                    <text x="0" y="225" font-size="12" fill="#7f8c8d" text-anchor="middle" id="sensor-left-label">Датчик 1</text>
+                </g>
+                <g transform="translate(650, 0)">
+                    <rect x="-5" y="160" width="10" height="30" class="sensor"/>
+                    <text x="0" y="225" font-size="12" fill="#7f8c8d" text-anchor="middle" id="sensor-right-label">Датчик 2</text>
+                </g>
+
+                <g id="cart1-group" transform="translate(355, 175)">
+                    <rect x="-40" y="-15" width="80" height="30" class="cart-one" rx="4"/>
+                    <text x="0" y="5" font-size="12" fill="white" text-anchor="middle" id="cart1-text">200 г</text>
+                    <circle cx="-25" cy="15" r="8" class="cart-wheel"/>
+                    <circle cx="25" cy="15" r="8" class="cart-wheel"/>
+                </g>
+                <g id="cart2-group" transform="translate(445, 175)">
+                    <rect x="-40" y="-15" width="80" height="30" class="cart-two" rx="4"/>
+                    <text x="0" y="5" font-size="12" fill="white" text-anchor="middle" id="cart2-text">200 г</text>
+                    <circle cx="-25" cy="15" r="8" class="cart-wheel"/>
+                    <circle cx="25" cy="15" r="8" class="cart-wheel"/>
+                </g>
+                <path id="spring-path" d="M 395 175 L 405 175" class="spring"/>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label><span id="lbl-m1">Масса синей тележки m₁:</span> <span class="control-value"><span id="m1-val">200</span> г</span></label>
+                <input type="range" id="m1-input" min="100" max="600" value="200" step="50" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label><span id="lbl-m2">Масса красной тележки m₂:</span> <span class="control-value"><span id="m2-val">200</span> г</span></label>
+                <input type="range" id="m2-input" min="100" max="600" value="200" step="50" oninput="updateSetup()">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-v1-label">Скорость синей |v₁| (м/с)</span>
+                <strong id="display-v1">0.000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-v2-label">Скорость красной |v₂| (м/с)</span>
+                <strong id="display-v2">0.000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-ratio-label">Отношение |P₁| / |P₂|</span>
+                <strong id="display-ratio" style="color:#2ecc71;">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status">Статус</span>
+                <strong id="status-text" style="color:#ecf0f1; font-size:1rem;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSimulation()">Запустить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <div class="section-heading">
+                    <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                    <button class="btn btn-clear" id="btn-clear" onclick="clearTable()">Очистить</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-num">№</th>
+                                <th id="th-m1">m₁ (кг)</th>
+                                <th id="th-m2">m₂ (кг)</th>
+                                <th id="th-v1">|v₁| (м/с)</th>
+                                <th id="th-v2">|v₂| (м/с)</th>
+                                <th id="th-p1">|P₁|</th>
+                                <th id="th-p2">|P₂|</th>
+                                <th id="th-ratio">|P₁| / |P₂|</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">Сравнение импульсов тележек</h2>
+                <div class="chart-container">
+                    <canvas id="momentum-chart"></canvas>
+                </div>
+                <p class="chart-hint" id="lbl-chart-hint">Модули импульсов тележек после расталкивания должны совпадать.</p>
+            </div>
+        </div>
+
+        <div class="theory-card">
+            <strong id="lbl-theory-title">Формулы для расчётов:</strong>
+            <div id="lbl-theory-formulas"></div>
+        </div>
+    </section>
+</main>
+
+<script>
+    const PIXELS_PER_METER = 500;
+    const CART1_START_X = 355;
+    const CART2_START_X = 445;
+    const LEFT_SENSOR_X = 150;
+    const RIGHT_SENSOR_X = 650;
+    const SPRING_ENERGY = 0.05;
+    const ANIMATION_SPEED = 1.25;
+
+    let m1 = 200;
+    let m2 = 200;
+    let v1 = 0;
+    let v2 = 0;
+    let momentumMagnitude = 0;
+    let measurementsReady = false;
+    let isRunning = false;
+    let animFrame = null;
+    let currentLang = 'ru';
+    let currentStateKey = 'statReady';
+    let momentumChart;
+
+    const formulaMath = `
+        <div class="formula-row"><span class="formula">P₀ = 0</span><span>— <span data-formula-text="initial">начальный импульс системы</span></span></div>
+        <div class="formula-row"><span class="formula">P₁ + P₂ = 0</span><span>— <span data-formula-text="law">закон сохранения импульса</span></span></div>
+        <div class="formula-row"><span class="formula">|m₁v₁| = |m₂v₂|</span><span>— <span data-formula-text="equal">модули импульсов тележек равны</span></span></div>
+        <div class="formula-row"><span class="formula">P = m · v</span><span>— <span data-formula-text="momentum">формула импульса тела</span></span></div>
+    `;
+
+    const dict = {
+        ru: {
+            title: 'Лабораторная работа №17: Расталкивание тележек',
+            themeLbl: 'Тема:',
+            themeTxt: 'Исследование закона сохранения импульса при расталкивании двух тележек',
+            goalLbl: 'Цель работы:',
+            goalTxt: 'Продемонстрировать закон сохранения импульса при расталкивании покоящихся тележек сжатой пружиной.',
+            theoryLbl: 'Краткая теория:',
+            theoryTxt: 'До освобождения пружины обе тележки покоятся, поэтому суммарный импульс системы равен нулю. После расталкивания тележки движутся в противоположных направлениях, а их импульсы равны по модулю и противоположны по направлению.',
+            procLbl: 'Ход работы:',
+            procList: [
+                'Установите массы синей и красной тележек. Пружина между тележками считается сжатой.',
+                'Нажмите «Запустить» и наблюдайте, как тележки разъезжаются в противоположных направлениях.',
+                'Снимите показания скоростей после прохождения тележек через фотодатчики.',
+                'Запишите данные и сравните модули импульсов тележек в таблице и на графике.'
+            ],
+            sim: 'Симуляция эксперимента',
+            m1Label: 'Масса синей тележки m₁:',
+            m2Label: 'Масса красной тележки m₂:',
+            sensorLeft: 'Датчик 1',
+            sensorRight: 'Датчик 2',
+            displayV1: 'Скорость синей |v₁| (м/с)',
+            displayV2: 'Скорость красной |v₂| (м/с)',
+            displayRatio: 'Отношение |P₁| / |P₂|',
+            displayStatus: 'Статус',
+            btnStart: 'Запустить',
+            btnReset: 'Сброс',
+            btnRecord: 'Записать в таблицу',
+            btnClear: 'Очистить',
+            journal: 'Таблица измерений',
+            thNum: '№', thM1: 'm₁ (кг)', thM2: 'm₂ (кг)', thV1: '|v₁| (м/с)', thV2: '|v₂| (м/с)',
+            thP1: '|P₁|', thP2: '|P₂|', thRatio: '|P₁| / |P₂|',
+            chartTitle: 'Сравнение импульсов тележек',
+            chartHint: 'Модули импульсов тележек после расталкивания должны совпадать.',
+            chartP1: 'Синяя тележка |P₁|',
+            chartP2: 'Красная тележка |P₂|',
+            chartX: 'Номер опыта',
+            chartY: 'Модуль импульса (кг·м/с)',
+            theoryTitle: 'Формулы для расчётов:',
+            formulaInitial: 'начальный импульс системы',
+            formulaLaw: 'закон сохранения импульса',
+            formulaEqual: 'модули импульсов тележек равны',
+            formulaMomentum: 'формула импульса тела',
+            statReady: 'Готов к запуску. Пружина сжата.',
+            statMove: 'Тележки разъезжаются...',
+            statDone: 'Измерение завершено. Запишите данные.',
+            statRecorded: 'Данные записаны.'
+        },
+        kz: {
+            title: '№17 зертханалық жұмыс: Арбаларды итеру',
+            themeLbl: 'Тақырыбы:',
+            themeTxt: 'Екі арбаны итеру кезіндегі импульстің сақталу заңын зерттеу',
+            goalLbl: 'Жұмыстың мақсаты:',
+            goalTxt: 'Сығылған серіппе тыныштықтағы арбаларды итерген кезде импульстің сақталу заңын көрсету.',
+            theoryLbl: 'Қысқаша теория:',
+            theoryTxt: 'Серіппе босатылғанға дейін екі арба да тыныштықта, сондықтан жүйенің толық импульсі нөлге тең. Итерілгеннен кейін арбалар қарама-қарсы бағытта қозғалады, ал олардың импульстары модульдері бойынша тең және бағыттары бойынша қарама-қарсы болады.',
+            procLbl: 'Жұмыс барысы:',
+            procList: [
+                'Көк және қызыл арбалардың массаларын орнатыңыз. Арбалар арасындағы серіппе сығылған деп есептеледі.',
+                '«Бастау» түймесін басып, арбалардың қарама-қарсы бағытта қозғалуын бақылаңыз.',
+                'Арбалар фотодатчиктерден өткеннен кейін олардың жылдамдықтарын өлшеңіз.',
+                'Деректерді жазып, арбалар импульстарының модульдерін кесте мен графикте салыстырыңыз.'
+            ],
+            sim: 'Тәжірибені модельдеу',
+            m1Label: 'Көк арбаның массасы m₁:',
+            m2Label: 'Қызыл арбаның массасы m₂:',
+            sensorLeft: 'Датчик 1',
+            sensorRight: 'Датчик 2',
+            displayV1: 'Көк арбаның |v₁| жылдамдығы (м/с)',
+            displayV2: 'Қызыл арбаның |v₂| жылдамдығы (м/с)',
+            displayRatio: '|P₁| / |P₂| қатынасы',
+            displayStatus: 'Күйі',
+            btnStart: 'Бастау',
+            btnReset: 'Қалпына келтіру',
+            btnRecord: 'Кестеге жазу',
+            btnClear: 'Тазалау',
+            journal: 'Өлшеулер кестесі',
+            thNum: '№', thM1: 'm₁ (кг)', thM2: 'm₂ (кг)', thV1: '|v₁| (м/с)', thV2: '|v₂| (м/с)',
+            thP1: '|P₁|', thP2: '|P₂|', thRatio: '|P₁| / |P₂|',
+            chartTitle: 'Арбалардың импульстарын салыстыру',
+            chartHint: 'Итерілгеннен кейін арбалар импульстарының модульдері тең болуы керек.',
+            chartP1: 'Көк арба |P₁|',
+            chartP2: 'Қызыл арба |P₂|',
+            chartX: 'Тәжірибе нөмірі',
+            chartY: 'Импульс модулі (кг·м/с)',
+            theoryTitle: 'Есептеу формулалары:',
+            formulaInitial: 'жүйенің бастапқы импульсі',
+            formulaLaw: 'импульстің сақталу заңы',
+            formulaEqual: 'арбалар импульстарының модульдері тең',
+            formulaMomentum: 'дене импульсінің формуласы',
+            statReady: 'Бастауға дайын. Серіппе сығылған.',
+            statMove: 'Арбалар екі жаққа қозғалып келеді...',
+            statDone: 'Өлшеу аяқталды. Деректерді жазыңыз.',
+            statRecorded: 'Деректер жазылды.'
+        }
+    };
+
+    const ui = {
+        m1Input: document.getElementById('m1-input'),
+        m2Input: document.getElementById('m2-input'),
+        m1Val: document.getElementById('m1-val'),
+        m2Val: document.getElementById('m2-val'),
+        displayV1: document.getElementById('display-v1'),
+        displayV2: document.getElementById('display-v2'),
+        displayRatio: document.getElementById('display-ratio'),
+        status: document.getElementById('status-text'),
+        cart1: document.getElementById('cart1-group'),
+        cart2: document.getElementById('cart2-group'),
+        cart1Text: document.getElementById('cart1-text'),
+        cart2Text: document.getElementById('cart2-text'),
+        springPath: document.getElementById('spring-path'),
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody')
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.documentElement.lang = lang === 'kz' ? 'kk' : 'ru';
+        document.querySelectorAll('.lang-btn').forEach(button => {
+            button.classList.toggle('active', button.dataset.lang === lang);
+        });
+
+        const t = dict[lang];
+        document.title = t.title;
+        document.getElementById('header-title').innerText = t.title;
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+
+        const procedure = document.getElementById('list-procedure');
+        procedure.innerHTML = '';
+        t.procList.forEach(item => {
+            const li = document.createElement('li');
+            li.innerText = item;
+            procedure.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-m1').innerText = t.m1Label;
+        document.getElementById('lbl-m2').innerText = t.m2Label;
+        document.getElementById('sensor-left-label').innerText = t.sensorLeft;
+        document.getElementById('sensor-right-label').innerText = t.sensorRight;
+        document.getElementById('disp-v1-label').innerText = t.displayV1;
+        document.getElementById('disp-v2-label').innerText = t.displayV2;
+        document.getElementById('disp-ratio-label').innerText = t.displayRatio;
+        document.getElementById('disp-status').innerText = t.displayStatus;
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-num').innerText = t.thNum;
+        document.getElementById('th-m1').innerText = t.thM1;
+        document.getElementById('th-m2').innerText = t.thM2;
+        document.getElementById('th-v1').innerText = t.thV1;
+        document.getElementById('th-v2').innerText = t.thV2;
+        document.getElementById('th-p1').innerText = t.thP1;
+        document.getElementById('th-p2').innerText = t.thP2;
+        document.getElementById('th-ratio').innerText = t.thRatio;
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-chart-hint').innerText = t.chartHint;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = formulaMath;
+
+        const formulaLabels = document.querySelectorAll('[data-formula-text]');
+        formulaLabels[0].innerText = t.formulaInitial;
+        formulaLabels[1].innerText = t.formulaLaw;
+        formulaLabels[2].innerText = t.formulaEqual;
+        formulaLabels[3].innerText = t.formulaMomentum;
+        updateStateText(currentStateKey);
+
+        if (momentumChart) {
+            momentumChart.data.datasets[0].label = t.chartP1;
+            momentumChart.data.datasets[1].label = t.chartP2;
+            momentumChart.options.scales.x.title.text = t.chartX;
+            momentumChart.options.scales.y.title.text = t.chartY;
+            momentumChart.update();
+        }
+    }
+
+    function updateStateText(stateKey) {
+        currentStateKey = stateKey;
+        ui.status.innerText = dict[currentLang][stateKey];
+    }
+
+    function initRuler() {
+        const ruler = document.getElementById('ruler-group');
+        let html = '';
+        for (let i = 0; i <= 16; i++) {
+            const x = i * 50;
+            const height = i % 2 === 0 ? 15 : 10;
+            html += `<line x1="${x}" y1="200" x2="${x}" y2="${200 + height}" stroke="#95a5a6" stroke-width="1"/>`;
+        }
+        ruler.innerHTML = html;
+    }
+
+    function setControlsDisabled(disabled) {
+        ui.m1Input.disabled = disabled;
+        ui.m2Input.disabled = disabled;
+    }
+
+    function drawSpring(x1, x2) {
+        const midY = 175;
+        const distance = x2 - x1;
+        if (distance <= 0) {
+            ui.springPath.setAttribute('d', '');
+            return;
+        }
+
+        let path = `M ${x1} ${midY}`;
+        const steps = 6;
+        const stepX = distance / steps;
+        for (let i = 0; i < steps; i++) {
+            const currentX = x1 + i * stepX;
+            const offsetY = i % 2 === 0 ? -6 : 6;
+            path += ` L ${currentX + stepX / 2} ${midY + offsetY}`;
+        }
+        path += ` L ${x2} ${midY}`;
+        ui.springPath.setAttribute('d', path);
+    }
+
+    function updateSetup() {
+        if (isRunning) return;
+
+        m1 = parseInt(ui.m1Input.value, 10);
+        m2 = parseInt(ui.m2Input.value, 10);
+        ui.m1Val.innerText = m1;
+        ui.m2Val.innerText = m2;
+        ui.cart1Text.innerText = `${m1} г`;
+        ui.cart2Text.innerText = `${m2} г`;
+        ui.cart1.setAttribute('transform', `translate(${CART1_START_X}, 175)`);
+        ui.cart2.setAttribute('transform', `translate(${CART2_START_X}, 175)`);
+        drawSpring(CART1_START_X + 40, CART2_START_X - 40);
+
+        ui.displayV1.innerText = '0.000';
+        ui.displayV2.innerText = '0.000';
+        ui.displayRatio.innerText = '0.00';
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = true;
+        measurementsReady = false;
+        updateStateText('statReady');
+    }
+
+    function startSimulation() {
+        if (isRunning) return;
+
+        isRunning = true;
+        measurementsReady = false;
+        setControlsDisabled(true);
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+        ui.displayV1.innerText = '0.000';
+        ui.displayV2.innerText = '0.000';
+        ui.displayRatio.innerText = '0.00';
+
+        const m1Kg = m1 / 1000;
+        const m2Kg = m2 / 1000;
+        momentumMagnitude = Math.sqrt(2 * SPRING_ENERGY * m1Kg * m2Kg / (m1Kg + m2Kg));
+        v1 = momentumMagnitude / m1Kg;
+        v2 = momentumMagnitude / m2Kg;
+
+        const v1Pixels = v1 * PIXELS_PER_METER;
+        const v2Pixels = v2 * PIXELS_PER_METER;
+        let lastTime = null;
+        let x1 = CART1_START_X;
+        let x2 = CART2_START_X;
+        ui.cart1.setAttribute('transform', `translate(${x1}, 175)`);
+        ui.cart2.setAttribute('transform', `translate(${x2}, 175)`);
+        drawSpring(x1 + 40, x2 - 40);
+        updateStateText('statMove');
+
+        function animate(timestamp) {
+            if (lastTime === null) lastTime = timestamp;
+            const deltaTime = Math.min((timestamp - lastTime) / 1000, 0.05) * ANIMATION_SPEED;
+            lastTime = timestamp;
+
+            x1 -= v1Pixels * deltaTime;
+            x2 += v2Pixels * deltaTime;
+            ui.cart1.setAttribute('transform', `translate(${x1}, 175)`);
+            ui.cart2.setAttribute('transform', `translate(${x2}, 175)`);
+            ui.springPath.setAttribute('d', '');
+
+            if (x1 <= LEFT_SENSOR_X) ui.displayV1.innerText = v1.toFixed(3);
+            if (x2 >= RIGHT_SENSOR_X) ui.displayV2.innerText = v2.toFixed(3);
+
+            if (x1 < 50 || x2 > 750) {
+                finishRun();
+                return;
+            }
+
+            if (isRunning) animFrame = requestAnimationFrame(animate);
+        }
+
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishRun() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        isRunning = false;
+        measurementsReady = true;
+        setControlsDisabled(false);
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = false;
+        ui.displayV1.innerText = v1.toFixed(3);
+        ui.displayV2.innerText = v2.toFixed(3);
+        ui.displayRatio.innerText = '1.00';
+        updateStateText('statDone');
+    }
+
+    function resetSim() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        isRunning = false;
+        setControlsDisabled(false);
+        updateSetup();
+    }
+
+    function recordData() {
+        if (!measurementsReady) return;
+
+        ui.btnRecord.disabled = true;
+        const m1Kg = m1 / 1000;
+        const m2Kg = m2 / 1000;
+        const p1 = m1Kg * v1;
+        const p2 = m2Kg * v2;
+        const ratio = p2 === 0 ? 0 : p1 / p2;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${ui.tableBody.children.length + 1}</td>
+            <td>${m1Kg.toFixed(2)}</td>
+            <td>${m2Kg.toFixed(2)}</td>
+            <td>${v1.toFixed(3)}</td>
+            <td>${v2.toFixed(3)}</td>
+            <td>${p1.toFixed(4)}</td>
+            <td>${p2.toFixed(4)}</td>
+            <td><b>${ratio.toFixed(2)}</b></td>
+        `;
+        ui.tableBody.appendChild(row);
+
+        momentumChart.data.labels.push(String(ui.tableBody.children.length));
+        momentumChart.data.datasets[0].data.push(Number(p1.toFixed(5)));
+        momentumChart.data.datasets[1].data.push(Number(p2.toFixed(5)));
+        momentumChart.update();
+
+        const tableWrap = document.querySelector('.table-wrap');
+        tableWrap.scrollTop = tableWrap.scrollHeight;
+        updateStateText('statRecorded');
+    }
+
+    function clearTable() {
+        ui.tableBody.innerHTML = '';
+        momentumChart.data.labels = [];
+        momentumChart.data.datasets[0].data = [];
+        momentumChart.data.datasets[1].data = [];
+        momentumChart.update();
+    }
+
+    function initChart() {
+        const context = document.getElementById('momentum-chart').getContext('2d');
+        momentumChart = new Chart(context, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: dict.ru.chartP1,
+                        data: [],
+                        backgroundColor: 'rgba(52, 152, 219, 0.75)',
+                        borderColor: '#2980b9',
+                        borderWidth: 1
+                    },
+                    {
+                        label: dict.ru.chartP2,
+                        data: [],
+                        backgroundColor: 'rgba(231, 76, 60, 0.75)',
+                        borderColor: '#c0392b',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: dict.ru.chartX, font: { weight: 'bold' } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: dict.ru.chartY, font: { weight: 'bold' } },
+                        grid: { color: '#e2e8f0' }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    initRuler();
+    initChart();
+    setLang('ru');
+    updateSetup();
+</script>
+</body>
+</html>

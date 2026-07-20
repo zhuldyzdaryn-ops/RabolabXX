@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Второй закон Ньютона</title>
+    
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --warning: #e67e22;
+            --danger: #e74c3c;
+            --cart: #3498db;
+            --mass: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--accent);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION AREA --- */
+        .sim-area {
+            position: relative;
+            background: radial-gradient(circle at center, #ffffff, #eef2f3);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 350px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* --- CONTROLS & DISPLAYS --- */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            align-items: center;
+        }
+
+        @media (max-width: 800px) {
+            .controls { grid-template-columns: 1fr; }
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group { display: flex; gap: 10px; width: 100%; justify-content: center; margin-bottom: 15px;}
+        .btn {
+            flex: 1; padding: 12px 15px; border: none; border-radius: 5px; max-width: 250px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-start { background: var(--success); }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: var(--danger); }
+        .btn-reset:hover:not(:disabled) { background: #c0392b; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-check { background: var(--warning); margin-top: 10px; max-width: 250px; }
+        .btn-check:hover:not(:disabled) { background: #d68910; }
+
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .display-item { text-align: center; flex: 1; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; }
+        .display-item strong { font-size: 1.4rem; font-family: monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; max-height: 350px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 75px; padding: 4px; text-align: center; border: 1px solid var(--border);
+            border-radius: 4px; font-weight: bold; color: var(--primary); outline: none;
+        }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Второй закон Ньютона</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Исследование зависимости ускорения тела от равнодействующей силы и массы</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Экспериментально проверить второй закон Ньютона.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Установите путь (S), массу каретки (M) и массу подвешенного груза (m).</li>
+            <li>Нажмите «Запуск» и измерьте время движения (t).</li>
+            <li>Занесите данные в таблицу.</li>
+            <li>Вычислите силу (F = mg) и ускорение (a = 2S/t²), затем проверьте расчеты.</li>
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg id="sim-svg" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+                <!-- Track -->
+                <rect x="20" y="220" width="680" height="15" fill="#7f8c8d" rx="2"/>
+                <line x1="20" y1="235" x2="20" y2="350" stroke="#7f8c8d" stroke-width="4" />
+                <line x1="680" y1="235" x2="680" y2="350" stroke="#7f8c8d" stroke-width="4" />
+                
+                <!-- Sensor / Start & End markers -->
+                <line id="start-marker" x1="100" y1="200" x2="100" y2="230" stroke="#e74c3c" stroke-width="2" stroke-dasharray="4" />
+                <line id="end-marker" x1="600" y1="200" x2="600" y2="230" stroke="#e74c3c" stroke-width="2" stroke-dasharray="4" />
+                
+                <!-- Distance label -->
+                <line id="dist-line" x1="100" y1="180" x2="600" y2="180" stroke="#95a5a6" stroke-width="1" />
+                <line x1="100" y1="175" x2="100" y2="185" stroke="#95a5a6" stroke-width="2" />
+                <line id="dist-tick" x1="600" y1="175" x2="600" y2="185" stroke="#95a5a6" stroke-width="2" />
+                <text id="dist-text" x="350" y="170" fill="#7f8c8d" font-size="14" text-anchor="middle">S = 0.5 м</text>
+
+                <!-- Pulley -->
+                <circle cx="700" cy="220" r="15" fill="#bdc3c7" stroke="#34495e" stroke-width="2" />
+                <circle cx="700" cy="220" r="3" fill="#2c3e50" />
+                
+                <!-- Cart & String Group -->
+                <!-- The moving cart is positioned via JS translation -->
+                <g id="cart-group" transform="translate(100, 190)">
+                    <!-- String from cart to pulley -->
+                    <line id="string-horiz" x1="50" y1="15" x2="600" y2="15" stroke="#34495e" stroke-width="2" />
+                    
+                    <!-- The Cart itself -->
+                    <rect x="-40" y="-10" width="90" height="30" fill="var(--cart)" rx="4" />
+                    <!-- Wheels -->
+                    <circle cx="-20" cy="25" r="7" fill="#2c3e50" />
+                    <circle cx="30" cy="25" r="7" fill="#2c3e50" />
+                    <!-- Mass Label on Cart -->
+                    <text x="5" y="10" fill="white" font-size="12" font-weight="bold" text-anchor="middle" id="cart-mass-txt">0.2 кг</text>
+                </g>
+                
+                <!-- Hanger & String Group -->
+                <!-- The moving hanger is positioned via JS -->
+                <g id="hanger-group" transform="translate(715, 220)">
+                    <!-- String from pulley down -->
+                    <line id="string-vert" x1="0" y1="0" x2="0" y2="40" stroke="#34495e" stroke-width="2" />
+                    
+                    <!-- Hanger Mass -->
+                    <rect x="-15" y="40" width="30" height="35" fill="var(--mass)" rx="2" />
+                    <!-- Mass Label on Hanger -->
+                    <text x="0" y="62" fill="white" font-size="11" font-weight="bold" text-anchor="middle" id="hanger-mass-txt">50г</text>
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-s">Путь S (м): <span id="val-s" style="color:var(--accent)">0.50</span></label>
+                <input type="range" id="input-s" min="0.3" max="1.0" value="0.5" step="0.1" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-m-cart">Масса каретки M (кг): <span id="val-m-cart" style="color:var(--accent)">0.2</span></label>
+                <input type="range" id="input-m-cart" min="0.1" max="0.5" value="0.2" step="0.05" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-m-hanger">Масса груза m (кг): <span id="val-m-hanger" style="color:var(--accent)">0.05</span></label>
+                <input type="range" id="input-m-hanger" min="0.02" max="0.1" value="0.05" step="0.01" oninput="updateSetup()">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-s">Расстояние S (м)</span>
+                <strong id="meas-s">0.50</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-t">Время t (с)</span>
+                <strong id="meas-t">0.000</strong>
+            </div>
+            <div class="display-item" style="flex: 1.5;">
+                <span id="disp-status">Статус</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1rem; margin-top: 5px;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSim()">▶ Запуск</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()" disabled>↺ Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>⬇ Записать в таблицу</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+        <div class="table-wrap">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th id="th-s">S (м)</th>
+                        <th id="th-mcart">M (кг)</th>
+                        <th id="th-mhang">m (кг)</th>
+                        <th id="th-t">t (с)</th>
+                        <th id="th-f">F = mg (Н)</th>
+                        <th id="th-a">a = 2S/t² (м/с²)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Данные будут здесь -->
+                </tbody>
+            </table>
+        </div>
+        <button class="btn btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты</button>
+
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формулы для расчета:</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px; color: var(--primary);">
+                1. Сила тяжести груза: <b>F = m · g</b> (принять g = 9.8 м/с²)<br>
+                2. Ускорение системы: <b>a = 2S / t²</b>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ЯЗЫКОВАЯ ЛОГИКА ---
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Второй закон Ньютона",
+            themeLbl: "Тема:",
+            themeTxt: "Исследование зависимости ускорения тела от равнодействующей силы и массы",
+            goalLbl: "Цель работы:",
+            goalTxt: "Экспериментально проверить второй закон Ньютона.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `Второй закон Ньютона: <b>a = F / m<sub>общ</sub></b>.<br>
+                        В нашей установке движущая сила — это сила тяжести подвешенного груза: <b>F = m &middot; g</b>.<br>
+                        Общая масса системы: <b>m<sub>общ</sub> = M + m</b>.<br>
+                        Теоретическое ускорение: <b>a = (m &middot; g) / (M + m)</b>.<br>
+                        Экспериментально ускорение находится из кинематики (начальная скорость равна нулю): <b>S = a &middot; t&sup2; / 2</b>  &rarr;  <b>a = 2S / t&sup2;</b>.`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Установите путь (S), массу каретки (M) и массу подвешенного груза (m).",
+                "Нажмите «Запуск» и измерьте время движения (t).",
+                "Занесите данные в таблицу.",
+                "Вычислите силу (F = mg) и экспериментальное ускорение (a = 2S/t²), затем проверьте расчеты."
+            ],
+            sim: "Симуляция эксперимента",
+            lblS: "Путь S (м): ",
+            lblMcart: "Масса каретки M (кг): ",
+            lblMhang: "Масса груза m (кг): ",
+            dispS: "Расстояние S (м)",
+            dispT: "Время t (с)",
+            dispStatus: "Статус",
+            btnStart: "▶ Запуск",
+            btnReset: "↺ Сброс",
+            btnRecord: "⬇ Записать в таблицу",
+            btnCheck: "Проверить расчеты",
+            journal: "Таблица измерений",
+            thS: "S (м)", thMcart: "M (кг)", thMhang: "m (кг)", thT: "t (с)",
+            thF: "F = mg (Н)", thA: "a = 2S/t² (м/с²)",
+            theoryTitle: "Формулы для расчета:",
+            theoryFormulas: `1. Сила тяжести груза: <b>F = m &middot; g</b> (принять g = 9.8 м/с&sup2;)<br>2. Ускорение системы: <b>a = 2S / t&sup2;</b>`,
+            
+            statReady: "Готов к запуску",
+            statRun: "Движение...",
+            statDone: "Финиш! Можно записать данные"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Ньютонның екінші заңы",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Дене үдеуінің теңәрекетті күш пен массаға тәуелділігін зерттеу",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Ньютонның екінші заңын тәжірибе жүзінде тексеру.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Ньютонның екінші заңы: <b>a = F / m<sub>жалпы</sub></b>.<br>
+                        Біздің қондырғыда қозғаушы күш — ілінген жүктің ауырлық күші: <b>F = m &middot; g</b>.<br>
+                        Жүйенің жалпы массасы: <b>m<sub>жалпы</sub> = M + m</b>.<br>
+                        Теориялық үдеу: <b>a = (m &middot; g) / (M + m)</b>.<br>
+                        Тәжірибелік үдеу кинематикадан табылады (бастапқы жылдамдық нөлге тең): <b>S = a &middot; t&sup2; / 2</b>  &rarr;  <b>a = 2S / t&sup2;</b>.`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Жолды (S), арбаша массасын (M) және ілінген жүк массасын (m) орнатыңыз.",
+                "«Іске қосу» түймесін басып, қозғалыс уақытын (t) өлшеңіз.",
+                "Мәліметтерді кестеге енгізіңіз.",
+                "Күшті (F = mg) және тәжірибелік үдеуді (a = 2S/t²) есептеп, есептеулерді тексеріңіз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            lblS: "Жол S (м): ",
+            lblMcart: "Арбаша массасы M (кг): ",
+            lblMhang: "Жүк массасы m (кг): ",
+            dispS: "Қашықтық S (м)",
+            dispT: "Уақыт t (с)",
+            dispStatus: "Статус",
+            btnStart: "▶ Іске қосу",
+            btnReset: "↺ Қалпына келтіру",
+            btnRecord: "⬇ Кестеге жазу",
+            btnCheck: "Есептеулерді тексеру",
+            journal: "Өлшеулер кестесі",
+            thS: "S (м)", thMcart: "M (кг)", thMhang: "m (кг)", thT: "t (с)",
+            thF: "F = mg (Н)", thA: "a = 2S/t² (м/с²)",
+            theoryTitle: "Есептеу формулалары:",
+            theoryFormulas: `1. Жүктің ауырлық күші: <b>F = m &middot; g</b> (g = 9.8 м/с&sup2; деп алу)<br>2. Жүйенің үдеуі: <b>a = 2S / t&sup2;</b>`,
+            
+            statReady: "Іске қосуға дайын",
+            statRun: "Қозғалыс...",
+            statDone: "Мәре! Деректерді жазуға болады"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        const t = dict[lang];
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => {
+            let li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        
+        document.getElementById('lbl-s').childNodes[0].nodeValue = t.lblS;
+        document.getElementById('lbl-m-cart').childNodes[0].nodeValue = t.lblMcart;
+        document.getElementById('lbl-m-hanger').childNodes[0].nodeValue = t.lblMhang;
+        
+        document.getElementById('disp-s').innerText = t.dispS;
+        document.getElementById('disp-t').innerText = t.dispT;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-s').innerText = t.thS;
+        document.getElementById('th-mcart').innerText = t.thMcart;
+        document.getElementById('th-mhang').innerText = t.thMhang;
+        document.getElementById('th-t').innerText = t.thT;
+        document.getElementById('th-f').innerText = t.thF;
+        document.getElementById('th-a').innerText = t.thA;
+        
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = t.theoryFormulas;
+        
+        if(!isRunning && document.getElementById('btn-record').disabled) {
+            document.getElementById('meas-status').innerText = t.statReady;
+        } else if (!isRunning && !document.getElementById('btn-record').disabled) {
+            document.getElementById('meas-status').innerText = t.statDone;
+        }
+    }
+
+    // --- ФИЗИКА И СИМУЛЯЦИЯ ---
+    const G = 9.8; 
+    const MAX_VISUAL_DIST_PX = 500; // 1 метр = 500px на экране.
+    
+    let S = 0.5; // Путь в метрах
+    let M = 0.2; // Масса каретки
+    let m = 0.05; // Масса груза
+    
+    let isRunning = false;
+    let animFrame = null;
+    let startTime = 0;
+    
+    let finalTime = 0; // Время движения для текущего эксперимента
+    let currentExpCount = 0;
+
+    // DOM Elements
+    const els = {
+        inpS: document.getElementById('input-s'),
+        inpM: document.getElementById('input-m-cart'),
+        inpm: document.getElementById('input-m-hanger'),
+        valS: document.getElementById('val-s'),
+        valM: document.getElementById('val-m-cart'),
+        valm: document.getElementById('val-m-hanger'),
+        
+        cartGrp: document.getElementById('cart-group'),
+        hangerGrp: document.getElementById('hanger-group'),
+        strHoriz: document.getElementById('string-horiz'),
+        strVert: document.getElementById('string-vert'),
+        endMarker: document.getElementById('end-marker'),
+        distTick: document.getElementById('dist-tick'),
+        distLine: document.getElementById('dist-line'),
+        distText: document.getElementById('dist-text'),
+        
+        txtCartM: document.getElementById('cart-mass-txt'),
+        txtHangerM: document.getElementById('hanger-mass-txt'),
+        
+        measS: document.getElementById('meas-s'),
+        measT: document.getElementById('meas-t'),
+        measStat: document.getElementById('meas-status'),
+        
+        btnStart: document.getElementById('btn-start'),
+        btnReset: document.getElementById('btn-reset'),
+        btnRec: document.getElementById('btn-record')
+    };
+
+    function updateSetup() {
+        if(isRunning) return;
+
+        S = parseFloat(els.inpS.value);
+        M = parseFloat(els.inpM.value);
+        m = parseFloat(els.inpm.value);
+
+        els.valS.innerText = S.toFixed(2);
+        els.valM.innerText = M.toFixed(2);
+        els.valm.innerText = m.toFixed(2);
+        
+        els.measS.innerText = S.toFixed(2);
+        els.measT.innerText = "0.000";
+        
+        els.txtCartM.textContent = M.toFixed(2) + " кг";
+        els.txtHangerM.textContent = (m * 1000).toFixed(0) + " г";
+        
+        // Визуальное обновление положения маркера финиша
+        // Начало пути каретки: x=100.
+        const endPx = 100 + (S * MAX_VISUAL_DIST_PX);
+        els.endMarker.setAttribute('x1', endPx);
+        els.endMarker.setAttribute('x2', endPx);
+        els.distTick.setAttribute('x1', endPx);
+        els.distTick.setAttribute('x2', endPx);
+        els.distLine.setAttribute('x2', endPx);
+        els.distText.setAttribute('x', 100 + (S * MAX_VISUAL_DIST_PX)/2);
+        els.distText.textContent = `S = ${S.toFixed(2)} м`;
+
+        // Сброс позиций объектов
+        positionObjects(0);
+        
+        els.btnStart.disabled = false;
+        els.btnReset.disabled = true;
+        els.btnRec.disabled = true;
+        
+        const t = dict[currentLang];
+        els.measStat.innerText = t.statReady;
+        els.measStat.style.color = "#ecf0f1";
+    }
+
+    function positionObjects(distM) {
+        // distM - пройденный путь в метрах
+        const distPx = distM * MAX_VISUAL_DIST_PX;
+        
+        // Каретка едет вправо
+        els.cartGrp.setAttribute('transform', `translate(${100 + distPx}, 190)`);
+        // Нитка укорачивается (она нарисована внутри группы каретки)
+        // Изначально конец нитки был на x=600. По мере сдвига вправо на distPx, длина должна стать 600 - distPx.
+        els.strHoriz.setAttribute('x2', 600 - distPx);
+        
+        // Грузик едет вниз
+        els.hangerGrp.setAttribute('transform', `translate(715, ${220 + distPx})`);
+        // Вертикальная нитка "удлиняется" (ее верхний конец остается у шкива)
+        if (els.strVert) {
+            els.strVert.setAttribute('y1', -distPx);
+        }
+    }
+
+    function startSim() {
+        if(isRunning) return;
+        isRunning = true;
+        
+        els.btnStart.disabled = true;
+        els.inpS.disabled = true;
+        els.inpM.disabled = true;
+        els.inpm.disabled = true;
+        
+        const t = dict[currentLang];
+        els.measStat.innerText = t.statRun;
+        els.measStat.style.color = "var(--warning)";
+
+        // Физика
+        const a_true = (m * G) / (M + m);
+        finalTime = Math.sqrt((2 * S) / a_true);
+        
+        startTime = performance.now();
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function animate(now) {
+        if (!isRunning) return;
+        
+        let elapsed = (now - startTime) / 1000; // секунды
+        
+        if (elapsed < finalTime) {
+            // Текущее расстояние: d = a*t^2/2
+            const a_true = (m * G) / (M + m);
+            let currentDist = (a_true * Math.pow(elapsed, 2)) / 2;
+            
+            positionObjects(currentDist);
+            els.measT.innerText = elapsed.toFixed(3);
+            
+            animFrame = requestAnimationFrame(animate);
+        } else {
+            // Финиш
+            positionObjects(S);
+            
+            // Добавляем микро-шум к времени для реалистичности измерений (+- 0.005 с)
+            const noise = (Math.random() - 0.5) * 0.01;
+            finalTime = finalTime + noise;
+            
+            els.measT.innerText = finalTime.toFixed(3);
+            
+            finishSim();
+        }
+    }
+
+    function finishSim() {
+        isRunning = false;
+        els.btnReset.disabled = false;
+        els.btnRec.disabled = false;
+        
+        const t = dict[currentLang];
+        els.measStat.innerText = t.statDone;
+        els.measStat.style.color = "var(--success)";
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        els.inpS.disabled = false;
+        els.inpM.disabled = false;
+        els.inpm.disabled = false;
+        updateSetup();
+    }
+
+    function recordData() {
+        els.btnRec.disabled = true;
+        currentExpCount++;
+        
+        // Расчет правильных значений для проверки
+        const F_true = (m * G).toFixed(2);
+        const a_calc = ((2 * S) / Math.pow(finalTime, 2)).toFixed(2); // то что должен насчитать студент
+        
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td>${currentExpCount}</td>
+            <td>${S.toFixed(2)}</td>
+            <td>${M.toFixed(2)}</td>
+            <td>${m.toFixed(2)}</td>
+            <td>${finalTime.toFixed(3)}</td>
+            <td><input type="text" class="calc-input f-val" data-ans="${F_true}"></td>
+            <td><input type="text" class="calc-input a-val" data-ans="${a_calc}"></td>
+        `;
+        
+        tbody.appendChild(row);
+        
+        const wrapper = document.querySelector('.table-wrap');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function checkMath() {
+        const rows = document.querySelectorAll('#data-table tbody tr');
+        rows.forEach(row => {
+            const fInput = row.querySelector('.f-val');
+            const aInput = row.querySelector('.a-val');
+
+            if (fInput) validate(fInput, fInput.dataset.ans, 0.02);
+            if (aInput) validate(aInput, aInput.dataset.ans, 0.05); // Погрешность для ускорения чуть больше
+        });
+    }
+
+    function validate(input, correctVal, tolerance) {
+        if(input.value.trim() === "") return;
+        const userVal = parseFloat(input.value.replace(',', '.'));
+        const target = parseFloat(correctVal);
+        
+        const error = Math.abs(userVal - target);
+
+        if (!isNaN(userVal) && error <= tolerance) {
+            input.classList.add('correct');
+            input.classList.remove('incorrect');
+        } else {
+            input.classList.add('incorrect');
+            input.classList.remove('correct');
+        }
+    }
+
+    // Инициализация при старте
+    setLang('ru');
+    updateSetup();
+
+</script>
+</body>
+</html>

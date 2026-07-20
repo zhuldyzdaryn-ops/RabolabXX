@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Зависимость скорости от пути</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --fric-stat: #e74c3c;
+            --fric-slide: #3498db;
+            --fric-roll: #27ae60;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active {
+            background: var(--accent);
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--primary);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg { width: 100%; height: 300px; display: block; cursor: default; }
+
+        /* SVG Specifics for Kinematics */
+        .rail { fill: #e2e8f0; stroke: #95a5a6; stroke-width: 2; }
+        .rail-top { stroke: #bdc3c7; stroke-width: 2; }
+        .stopper { fill: #e74c3c; stroke: #c0392b; rx: 3px; } 
+        .cart { fill: #3498db; stroke: #2980b9; stroke-width: 2;}
+        .wheel { fill: #2c3e50; }
+        .block-sensor { fill: #f39c12; stroke: #d68910; stroke-width: 1.5; } 
+        
+        .sensor-body { fill: #f1c40f; stroke: #d68910; cursor: ew-resize; stroke-width: 2;}
+        .sensor-body:hover { fill: #f39c12; }
+        .sensor-beam { stroke: #e74c3c; stroke-width: 3; stroke-dasharray: 5; opacity: 0; }
+        
+        .stand { fill: #bdc3c7; stroke: #95a5a6; stroke-width: 2; rx: 2px;}
+        .floor { stroke: #7f8c8d; stroke-width: 3; stroke-dasharray: 10; }
+
+        .measure-line { stroke: #3498db; stroke-width: 2; marker-end: url(#arrow); marker-start: url(#arrow); }
+        .measure-text { fill: #2980b9; font-weight: bold; font-size: 14px; text-anchor: middle; background: white;}
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .controls { grid-template-columns: 1fr; }
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group { display: flex; gap: 10px; }
+        .btn {
+            flex: 1; padding: 10px; border: none; border-radius: 5px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: #27ae60; } .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #e67e22; } .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); } .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-check { background: #f39c12; margin-top: 10px; } .btn-check:hover:not(:disabled) { background: #d68910; }
+
+        /* --- DISPLAYS --- */
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .display-item { text-align: center; flex: 1; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; margin-bottom: 5px;}
+        .display-item strong { font-size: 1.3rem; font-family: 'Courier New', monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        .calc-input {
+            width: 70px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-weight: bold;
+            color: var(--primary);
+            outline: none;
+        }
+        .calc-input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        .calc-input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        /* --- CHART --- */
+        .chart-container {
+            position: relative;
+            min-height: 250px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Зависимость скорости от пути</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- TOP PANEL: Intro -->
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Зависимость скорости от пройденного пути при равноускоренном движении</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Экспериментально проверить зависимость квадрата скорости от пройденного пути при движении тела с постоянным ускорением.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Изменяйте высоту скамьи и пройденный путь (перемещая датчик мышью).</li>
+            <li>Нажмите «Запустить» и зафиксируйте время прохождения флажка через датчик.</li>
+            <li>Занесите точку в таблицу. Вычислите квадрат скорости.</li>
+            <li>Постройте график зависимости и убедитесь, что он представляет собой прямую линию.</li>
+        </ul>
+    </div>
+
+    <!-- LEFT PANEL: Simulation -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg id="scene" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+                        <path d="M0,2 L8,5 L0,8 z" fill="#3498db" />
+                    </marker>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="1" opacity="0.5"/>
+                    </pattern>
+                </defs>
+                
+                <rect width="100%" height="100%" fill="url(#grid)" />
+                <line x1="50" y1="300" x2="750" y2="300" class="floor" />
+
+                <!-- Стойка -->
+                <g id="stand-group">
+                    <rect x="-6" y="0" width="12" height="100" class="stand" id="stand-pole" />
+                    <text x="15" y="50" font-size="16" font-weight="bold" fill="#7f8c8d" id="h-label">h</text>
+                </g>
+
+                <!-- Наклонная плоскость (Скамья) -->
+                <g id="rail-system" transform="translate(100, 300) rotate(-5)">
+                    <rect x="-10" y="-15" width="670" height="25" class="rail" rx="4" />
+                    <line x1="-10" y1="-15" x2="660" y2="-15" class="rail-top" />
+                    
+                    <rect x="-10" y="-40" width="15" height="50" class="stopper" />
+
+                    <g id="ruler-marks"></g>
+
+                    <!-- Фотодатчик -->
+                    <g id="sensor-group" transform="translate(300, 0)">
+                        <rect x="-20" y="-55" width="40" height="70" fill="transparent" style="cursor: ew-resize;" id="sensor-drag-area"/>
+                        <path d="M-12,-45 L-12,5 L12,5 L12,-45 L8,-45 L8,-5 L-8,-5 L-8,-45 Z" class="sensor-body" style="pointer-events: none;"/>
+                        <line id="beam" x1="0" y1="-35" x2="0" y2="-5" class="sensor-beam" style="pointer-events: none;"/>
+                    </g>
+
+                    <!-- Тележка -->
+                    <g id="cart-group" transform="translate(600, -32)">
+                        <rect x="-35" y="-5" width="70" height="24" class="cart" rx="6" />
+                        <circle cx="-20" cy="22" r="7" class="wheel" />
+                        <circle cx="20" cy="22" r="7" class="wheel" />
+                        <rect id="block" x="-10" y="-23" width="20" height="18" class="block-sensor" rx="2"/>
+                    </g>
+
+                    <!-- Линия измерения -->
+                    <g transform="translate(0, 40)">
+                        <line id="measure-line" x1="600" y1="0" x2="300" y2="0" class="measure-line" />
+                        <text id="measure-text" x="450" y="-8" class="measure-text">S = 0.30 м</text>
+                    </g>
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-angle">Высота скамьи h (см): <span id="val-angle" style="color:var(--accent); float:right;">15</span></label>
+                <input type="range" id="angle-range" min="5" max="30" value="15" step="1" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-flag">Ширина флажка L (мм): <span id="val-flag" style="color:var(--accent); float:right;">20</span></label>
+                <input type="range" id="flag-range" min="10" max="50" value="20" step="5" oninput="updateSetup()">
+            </div>
+            <div class="control-group">
+                <label id="lbl-dist">Пройденный путь S (м): <span id="val-s" style="color:var(--accent); float:right;">0.30</span></label>
+                <input type="range" id="dist-range" min="0.1" max="0.55" value="0.30" step="0.05" oninput="updateSetup()">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-v">Мгновенная скорость v (м/с)</span>
+                <strong id="meas-v">0.00</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-dt">Время в датчике Δt (с)</span>
+                <strong id="meas-dt" style="color: #ecf0f1;">0.0000</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status">Статус</span>
+                <strong id="meas-status" style="color: #ecf0f1; font-size: 1.1rem; margin-top: 5px;">Готов к запуску</strong>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSim()">Запустить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()" disabled>Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM PANEL: Data & Theory -->
+    <div class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th id="th-s">S (м)</th>
+                                <th id="th-dt">Δt (с)</th>
+                                <th id="th-v">v (м/с)</th>
+                                <th id="th-v2">v² (м²/с²)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Данные будут здесь -->
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-check" id="btn-check" onclick="checkMath()">Проверить расчеты v²</button>
+            </div>
+
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">График зависимости v² от S</h2>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+                <p id="lbl-chart-hint" style="font-size:0.8rem; color:#7f8c8d; margin-top:10px; text-align: center;">
+                    Точки должны ложиться на прямую линию, проходящую через начало координат.
+                </p>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формула для расчета:</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ТЕКСТЫ И ФОРМУЛЫ ---
+    const formulaMath = `v = <div class="frac"><span>L</span><span class="bottom">Δt</span></div> ; &nbsp;&nbsp; v² = 2aS`;
+
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Зависимость скорости от пути",
+            themeLbl: "Тема:",
+            themeTxt: "Зависимость скорости от пройденного пути при равноускоренном движении",
+            goalLbl: "Цель работы:",
+            goalTxt: "Экспериментально проверить зависимость квадрата скорости от пройденного пути при движении тела с постоянным ускорением.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: `При равноускоренном движении без начальной скорости (v₀ = 0) справедливо соотношение:<br>
+                        <b>v² = 2aS</b><br>
+                        Это уравнение прямой вида y = kx, где y = v², x = S, а коэффициент наклона k = 2a.<br>
+                        Мгновенную скорость тележки можно найти, измерив время Δt прохождения флажка шириной L через фотодатчик: <b>v = L / Δt</b>.`,
+            procLbl: "Ход работы:",
+            procList: [
+                "Установите высоту скамьи и пройденный путь (желтый датчик можно перетаскивать мышью).",
+                "Нажмите «Запустить» и дождитесь окончания движения.",
+                "Занесите данные в таблицу кнопкой «Записать».",
+                "Самостоятельно рассчитайте квадрат скорости v² и впишите в ячейку. Нажмите «Проверить расчеты».",
+                "Проанализируйте полученный график. Убедитесь, что зависимость v²(S) линейна."
+            ],
+            sim: "Симуляция эксперимента",
+            angleLbl: "Высота скамьи h (см):",
+            flagLbl: "Ширина флажка L (мм):",
+            distLbl: "Пройденный путь S (м):",
+            dispV: "Мгновенная скорость v (м/с)",
+            dispDt: "Время в датчике Δt (с)",
+            dispStatus: "Статус",
+            btnStart: "Запустить",
+            btnReset: "Сброс",
+            btnRecord: "Записать в таблицу",
+            btnCheck: "Проверить расчеты v²",
+            journal: "Таблица измерений",
+            thS: "S (м)", thDt: "Δt (с)", thV: "v (м/с)", thV2: "v² (расчет)",
+            chartTitle: "График зависимости v² от S",
+            chartHint: "Точки должны ложиться на прямую линию, проходящую через начало координат.",
+            theoryTitle: "Формулы для расчета (выполняет ученик):",
+            theoryFormulas: formulaMath,
+            
+            statReady: "Готов к запуску",
+            statRunning: "В движении...",
+            statSensor: "В датчике!",
+            statDone: "Завершено"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Жылдамдықтың жүрілген жолға тәуелділігі",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Теңайнымалы қозғалыс кезіндегі жылдамдықтың жүрілген жолға тәуелділігі",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Тұрақты үдеумен қозғалатын дененің жылдамдық квадратының жүрілген жолға тәуелділігін эксперимент жүзінде тексеру.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: `Бастапқы жылдамдықсыз (v₀ = 0) теңайнымалы қозғалыс үшін мына қатынас орындалады:<br>
+                        <b>v² = 2aS</b><br>
+                        Бұл y = kx түріндегі түзудің теңдеуі, мұндағы y = v², x = S, ал көлбеу коэффициенті k = 2a.<br>
+                        Арбашаның лездік жылдамдығын фотодатчик арқылы ені L жалаушаның өту уақытын Δt өлшеу арқылы табуға болады: <b>v = L / Δt</b>.`,
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Орындық биіктігін және жүрілген жолды орнатыңыз (сары датчикті тышқанмен жылжытуға болады).",
+                "«Бастау» түймесін басып, қозғалыстың аяқталуын күтіңіз.",
+                "«Жазу» түймесі арқылы деректерді кестеге енгізіңіз.",
+                "v² жылдамдық квадратын өзіңіз есептеп, ұяшыққа жазыңыз. «Есептеулерді тексеру» түймесін басыңыз.",
+                "Алынған графикті талдаңыз. v²(S) тәуелділігінің сызықтық екеніне көз жеткізіңіз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            angleLbl: "Орындық биіктігі h (см):",
+            flagLbl: "Жалауша ені L (мм):",
+            distLbl: "Жүрілген жол S (м):",
+            dispV: "Лездік жылдамдық v (м/с)",
+            dispDt: "Датчиктегі уақыт Δt (с)",
+            dispStatus: "Статус",
+            btnStart: "Бастау",
+            btnReset: "Қалпына келтіру",
+            btnRecord: "Кестеге жазу",
+            btnCheck: "v² есептеулерін тексеру",
+            journal: "Өлшеулер кестесі",
+            thS: "S (м)", thDt: "Δt (с)", thV: "v (м/с)", thV2: "v² (есептеу)",
+            chartTitle: "v² S-ке тәуелділік графигі",
+            chartHint: "Нүктелер координаттар басынан өтетін түзу сызық бойында орналасуы тиіс.",
+            theoryTitle: "Есептеу формулалары (оқушы орындайды):",
+            theoryFormulas: formulaMath,
+            
+            statReady: "Бастауға дайын",
+            statRunning: "Қозғалыста...",
+            statSensor: "Датчикте!",
+            statDone: "Аяқталды"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function setLang(lang) {
+        currentLang = lang;
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        const t = dict[lang];
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerHTML = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => {
+            let li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-angle').childNodes[0].nodeValue = t.angleLbl + " ";
+        document.getElementById('lbl-flag').childNodes[0].nodeValue = t.flagLbl + " ";
+        document.getElementById('lbl-dist').childNodes[0].nodeValue = t.distLbl + " ";
+        
+        document.getElementById('disp-v').innerText = t.dispV;
+        document.getElementById('disp-dt').innerText = t.dispDt;
+        document.getElementById('disp-status').innerText = t.dispStatus;
+        
+        document.getElementById('btn-start').innerText = t.btnStart;
+        document.getElementById('btn-reset').innerText = t.btnReset;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-check').innerText = t.btnCheck;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-s').innerText = t.thS;
+        document.getElementById('th-dt').innerText = t.thDt;
+        document.getElementById('th-v').innerText = t.thV;
+        document.getElementById('th-v2').innerText = t.thV2;
+        
+        document.getElementById('lbl-chart').innerText = t.chartTitle;
+        document.getElementById('lbl-chart-hint').innerText = t.chartHint;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+        document.getElementById('lbl-theory-formulas').innerHTML = t.theoryFormulas;
+
+        if(!isRunning) document.getElementById('meas-status').innerText = t.statReady;
+
+        chartObj.options.plugins.title.text = t.chartTitle;
+        chartObj.options.scales.x.title.text = t.thS;
+        chartObj.options.scales.y.title.text = t.thV2;
+        chartObj.update();
+    }
+
+    // --- PHYSICS & SIMULATION LOGIC ---
+    const PIXELS_PER_METER = 1000; 
+    const START_POS_X = 600; 
+    const STOP_POS_X = 35; // Wall hit position
+    const PIVOT_X = 100;
+    const PIVOT_Y = 300; // Adjusted for height 350px
+    const G = 9.81;
+
+    let h_cm = 15;
+    let distanceS = 0.30; 
+    let flagWidthMm = 20;
+    
+    let isRunning = false;
+    let isDragging = false;
+    let animFrame;
+    
+    let measuredDt = 0;
+    let measuredV = 0;
+    let points = []; 
+
+    // DOM Elements
+    const ui = {
+        rail: document.getElementById('rail-system'),
+        cart: document.getElementById('cart-group'),
+        block: document.getElementById('block'),
+        sensor: document.getElementById('sensor-group'),
+        beam: document.getElementById('beam'),
+        dragArea: document.getElementById('sensor-drag-area'),
+        
+        standGrp: document.getElementById('stand-group'),
+        standPole: document.getElementById('stand-pole'),
+        hLabel: document.getElementById('h-label'),
+        
+        measureLine: document.getElementById('measure-line'),
+        measureText: document.getElementById('measure-text'),
+        
+        svg: document.getElementById('scene'),
+        distRange: document.getElementById('dist-range')
+    };
+
+    function updateSetup() {
+        if(isRunning) return;
+
+        h_cm = parseFloat(document.getElementById('angle-range').value);
+        flagWidthMm = parseFloat(document.getElementById('flag-range').value);
+        
+        if(!isDragging) {
+            distanceS = parseFloat(ui.distRange.value);
+        }
+
+        const L_rail_m = START_POS_X / PIXELS_PER_METER; 
+        const angleRad = Math.asin((h_cm/100) / L_rail_m); 
+        const angleDeg = angleRad * 180 / Math.PI;
+
+        document.getElementById('val-angle').innerText = h_cm;
+        document.getElementById('val-flag').innerText = flagWidthMm;
+        document.getElementById('val-s').innerText = distanceS.toFixed(2);
+
+        // Rotation
+        ui.rail.setAttribute('transform', `translate(${PIVOT_X}, ${PIVOT_Y}) rotate(${-angleDeg})`);
+
+        // Stand position
+        const railEndX = PIVOT_X + START_POS_X * Math.cos(angleRad);
+        const railEndY = PIVOT_Y - START_POS_X * Math.sin(angleRad);
+        ui.standGrp.setAttribute('transform', `translate(${railEndX}, 0)`);
+        const standH = 300 - railEndY + 20; 
+        ui.standPole.setAttribute('y', 300 - standH);
+        ui.standPole.setAttribute('height', standH);
+        ui.hLabel.setAttribute('y', 300 - standH/2);
+
+        // Sensor & Flag position
+        const sPx = distanceS * PIXELS_PER_METER;
+        const sensorX = START_POS_X - sPx;
+        ui.sensor.setAttribute('transform', `translate(${sensorX}, 0)`);
+        
+        ui.block.setAttribute('width', flagWidthMm);
+        ui.block.setAttribute('x', -flagWidthMm/2); 
+
+        // Measure line
+        ui.measureLine.setAttribute('x1', START_POS_X);
+        ui.measureLine.setAttribute('x2', sensorX);
+        ui.measureText.setAttribute('x', START_POS_X - sPx/2);
+        ui.measureText.textContent = `S = ${distanceS.toFixed(2)} м`;
+
+        resetSimUI();
+    }
+
+    function resetSimUI() {
+        ui.cart.setAttribute('transform', `translate(${START_POS_X}, -32)`);
+        document.getElementById('meas-v').innerText = "0.00";
+        document.getElementById('meas-dt').innerText = "0.0000";
+        document.getElementById('meas-dt').style.color = "#ecf0f1";
+        
+        ui.beam.style.opacity = 0;
+        
+        document.getElementById('meas-status').innerText = dict[currentLang].statReady;
+        document.getElementById('meas-status').style.color = "#ecf0f1";
+        
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('btn-record').disabled = true;
+    }
+
+    function resetSim() {
+        cancelAnimationFrame(animFrame);
+        isRunning = false;
+        document.getElementById('angle-range').disabled = false;
+        document.getElementById('flag-range').disabled = false;
+        document.getElementById('dist-range').disabled = false;
+        document.getElementById('btn-reset').disabled = true;
+        resetSimUI();
+    }
+
+    function startSim() {
+        if(isRunning) return;
+        isRunning = true;
+        
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-reset').disabled = true;
+        document.getElementById('btn-record').disabled = true;
+        
+        // Disable inputs during run
+        document.getElementById('angle-range').disabled = true;
+        document.getElementById('flag-range').disabled = true;
+        document.getElementById('dist-range').disabled = true;
+
+        document.getElementById('meas-status').innerText = dict[currentLang].statRunning;
+        document.getElementById('meas-status').style.color = "#3498db";
+
+        const L_rail_m = START_POS_X / PIXELS_PER_METER;
+        const angleRad = Math.asin((h_cm/100) / L_rail_m);
+        const a = G * Math.sin(angleRad);
+        const L_flag_m = flagWidthMm / 1000;
+        
+        const distFrontHit = distanceS - L_flag_m/2;
+        const distBackHit = distanceS + L_flag_m/2;
+        
+        if(distFrontHit < 0) { resetSim(); return; }
+
+        const t_front = Math.sqrt(2 * distFrontHit / a);
+        const t_back = Math.sqrt(2 * distBackHit / a);
+        const dt_theo = t_back - t_front;
+        
+        // Sensor noise
+        const noise = 1 + (Math.random() - 0.5) * 0.02;
+        measuredDt = dt_theo * noise;
+        measuredV = L_flag_m / measuredDt;
+        
+        const distToStopM = (START_POS_X - STOP_POS_X) / PIXELS_PER_METER;
+        const t_stop = Math.sqrt(2 * distToStopM / a);
+
+        let startTime = performance.now();
+
+        function animate(now) {
+            const elapsed = (now - startTime) / 1000;
+            const currentTime = Math.min(elapsed, t_stop);
+            
+            const distM = 0.5 * a * currentTime * currentTime;
+            const distPx = distM * PIXELS_PER_METER;
+            let currentX = START_POS_X - distPx;
+            
+            if (currentX < STOP_POS_X) currentX = STOP_POS_X;
+            ui.cart.setAttribute('transform', `translate(${currentX}, -32)`);
+            
+            // Laser beam logic
+            if (currentTime < t_stop) {
+                if(currentTime >= t_front && currentTime <= t_back) {
+                    ui.beam.style.opacity = 1;
+                    document.getElementById('meas-dt').style.color = "#e74c3c";
+                    document.getElementById('meas-status').innerText = dict[currentLang].statSensor;
+                    document.getElementById('meas-status').style.color = "#f1c40f";
+                } else {
+                    ui.beam.style.opacity = 0;
+                    if(currentTime > t_back) {
+                        document.getElementById('meas-status').innerText = dict[currentLang].statRunning;
+                        document.getElementById('meas-status').style.color = "#3498db";
+                    }
+                }
+            }
+
+            // Results display
+            if(currentTime > t_back) {
+                document.getElementById('meas-dt').style.color = "#2ecc71";
+                document.getElementById('meas-dt').innerText = measuredDt.toFixed(4);
+                document.getElementById('meas-v').innerText = measuredV.toFixed(2);
+            }
+
+            // Stop condition
+            if(elapsed >= t_stop) {
+                finishSim();
+            } else {
+                animFrame = requestAnimationFrame(animate);
+            }
+        }
+        animFrame = requestAnimationFrame(animate);
+    }
+
+    function finishSim() {
+        isRunning = false;
+        document.getElementById('btn-reset').disabled = false;
+        document.getElementById('btn-record').disabled = false;
+        document.getElementById('meas-status').innerText = dict[currentLang].statDone;
+        document.getElementById('meas-status').style.color = "#2ecc71";
+        ui.beam.style.opacity = 0;
+    }
+
+    ui.dragArea.addEventListener('mousedown', startDrag);
+    ui.dragArea.addEventListener('touchstart', startDrag, {passive: false});
+
+    function startDrag(evt) {
+        if(isRunning) return;
+        isDragging = true;
+        evt.preventDefault();
+    }
+
+    window.addEventListener('mousemove', dragSensor);
+    window.addEventListener('touchmove', dragSensor, {passive: false});
+
+    function dragSensor(evt) {
+        if(!isDragging) return;
+        
+        let clientX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+        let clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+        
+        const pt = ui.svg.createSVGPoint();
+        pt.x = clientX; pt.y = clientY;
+        const loc = pt.matrixTransform(ui.svg.getScreenCTM().inverse());
+        
+        // Coords relative to rotated rail
+        let s = (START_POS_X - loc.x) / PIXELS_PER_METER;
+        
+        if(s < 0.1) s = 0.1;
+        if(s > 0.55) s = 0.55;
+        
+        ui.distRange.value = s;
+        updateSetup();
+    }
+
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('touchend', () => isDragging = false);
+
+    function recordData() {
+        if(measuredV === 0) return;
+        
+        document.getElementById('btn-record').disabled = true;
+        
+        const v2_correct = (measuredV * measuredV).toFixed(2);
+        
+        const tbody = document.querySelector('#data-table tbody');
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td>${tbody.children.length + 1}</td>
+            <td>${distanceS.toFixed(2)}</td>
+            <td>${measuredDt.toFixed(4)}</td>
+            <td>${measuredV.toFixed(2)}</td>
+            <td><input type="text" class="calc-input v2-input" data-ans="${v2_correct}"></td>
+        `;
+        tbody.appendChild(row);
+
+        // Add to graph
+        points.push({x: distanceS, y: parseFloat(v2_correct)});
+        updateChart();
+        
+        const wrapper = document.querySelector('.table-wrap');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function checkMath() {
+        const inputs = document.querySelectorAll('.calc-input');
+        inputs.forEach(input => {
+            if(input.value.trim() === "") return;
+            
+            const userVal = parseFloat(input.value.replace(',', '.'));
+            const target = parseFloat(input.dataset.ans);
+            
+            // Allow small rounding error
+            if (!isNaN(userVal) && Math.abs(userVal - target) <= 0.05) {
+                input.classList.add('correct');
+                input.classList.remove('incorrect');
+            } else {
+                input.classList.add('incorrect');
+                input.classList.remove('correct');
+            }
+        });
+    }
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chartObj = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Эксперимент',
+                    data: [],
+                    backgroundColor: '#3498db',
+                    borderColor: '#2980b9',
+                    borderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    order: 1
+                },
+                {
+                    label: 'Тренд',
+                    data: [],
+                    type: 'line',
+                    borderColor: '#e74c3c',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0,
+                    order: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'linear',
+                    title: { display: true, text: 'S (м)', font: {weight: 'bold'} },
+                    min: 0, max: 0.6,
+                    grid: { color: '#e2e8f0' }
+                },
+                y: {
+                    title: { display: true, text: 'v² (м²/с²)', font: {weight: 'bold'} },
+                    min: 0,
+                    grid: { color: '#e2e8f0' }
+                }
+            },
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    function updateChart() {
+        points.sort((a, b) => a.x - b.x);
+        chartObj.data.datasets[0].data = points;
+        
+        // Trend line (y = kx)
+        if(points.length > 0) {
+            let sxy=0, sxx=0;
+            points.forEach(p => { sxy += p.x*p.y; sxx += p.x*p.x; });
+            const slope = sxx !== 0 ? (sxy/sxx) : 0;
+            const maxS = Math.max(0.6, ...points.map(p=>p.x));
+            
+            chartObj.data.datasets[1].data = [
+                {x: 0, y: 0},
+                {x: maxS, y: slope * maxS}
+            ];
+            
+            const maxYData = Math.max(...points.map(p=>p.y));
+            chartObj.options.scales.y.max = Math.max(maxYData * 1.2, 1);
+        } else {
+            chartObj.data.datasets[1].data = [];
+            chartObj.options.scales.y.max = undefined;
+        }
+        
+        chartObj.update();
+    }
+
+    // Ruler generator
+    function createRuler() {
+        const g = document.getElementById('ruler-marks');
+        for(let i=0; i<=0.6; i+=0.1) {
+            const x = START_POS_X - (i * PIXELS_PER_METER);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x); line.setAttribute("y1", -15);
+            line.setAttribute("x2", x); line.setAttribute("y2", -7);
+            line.setAttribute("stroke", "#95a5a6");
+            line.setAttribute("stroke-width", 2);
+            g.appendChild(line);
+            
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", x); text.setAttribute("y", 5);
+            text.setAttribute("font-size", "11");
+            text.setAttribute("font-weight", "bold");
+            text.setAttribute("fill", "#7f8c8d");
+            text.setAttribute("text-anchor", "middle");
+            text.textContent = (i*100).toFixed(0);
+            g.appendChild(text);
+        }
+    }
+
+    // Initialize
+    createRuler();
+    setLang('ru');
+    updateSetup();
+
+</script>
+</body>
+</html>
