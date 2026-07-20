@@ -3,583 +3,1136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Лабораторная работа: Зависимость периода колебания нитяного маятника от массы груза</title>
+    <title>Лабораторная работа: Период и масса груза</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary: #2c3e50;
-            --accent: #e67e22; /* Оранжевый акцент */
+            --accent: #e67e22;
+            --accent-dark: #ca6f1e;
+            --success: #27ae60;
+            --warning: #e67e22;
             --bg: #f4f7f6;
             --panel: #ffffff;
             --text: #34495e;
-            --radius: 8px;
+            --border: #bdc3c7;
         }
+
+        * { box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            background-color: var(--bg);
+            min-height: 100vh;
+            background: var(--bg);
             color: var(--text);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* --- HEADER --- */
         header {
-            background-color: var(--primary);
+            position: relative;
+            padding: 15px 20px;
+            background: var(--primary);
             color: white;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
-        h1 { margin: 0; font-size: 1.2rem; }
+        h1 {
+            max-width: 78%;
+            margin: 0;
+            font-size: 1.3rem;
+        }
 
         .lang-switch {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.4);
+            position: absolute;
+            top: 12px;
+            right: 20px;
+            display: flex;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .lang-btn {
+            padding: 6px 15px;
+            border: 0;
+            background: transparent;
             color: white;
-            padding: 5px 12px;
-            border-radius: 4px;
-            cursor: pointer;
             font-weight: bold;
-            transition: 0.2s;
-        }
-        .lang-switch:hover { background: rgba(255,255,255,0.3); }
-
-        /* --- MAIN LAYOUT --- */
-        .main-wrapper {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            padding: 10px;
-            gap: 15px;
+            cursor: pointer;
         }
 
-        /* --- SIDEBAR --- */
-        .sidebar {
-            width: 380px;
+        .lang-btn.active { background: var(--accent); }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .intro-box,
+        .panel {
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 10px;
             background: var(--panel);
-            border-radius: var(--radius);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
 
-        .tabs { display: flex; background: #ecf0f1; }
-        .tab-btn {
-            flex: 1; padding: 12px; border: none; background: none;
-            cursor: pointer; font-weight: 600; color: #7f8c8d;
-            border-bottom: 3px solid transparent;
-        }
-        .tab-btn.active {
-            background: #fff; color: var(--primary); border-bottom-color: var(--accent);
+        .intro-box { border-left: 5px solid var(--primary); }
+
+        .intro-box p {
+            margin: 7px 0;
+            font-size: 0.95rem;
+            line-height: 1.55;
         }
 
-        .tab-content { padding: 20px; overflow-y: auto; flex: 1; display: none; }
-        .tab-content.active { display: block; }
-
-        /* --- CONTROLS --- */
-        .control-group { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; }
-        
-        select, input[type="range"] { 
-            width: 100%; padding: 8px; border: 1px solid #ccc; 
-            border-radius: 4px; cursor: pointer; 
-        }
-        
-        .val-display { float: right; font-weight: bold; color: var(--accent); }
-
-        .btn {
-            width: 100%; padding: 12px; border: none; border-radius: 4px;
-            cursor: pointer; font-weight: bold; margin-bottom: 10px; transition: 0.2s; color: white;
-        }
-        .btn-reset { background-color: #c0392b; }
-        .btn-reset:hover { background-color: #a93226; }
-        .btn-record { background-color: var(--primary); }
-        .btn-record:hover { background-color: #1a252f; }
-
-        .formula-box {
-            background: #fdf2e9; border-left: 4px solid var(--accent);
-            padding: 10px; margin: 10px 0; font-family: monospace; text-align: center;
+        .intro-box ul {
+            margin: 5px 0 0 20px;
+            padding: 0;
+            font-size: 0.95rem;
+            line-height: 1.55;
         }
 
-        /* --- SIMULATION --- */
-        .sim-container {
-            flex: 1;
-            background: radial-gradient(circle at center, #ffffff, #eaecee);
-            border-radius: var(--radius);
-            border: 1px solid #dcdcdc;
+        .intro-label {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .panel-title {
+            margin: 0 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--bg);
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .sim-area {
             position: relative;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
+            margin-bottom: 18px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: linear-gradient(#f9fbfc, #e8eef1);
         }
 
-        svg { width: 100%; height: 100%; cursor: default; }
-
-        /* SVG Elements */
-        .thread { stroke: #7f8c8d; stroke-width: 2; }
-        .pivot-bar { stroke: #2c3e50; stroke-width: 6; stroke-linecap: round; }
-        .sensor-beam { stroke: #e74c3c; stroke-width: 1; stroke-dasharray: 4; opacity: 0.4; }
-        
-        /* Digital Display */
-        .digital-display {
-            position: absolute; top: 20px; right: 20px;
-            background: #34495e; color: #2ecc71;
-            padding: 15px; border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            border: 2px solid #2c3e50;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            min-width: 160px;
-        }
-        .display-label { color: #bdc3c7; font-size: 0.8rem; display: block; }
-        .display-val { font-size: 1.5rem; font-weight: bold; }
-        .display-sub { font-size: 0.8rem; color: #fff; border-top: 1px solid #555; margin-top: 5px; padding-top: 5px;}
-
-        /* Hint */
-        .hint {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.7); color: white; padding: 8px 16px;
-            border-radius: 20px; pointer-events: none; opacity: 1; font-size: 0.9rem; transition: opacity 0.5s;
+        #sim-svg {
+            display: block;
+            width: 100%;
+            height: 430px;
+            touch-action: none;
         }
 
-        /* Table */
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
-        th { background-color: #ecf0f1; }
+        .pivot-bar {
+            stroke: #7f8c8d;
+            stroke-width: 12;
+            stroke-linecap: round;
+        }
 
+        .pivot { fill: #2c3e50; }
+        .thread { stroke: #34495e; stroke-width: 3; }
+
+        .ball {
+            fill: url(#ball-gradient);
+            stroke: #784212;
+            stroke-width: 2;
+            cursor: default;
+        }
+
+        .ball:active { cursor: default; }
+
+        .center-line {
+            stroke: #e74c3c;
+            stroke-width: 1.5;
+            stroke-dasharray: 6 5;
+            opacity: 0.55;
+        }
+
+        .protractor-line { stroke: #aab7b8; stroke-width: 1; }
+
+        .protractor-label {
+            fill: #7f8c8d;
+            font-size: 11px;
+            font-weight: bold;
+            text-anchor: middle;
+        }
+
+        .angle-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            min-width: 96px;
+            padding: 7px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--accent);
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+        }
+
+        .sim-hint {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            max-width: 270px;
+            padding: 7px 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #6c7a7a;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 18px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+
+        .control-group label {
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .control-value {
+            float: right;
+            color: var(--accent);
+        }
+
+        .constant-box {
+            justify-content: center;
+            padding: 10px 12px;
+            border-left: 4px solid #3498db;
+            border-radius: 5px;
+            background: #eaf2f8;
+            line-height: 1.5;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #34495e;
+            color: #ecf0f1;
+        }
+
+        .display-item {
+            flex: 1;
+            padding: 0 8px;
+            border-right: 1px solid #566573;
+            text-align: center;
+        }
+
+        .display-item:last-child { border-right: 0; }
+
+        .display-item span {
+            display: block;
+            margin-bottom: 5px;
+            color: #bdc3c7;
+            font-size: 0.78rem;
+        }
+
+        .display-item strong {
+            color: #f1c40f;
+            font-family: "Courier New", monospace;
+            font-size: 1.2rem;
+        }
+
+        .btn-group { display: flex; gap: 10px; }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: 0;
+            border-radius: 5px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: var(--success); }
+        .btn-start:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: var(--warning); }
+        .btn-reset:hover:not(:disabled) { background: #d35400; }
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-clear { flex: none; padding: 7px 14px; background: #95a5a6; }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .section-heading .panel-title { flex: 1; }
+
+        .table-wrap {
+            max-height: 320px;
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            text-align: center;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--bg);
+            color: var(--primary);
+        }
+
+        tr:nth-child(even) { background: #fafbfc; }
+        tr:last-child td { border-bottom: 0; }
+
+        .period-input {
+            width: 88px;
+            padding: 6px 7px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: white;
+            color: var(--text);
+            font: inherit;
+            text-align: center;
+        }
+
+        .period-input.correct {
+            border-color: var(--success);
+            background: #eafaf1;
+        }
+
+        .period-input.incorrect {
+            border-color: #c0392b;
+            background: #fdedec;
+        }
+
+        .delta-result {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .table-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .btn-check { background: var(--success); }
+        .btn-check:hover { background: #219a52; }
+
+        .chart-container { position: relative; min-height: 290px; }
+
+        .chart-hint {
+            margin: 10px 0 0;
+            color: #7f8c8d;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .theory-card {
+            margin-top: 20px;
+            padding: 15px;
+            border-left: 4px solid var(--accent);
+            border-radius: 4px;
+            background: #f8f9fa;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .formula-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 7px 0;
+        }
+
+        .formula {
+            display: inline-block;
+            padding: 5px 9px;
+            border: 1px solid #dfe6e9;
+            border-radius: 4px;
+            background: white;
+            color: var(--primary);
+            font-family: "Cambria Math", "Times New Roman", serif;
+            font-size: 1.05rem;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            h1 { max-width: 68%; font-size: 1.05rem; }
+            .container { padding: 12px; }
+            .controls { grid-template-columns: 1fr; }
+            .display-board { flex-wrap: wrap; }
+            .display-item { flex: 1 1 48%; margin: 5px 0; }
+            .btn-group { flex-direction: column; }
+            #sim-svg { height: 370px; }
+            .sim-hint { max-width: 210px; }
+        }
     </style>
 </head>
 <body>
-
 <header>
-    <h1 id="lab-title">Лабораторная работа: Зависимость периода колебания нитяного маятника от массы груза</h1>
-    <button class="lang-switch" onclick="toggleLang()">RU / KZ</button>
+    <h1 id="header-title">Лабораторная работа: Период и масса груза</h1>
+    <div class="lang-switch" aria-label="Выбор языка">
+        <button class="lang-btn active" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="kz" onclick="setLang('kz')">KZ</button>
+    </div>
 </header>
 
-<div class="main-wrapper">
-    
-    <div class="sidebar">
-        <div class="tabs">
-            <button class="tab-btn active" onclick="setTab('setup')" id="tab-setup">Установка</button>
-            <button class="tab-btn" onclick="setTab('theory')" id="tab-theory">Теория</button>
-            <button class="tab-btn" onclick="setTab('journal')" id="tab-journal">Журнал</button>
+<main class="container">
+    <section class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme"></span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal"></span></p>
+        <div style="display:flex; align-items:flex-start; flex-wrap:wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right:5px; margin-top:8px;">Краткая теория:</span>
+            <div id="txt-theory" style="margin-top:8px; font-size:0.95rem; line-height:1.5;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure"></ul>
+    </section>
+
+    <section class="panel">
+        <h2 class="panel-title" id="lbl-sim">Сравнение маятников с разной массой</h2>
+
+        <div class="sim-area">
+            <div class="angle-badge"><span id="angle-label">Текущий угол</span>: <span id="angle-live">20</span>°</div>
+            <svg id="sim-svg" viewBox="0 0 500 520" preserveAspectRatio="xMidYMid meet" aria-label="Математический маятник с транспортиром">
+                <defs>
+                    <radialGradient id="ball-gradient" cx="30%" cy="30%" r="70%">
+                        <stop offset="0%" stop-color="#ffffff"/>
+                        <stop id="ball-color" offset="100%" stop-color="#2c3e50"/>
+                    </radialGradient>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#dfe6e9" stroke-width="1" opacity="0.55"/>
+                    </pattern>
+                </defs>
+                <rect width="500" height="520" fill="url(#grid)"/>
+                <line x1="250" y1="45" x2="250" y2="500" class="center-line"/>
+                <g id="protractor" transform="translate(250, 45)"></g>
+                <line x1="195" y1="35" x2="305" y2="35" class="pivot-bar"/>
+                <circle cx="250" cy="45" r="7" class="pivot"/>
+                <g id="pendulum" transform="translate(250, 45)">
+                    <line id="string" x1="0" y1="0" x2="0" y2="300" class="thread"/>
+                    <circle id="ball" cx="0" cy="300" r="18" class="ball"/>
+                    <text id="mass-text" x="0" y="305" fill="white" font-size="11" font-weight="bold" text-anchor="middle">100 г</text>
+                </g>
+            </svg>
+            <div class="sim-hint" id="drag-hint">Изменяйте только массу, сохраняя длину и амплитуду постоянными.</div>
         </div>
 
-        <div id="setup" class="tab-content active">
-            
+        <div class="controls">
             <div class="control-group">
-                <label id="lbl-mass">Выберите груз:</label>
-                <select id="mass-select" onchange="updateSettings()">
-                    <option value="large">Большой шар (100 г)</option>
-                    <option value="small">Малый шар (20 г)</option>
-                </select>
+                <label><span id="lbl-mass">Масса груза m:</span> <span class="control-value"><span id="mass-value">100</span> г</span></label>
+                <input type="range" id="mass-range" min="20" max="200" value="100" step="20" oninput="updateSettings()">
             </div>
-
-            <div class="control-group">
-                <label id="lbl-len">Длина нити L (см): <span class="val-display" id="val-l">50</span></label>
-                <input type="range" id="len-range" min="20" max="80" value="50" step="1" oninput="updateSettings()">
+            <div class="control-group constant-box">
+                <strong id="constant-title">Постоянные параметры</strong>
+                <span id="constant-values">Длина L = 50 см, амплитуда A = 10°, число колебаний N = 10</span>
             </div>
-
-            <div style="background: #eaf2f8; padding: 10px; border-radius: 4px; font-size: 0.9rem; margin-bottom: 20px;">
-                <strong id="lbl-instr">Инструкция:</strong>
-                <ol style="padding-left: 20px; margin: 5px 0;">
-                    <li id="instr-1">Установите длину нити L.</li>
-                    <li id="instr-2">Выберите "Большой шар".</li>
-                    <li id="instr-3">Отклоните и измерьте период.</li>
-                    <li id="instr-4">Выберите "Малый шар" (не меняя длину!).</li>
-                    <li id="instr-5">Измерьте период и сравните результаты.</li>
-                </ol>
-            </div>
-            
-            <div class="formula-box">
-                T_theor = <span id="val-t-theor">1.42</span> c
-            </div>
-
-            <button class="btn btn-record" onclick="recordData()" id="btn-record">ЗАПИСАТЬ РЕЗУЛЬТАТ</button>
-            <button class="btn btn-reset" onclick="resetSim()" id="btn-reset">СБРОС / СТОП</button>
         </div>
 
-        <div id="theory" class="tab-content">
-            <h3 id="th-goal">Цель работы</h3>
-            <p id="th-goal-text">Экспериментально подтвердить независимость периода колебания нитяного маятника от массы груза.</p>
-            
-            <h3 id="th-form">Формула периода</h3>
-            <div class="formula-box">
-                T = 2π√(L/g)
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-count-label">Количество колебаний N</span>
+                <strong id="disp-count">10</strong>
             </div>
-            <p id="th-desc">
-                В формулу периода математического маятника входит длина нити $L$ и ускорение свободного падения $g$. Масса груза $m$ в формуле отсутствует. Это означает, что период колебаний легкого и тяжелого шара при одинаковой длине подвеса должен быть одинаковым.
-            </p>
-        </div>
-
-        <div id="journal" class="tab-content">
-            <h3 id="th-journal">Результаты измерений</h3>
-            <div style="overflow-x: auto;">
-                <table id="data-table">
-                    <thead>
-                        <tr>
-                            <th>№</th>
-                            <th id="th-mass">Груз</th>
-                            <th>L (см)</th>
-                            <th>T_exp (с)</th>
-                            <th>T_theo (с)</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+            <div class="display-item">
+                <span id="disp-time-label">Время колебаний t (с)</span>
+                <strong id="disp-time">-.---</strong>
             </div>
-            <button class="btn btn-reset" onclick="clearTable()" style="margin-top: 10px; background: #95a5a6;">Очистить таблицу</button>
-        </div>
-    </div>
-
-    <div class="sim-container">
-        
-        <div class="digital-display">
-            <span class="display-label" id="disp-lbl">PERIOD (T):</span>
-            <span class="display-val" id="disp-t">--.--</span> s
-            <div class="display-sub">Cycles: <span id="disp-count">0</span></div>
+            <div class="display-item">
+                <span id="disp-theory-label">Теоретический период Tтеор (с)</span>
+                <strong id="disp-theory">1.419</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-status-label">Статус</span>
+                <strong id="status-text" style="color:#ecf0f1; font-size:1rem;">Готов к запуску</strong>
+            </div>
         </div>
 
-        <svg id="scene" viewBox="0 0 400 500" preserveAspectRatio="xMidYMax meet">
-            <defs>
-                <radialGradient id="grad-ball-large" cx="30%" cy="30%" r="70%">
-                    <stop offset="0%" style="stop-color: #fff" />
-                    <stop offset="100%" style="stop-color: #2c3e50" />
-                </radialGradient>
-                <radialGradient id="grad-ball-small" cx="30%" cy="30%" r="70%">
-                    <stop offset="0%" style="stop-color: #fff" />
-                    <stop offset="100%" style="stop-color: #e67e22" />
-                </radialGradient>
-            </defs>
-            
-            <line x1="100" y1="20" x2="300" y2="20" class="pivot-bar" />
+        <div class="btn-group">
+            <button class="btn btn-start" id="btn-start" onclick="startSimulation()">Запустить</button>
+            <button class="btn btn-reset" id="btn-reset" onclick="resetSim()">Сброс</button>
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" disabled>Записать в таблицу</button>
+        </div>
+    </section>
 
-            <g id="pendulum">
-                <line id="string1" x1="-50" y1="-280" x2="0" y2="0" class="thread" />
-                <line id="string2" x1="50" y1="-280" x2="0" y2="0" class="thread" />
-                <circle id="ball" cx="0" cy="0" r="25" class="ball" style="cursor: grab;" />
-            </g>
+    <section class="panel">
+        <div class="data-grid">
+            <div class="table-section">
+                <div class="section-heading">
+                    <h2 class="panel-title" id="lbl-journal">Таблица измерений</h2>
+                    <button class="btn btn-clear" id="btn-clear" onclick="clearTable()">Очистить</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-num">№</th>
+                                <th id="th-length">m (г)</th>
+                                <th id="th-amplitude">L (см)</th>
+                                <th id="th-count">N</th>
+                                <th id="th-time">t (с)</th>
+                                <th id="th-exp">Tэксп (с)</th>
+                                <th id="th-theory">Tтеор (с)</th>
+                                <th id="th-delta">ΔT (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="table-actions">
+                    <button class="btn btn-check" id="btn-check" onclick="checkCalculations()">Проверить расчёты</button>
+                </div>
+            </div>
 
-            <line x1="200" y1="50" x2="200" y2="450" class="sensor-beam" />
+            <div class="chart-section">
+                <h2 class="panel-title" id="lbl-chart">Зависимость периода от массы</h2>
+                <div class="chart-container">
+                    <canvas id="period-chart"></canvas>
+                </div>
+                <p class="chart-hint" id="chart-hint">Экспериментальные точки должны располагаться около горизонтальной теоретической линии.</p>
+            </div>
+        </div>
 
-        </svg>
-        
-        <div class="hint" id="hint-text">Отклоните шар и отпустите</div>
-    </div>
-</div>
+        <div class="theory-card">
+            <strong id="theory-title">Формулы и вывод:</strong>
+            <div class="formula-row"><span class="formula">Tэксп = t / N</span><span id="formula-exp-text">— экспериментальный период ученик рассчитывает самостоятельно</span></div>
+            <div class="formula-row"><span class="formula">Tтеор = 2π√(L / g)</span><span id="formula-period-text">— теоретический период при малых углах</span></div>
+            <div class="formula-row"><span class="formula">ΔT = |Tэксп − Tтеор| / Tтеор × 100%</span><span id="formula-delta-text">— относительное отклонение периодов</span></div>
+            <div class="formula-row"><span class="formula">g = 9.81 м/с²</span><span id="formula-g-text">— ускорение свободного падения</span></div>
+            <div class="formula-row"><span class="formula">T(m₁) ≈ T(m₂)</span><span id="formula-diff-text">— масса m в формулу периода не входит</span></div>
+            <p id="conclusion-text" style="margin:10px 0 0;"></p>
+        </div>
+    </section>
+</main>
 
 <script>
-    // === CONFIGURATION ===
-    const PIXELS_PER_METER = 500; 
-    const PIVOT_X = 200;
-    const PIVOT_Y = 20;
+    const PIVOT_X = 250;
+    const PIVOT_Y = 45;
+    const PIXELS_PER_METER = 600;
     const G = 9.81;
+    const OSCILLATION_COUNT = 10;
+    const SIMULATION_SPEED = 3;
 
-    // State
-    let lengthM = 0.5; // meters
-    let massType = 'large'; // 'large' or 'small'
-    let angle = 0; // radians
-    let velocity = 0; // angular velocity
-    let isDragging = false;
-    let isRunning = false;
-    
-    // Measurement Logic
-    let lastCrossTime = 0;
-    let cycleCount = 0;
+    let lengthM = 0.50;
+    let amplitudeDeg = 10;
+    let massGrams = 100;
     let measuredPeriod = 0;
-    let lastSign = 0;
+    let theoryPeriod = 0;
+    let totalOscillationTime = 0;
+    let isRunning = false;
+    let resultReady = false;
+    let completedOscillations = 0;
+    let animationFrame = null;
+    let currentLang = 'ru';
+    let currentStateKey = 'statReady';
+    let periodChart;
 
-    // DOM Elements
-    const ui = {
-        pendulum: document.getElementById('pendulum'),
-        string1: document.getElementById('string1'),
-        string2: document.getElementById('string2'),
-        ball: document.getElementById('ball'),
-        dispT: document.getElementById('disp-t'),
-        dispCount: document.getElementById('disp-count'),
-        valL: document.getElementById('val-l'),
-        valTTheor: document.getElementById('val-t-theor'),
-        hint: document.getElementById('hint-text'),
-        svg: document.getElementById('scene')
+    const dict = {
+        ru: {
+            title: 'Лабораторная работа: Период и масса груза',
+            themeLbl: 'Тема:',
+            theme: 'Исследование зависимости периода нитяного маятника от массы груза',
+            goalLbl: 'Цель работы:',
+            goal: 'Экспериментально подтвердить, что при одинаковых длине нити и амплитуде период маятника не зависит от массы груза.',
+            theoryLbl: 'Краткая теория:',
+            theory: 'Для опыта измеряют время t одинакового количества колебаний N = 10. Экспериментальный период ученик вычисляет самостоятельно: Tэксп = t / N. Теоретический период находят по формуле Tтеор = 2π√(L / g). После ввода Tэксп отклонение рассчитывается автоматически: ΔT = |Tэксп − Tтеор| / Tтеор × 100%. Масса груза m в формулу периода не входит.',
+            procedureLbl: 'Ход работы:',
+            procedure: [
+                'Оставьте длину нити 50 см и малую амплитуду 10° неизменными.',
+                'Установите массу груза и нажмите «Запустить».',
+                'Дождитесь автоматического измерения времени десяти полных колебаний и запишите результат.',
+                'В таблице самостоятельно рассчитайте экспериментальный период по формуле Tэксп = t / N.',
+                'Повторите опыт для масс 20, 40, 80, 120, 160 и 200 г.',
+                'Сравните периоды и форму графика T(m).'
+            ],
+            sim: 'Сравнение маятников с разной массой',
+            angle: 'Текущий угол',
+            dragHint: 'Изменяйте только массу, сохраняя длину и амплитуду постоянными.',
+            mass: 'Масса груза m:',
+            constantTitle: 'Постоянные параметры',
+            constantValues: 'Длина L = 50 см, амплитуда A = 10°, число колебаний N = 10',
+            count: 'Количество колебаний N',
+            time: 'Время колебаний t (с)',
+            theoryPeriod: 'Теоретический период Tтеор (с)',
+            status: 'Статус',
+            start: 'Запустить',
+            reset: 'Сброс',
+            record: 'Записать в таблицу',
+            clear: 'Очистить',
+            check: 'Проверить расчёты',
+            journal: 'Таблица измерений',
+            thNum: '№', thLength: 'm (г)', thAmplitude: 'L (см)', thCount: 'N', thTime: 't (с)', thExp: 'Tэксп (с)', thTheory: 'Tтеор (с)', thDelta: 'ΔT (%)',
+            chart: 'Зависимость периода от массы',
+            chartHint: 'График строится по рассчитанным учеником значениям Tэксп из таблицы.',
+            chartExp: 'Tэксп — расчёт ученика',
+            chartTheory: 'Теоретический период',
+            chartX: 'Масса груза m (г)',
+            chartY: 'Период T (с)',
+            theoryTitle: 'Формулы и вывод:',
+            formulaExp: '— экспериментальный период ученик рассчитывает самостоятельно',
+            formulaPeriod: '— теоретический период при малых углах',
+            formulaDelta: '— относительное отклонение периодов',
+            formulaG: '— ускорение свободного падения',
+            formulaDiff: '— масса m в формулу не входит',
+            inputPlaceholder: 'Рассчитайте',
+            inputAria: 'Экспериментальный период для опыта',
+            calcEmpty: 'Введите Tэксп',
+            calcCorrect: 'Верно',
+            calcIncorrect: 'Проверьте',
+            conclusionEmpty: 'Проведите опыты, запишите время и самостоятельно рассчитайте Tэксп = t / N.',
+            conclusionAwait: (filled, total) => `Рассчитано периодов: ${filled} из ${total}. Заполните оставшиеся ячейки Tэксп.`,
+            conclusionReady: (count, spread) => `Рассчитано периодов: ${count}. Разброс экспериментальных периодов составляет ${spread}%.`,
+            statReady: 'Готов к запуску',
+            statMove: (current, total) => `Измерение: ${current} из ${total} колебаний`,
+            statDone: 'Измерение завершено. Запишите N и t в таблицу.',
+            statRecorded: 'N и t записаны. Рассчитайте Tэксп.'
+        },
+        kz: {
+            title: '№24 зертханалық жұмыс: Период және жүк массасы',
+            themeLbl: 'Тақырыбы:',
+            theme: 'Жіпті маятник периодының жүк массасына тәуелділігін зерттеу',
+            goalLbl: 'Жұмыстың мақсаты:',
+            goal: 'Жіп ұзындығы мен амплитуда бірдей болғанда маятник периоды жүк массасына тәуелді емес екенін тәжірибе жүзінде растау.',
+            theoryLbl: 'Қысқаша теория:',
+            theory: 'Тәжірибеде бірдей N = 10 тербелістің t уақыты өлшенеді. Тәжірибелік периодты оқушы өзі есептейді: Tтәж = t / N. Теориялық период Tтеор = 2π√(L / g) формуласы бойынша табылады. Tтәж енгізілгеннен кейін ауытқу автоматты есептеледі: ΔT = |Tтәж − Tтеор| / Tтеор × 100%. Период формуласына жүктің m массасы кірмейді.',
+            procedureLbl: 'Жұмыс барысы:',
+            procedure: [
+                'Жіп ұзындығын 50 см және кіші амплитуданы 10° етіп өзгертпей сақтаңыз.',
+                'Жүк массасын орнатып, «Бастау» түймесін басыңыз.',
+                'Он толық тербеліс уақытының автоматты өлшенуін күтіп, нәтижені жазыңыз.',
+                'Кестеде Tтәж = t / N формуласы бойынша тәжірибелік периодты өзіңіз есептеңіз.',
+                'Тәжірибені 20, 40, 80, 120, 160 және 200 г массалар үшін қайталаңыз.',
+                'Периодтарды және T(m) графигінің пішінін салыстырыңыз.'
+            ],
+            sim: 'Массалары әртүрлі маятниктерді салыстыру',
+            angle: 'Ағымдағы бұрыш',
+            dragHint: 'Жіп ұзындығы мен амплитуданы тұрақты сақтап, тек массаны өзгертіңіз.',
+            mass: 'Жүк массасы m:',
+            constantTitle: 'Тұрақты параметрлер',
+            constantValues: 'Ұзындық L = 50 см, амплитуда A = 10°, тербеліс саны N = 10',
+            count: 'Тербеліс саны N',
+            time: 'Тербеліс уақыты t (с)',
+            theoryPeriod: 'Теориялық период Tтеор (с)',
+            status: 'Күйі',
+            start: 'Бастау',
+            reset: 'Қалпына келтіру',
+            record: 'Кестеге жазу',
+            clear: 'Тазалау',
+            check: 'Есептеулерді тексеру',
+            journal: 'Өлшеулер кестесі',
+            thNum: '№', thLength: 'm (г)', thAmplitude: 'L (см)', thCount: 'N', thTime: 't (с)', thExp: 'Tтәж (с)', thTheory: 'Tтеор (с)', thDelta: 'ΔT (%)',
+            chart: 'Периодтың массаға тәуелділігі',
+            chartHint: 'График кестеге оқушы енгізген Tтәж мәндері бойынша құрылады.',
+            chartExp: 'Tтәж — оқушы есебі',
+            chartTheory: 'Теориялық период',
+            chartX: 'Жүк массасы m (г)',
+            chartY: 'Период T (с)',
+            theoryTitle: 'Формулалар және қорытынды:',
+            formulaExp: '— тәжірибелік периодты оқушы өзі есептейді',
+            formulaPeriod: '— кіші бұрыштардағы теориялық период',
+            formulaDelta: '— периодтардың салыстырмалы ауытқуы',
+            formulaG: '— еркін түсу үдеуі',
+            formulaDiff: '— формулада m массасы жоқ',
+            inputPlaceholder: 'Есептеңіз',
+            inputAria: 'Тәжірибеге арналған тәжірибелік период',
+            calcEmpty: 'Tтәж енгізіңіз',
+            calcCorrect: 'Дұрыс',
+            calcIncorrect: 'Тексеріңіз',
+            conclusionEmpty: 'Тәжірибе жасап, уақытты жазыңыз және Tтәж = t / N мәнін өзіңіз есептеңіз.',
+            conclusionAwait: (filled, total) => `Есептелген периодтар: ${filled}/${total}. Қалған Tтәж ұяшықтарын толтырыңыз.`,
+            conclusionReady: (count, spread) => `Есептелген периодтар: ${count}. Тәжірибелік периодтардың шашырауы ${spread}%.`,
+            statReady: 'Бастауға дайын',
+            statMove: (current, total) => `Өлшеу: ${current}/${total} тербеліс`,
+            statDone: 'Өлшеу аяқталды. N және t мәндерін кестеге жазыңыз.',
+            statRecorded: 'N және t жазылды. Tтәж мәнін есептеңіз.'
+        }
     };
 
-    // === INIT ===
-    function init() {
-        updateSettings();
-        renderPendulum();
+    const ui = {
+        svg: document.getElementById('sim-svg'),
+        protractor: document.getElementById('protractor'),
+        string: document.getElementById('string'),
+        ball: document.getElementById('ball'),
+        ballColor: document.getElementById('ball-color'),
+        massText: document.getElementById('mass-text'),
+        massRange: document.getElementById('mass-range'),
+        massValue: document.getElementById('mass-value'),
+        angleLive: document.getElementById('angle-live'),
+        dispCount: document.getElementById('disp-count'),
+        dispTime: document.getElementById('disp-time'),
+        dispTheory: document.getElementById('disp-theory'),
+        status: document.getElementById('status-text'),
+        btnStart: document.getElementById('btn-start'),
+        btnRecord: document.getElementById('btn-record'),
+        tableBody: document.querySelector('#data-table tbody'),
+        conclusion: document.getElementById('conclusion-text')
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.documentElement.lang = lang === 'kz' ? 'kk' : 'ru';
+        document.querySelectorAll('.lang-btn').forEach(button => {
+            button.classList.toggle('active', button.dataset.lang === lang);
+        });
+
+        const t = dict[lang];
+        document.title = t.title;
+        document.getElementById('header-title').innerText = t.title;
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.theme;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goal;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerText = t.theory;
+        document.getElementById('lbl-procedure').innerText = t.procedureLbl;
+
+        const list = document.getElementById('list-procedure');
+        list.innerHTML = '';
+        t.procedure.forEach(text => {
+            const item = document.createElement('li');
+            item.innerText = text;
+            list.appendChild(item);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('angle-label').innerText = t.angle;
+        document.getElementById('drag-hint').innerText = t.dragHint;
+        document.getElementById('lbl-mass').innerText = t.mass;
+        document.getElementById('constant-title').innerText = t.constantTitle;
+        document.getElementById('constant-values').innerText = t.constantValues;
+        document.getElementById('disp-count-label').innerText = t.count;
+        document.getElementById('disp-time-label').innerText = t.time;
+        document.getElementById('disp-theory-label').innerText = t.theoryPeriod;
+        document.getElementById('disp-status-label').innerText = t.status;
+        document.getElementById('btn-start').innerText = t.start;
+        document.getElementById('btn-reset').innerText = t.reset;
+        document.getElementById('btn-record').innerText = t.record;
+        document.getElementById('btn-clear').innerText = t.clear;
+        document.getElementById('btn-check').innerText = t.check;
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-num').innerText = t.thNum;
+        document.getElementById('th-length').innerText = t.thLength;
+        document.getElementById('th-amplitude').innerText = t.thAmplitude;
+        document.getElementById('th-count').innerText = t.thCount;
+        document.getElementById('th-time').innerText = t.thTime;
+        document.getElementById('th-exp').innerText = t.thExp;
+        document.getElementById('th-theory').innerText = t.thTheory;
+        document.getElementById('th-delta').innerText = t.thDelta;
+        document.getElementById('lbl-chart').innerText = t.chart;
+        document.getElementById('chart-hint').innerText = t.chartHint;
+        document.getElementById('theory-title').innerText = t.theoryTitle;
+        document.getElementById('formula-exp-text').innerText = t.formulaExp;
+        document.getElementById('formula-period-text').innerText = t.formulaPeriod;
+        document.getElementById('formula-delta-text').innerText = t.formulaDelta;
+        document.getElementById('formula-g-text').innerText = t.formulaG;
+        document.getElementById('formula-diff-text').innerText = t.formulaDiff;
+        updateStateText(currentStateKey);
+        refreshTableLanguage();
+        updateConclusion();
+
+        if (periodChart) {
+            periodChart.data.datasets[0].label = t.chartExp;
+            periodChart.data.datasets[1].label = t.chartTheory;
+            periodChart.options.scales.x.title.text = t.chartX;
+            periodChart.options.scales.y.title.text = t.chartY;
+            periodChart.update();
+        }
     }
 
-    // === TABS ===
-    function setTab(id) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById('tab-' + id).classList.add('active');
-        document.getElementById(id).classList.add('active');
+    function updateStateText(key) {
+        currentStateKey = key;
+        const value = dict[currentLang][key];
+        ui.status.innerText = typeof value === 'function'
+            ? value(completedOscillations, OSCILLATION_COUNT)
+            : value;
     }
 
-    // === SETTINGS ===
+    function refreshTableLanguage() {
+        const t = dict[currentLang];
+        Array.from(ui.tableBody.querySelectorAll('tr')).forEach((row, index) => {
+            const input = row.querySelector('.period-input');
+            if (input) {
+                input.placeholder = t.inputPlaceholder;
+                input.setAttribute('aria-label', `${t.inputAria} ${index + 1}`);
+            }
+            updateRowDelta(row);
+        });
+    }
+
+    function drawProtractor() {
+        ui.protractor.innerHTML = '';
+        const radius = 225;
+        for (let degree = -80; degree <= 80; degree += 10) {
+            const rad = degree * Math.PI / 180;
+            const major = degree % 20 === 0;
+            const innerRadius = radius - (major ? 15 : 9);
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', Math.sin(rad) * innerRadius);
+            line.setAttribute('y1', Math.cos(rad) * innerRadius);
+            line.setAttribute('x2', Math.sin(rad) * radius);
+            line.setAttribute('y2', Math.cos(rad) * radius);
+            line.setAttribute('class', 'protractor-line');
+            ui.protractor.appendChild(line);
+
+            if (major && degree !== 0) {
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', Math.sin(rad) * (radius + 18));
+                label.setAttribute('y', Math.cos(rad) * (radius + 18) + 4);
+                label.setAttribute('class', 'protractor-label');
+                label.textContent = Math.abs(degree) + '°';
+                ui.protractor.appendChild(label);
+            }
+        }
+    }
+
+    function calculateTheoryPeriod() {
+        theoryPeriod = 2 * Math.PI * Math.sqrt(lengthM / G);
+        return theoryPeriod;
+    }
+
+    function calculateLargeAnglePeriod() {
+        const theta = amplitudeDeg * Math.PI / 180;
+        const theta2 = theta * theta;
+        const correction = 1 + theta2 / 16 + 11 * theta2 * theta2 / 3072;
+        const measurementNoise = 1 + (Math.random() - 0.5) * 0.006;
+        return theoryPeriod * correction * measurementNoise;
+    }
+
+    function renderPendulum(angleRad) {
+        const lengthPx = lengthM * PIXELS_PER_METER;
+        const x = lengthPx * Math.sin(angleRad);
+        const y = lengthPx * Math.cos(angleRad);
+        ui.string.setAttribute('x2', x);
+        ui.string.setAttribute('y2', y);
+        ui.ball.setAttribute('cx', x);
+        ui.ball.setAttribute('cy', y);
+        ui.massText.setAttribute('x', x);
+        ui.massText.setAttribute('y', y + 4);
+        ui.angleLive.innerText = Math.abs(angleRad * 180 / Math.PI).toFixed(0);
+    }
+
+    function invalidateResult() {
+        resultReady = false;
+        completedOscillations = 0;
+        ui.btnRecord.disabled = true;
+        ui.dispCount.innerText = OSCILLATION_COUNT;
+        ui.dispTime.innerText = '-.---';
+        updateStateText('statReady');
+    }
+
     function updateSettings() {
-        lengthM = parseFloat(document.getElementById('len-range').value) / 100;
-        massType = document.getElementById('mass-select').value;
-
-        ui.valL.innerText = (lengthM * 100).toFixed(0);
-        
-        // Update Ball Visuals
-        if (massType === 'large') {
-            ui.ball.setAttribute('r', 25);
-            ui.ball.setAttribute('fill', 'url(#grad-ball-large)');
-        } else {
-            ui.ball.setAttribute('r', 15);
-            ui.ball.setAttribute('fill', 'url(#grad-ball-small)');
-        }
-        
-        // Theoretical Period (Same for both masses!)
-        const T = 2 * Math.PI * Math.sqrt(lengthM / G);
-        ui.valTTheor.innerText = T.toFixed(3);
-        
-        if (!isRunning && !isDragging) {
-            angle = 0;
-            velocity = 0;
-            renderPendulum();
-        }
+        if (isRunning) return;
+        massGrams = Number(ui.massRange.value);
+        ui.massValue.innerText = massGrams.toFixed(0);
+        ui.massText.textContent = massGrams + ' г';
+        const radius = 14 + (massGrams - 20) / 180 * 10;
+        ui.ball.setAttribute('r', radius.toFixed(1));
+        const lightness = 58 - (massGrams - 20) / 180 * 30;
+        ui.ballColor.setAttribute('stop-color', `hsl(210, 30%, ${lightness}%)`);
+        ui.angleLive.innerText = amplitudeDeg.toFixed(0);
+        calculateTheoryPeriod();
+        ui.dispTheory.innerText = theoryPeriod.toFixed(3);
+        renderPendulum(amplitudeDeg * Math.PI / 180);
+        invalidateResult();
+        updateTheoryLine();
     }
 
-    // === SIMULATION LOOP ===
-    function startSim() {
+    function setControlsDisabled(disabled) {
+        ui.massRange.disabled = disabled;
+    }
+
+    function startSimulation() {
         if (isRunning) return;
-        if (Math.abs(angle) < 0.05) return;
-
         isRunning = true;
-        ui.hint.style.opacity = 0;
-        
-        // Reset Counters
-        cycleCount = 0;
-        lastCrossTime = performance.now();
-        measuredPeriod = 0;
-        ui.dispT.innerText = "--.--";
-        ui.dispCount.innerText = "0";
-        lastSign = Math.sign(angle);
+        resultReady = false;
+        measuredPeriod = calculateLargeAnglePeriod();
+        totalOscillationTime = measuredPeriod * OSCILLATION_COUNT;
+        completedOscillations = 0;
+        setControlsDisabled(true);
+        ui.btnStart.disabled = true;
+        ui.btnRecord.disabled = true;
+        ui.dispTime.innerText = '0.00';
+        updateStateText('statMove');
 
-        let lastTime = performance.now();
+        const start = performance.now();
+        const amplitudeRad = amplitudeDeg * Math.PI / 180;
 
         function animate(time) {
-            if (!isRunning && !isDragging) return;
-            const dt = (time - lastTime) / 1000; 
-            lastTime = time;
+            const realElapsed = (time - start) / 1000;
+            const virtualElapsed = realElapsed * SIMULATION_SPEED;
+            const angleNow = amplitudeRad * Math.cos(2 * Math.PI * virtualElapsed / measuredPeriod);
+            renderPendulum(angleNow);
+            ui.dispTime.innerText = Math.min(virtualElapsed, totalOscillationTime).toFixed(2);
 
-            if (!isDragging) {
-                // Physics: alpha'' = -(g/L)sin(alpha)
-                // Mass does NOT appear here!
-                const acc = -(G / lengthM) * Math.sin(angle);
-                velocity += acc * dt;
-                
-                // Damping: Smaller mass gets affected by air more
-                // This adds realism (small deviation) but period stays same
-                const damping = massType === 'large' ? 0.9995 : 0.998; 
-                velocity *= damping; 
-                
-                angle += velocity * dt;
-
-                // Zero Crossing Detection
-                if (Math.sign(angle) !== lastSign && Math.abs(angle) < 0.2) {
-                    cycleCount += 0.5;
-                    ui.dispCount.innerText = Math.floor(cycleCount);
-
-                    if (cycleCount % 1 === 0 && cycleCount > 0) {
-                        const now = performance.now();
-                        const duration = (now - lastCrossTime) / 1000;
-                        lastCrossTime = now;
-                        measuredPeriod = duration;
-                        ui.dispT.innerText = measuredPeriod.toFixed(3);
-                    } else if (cycleCount === 0.5) {
-                        lastCrossTime = performance.now();
-                    }
-                    
-                    lastSign = Math.sign(angle) === 0 ? 1 : Math.sign(angle);
-                }
+            const cycleNow = Math.min(OSCILLATION_COUNT, Math.floor(virtualElapsed / measuredPeriod));
+            if (cycleNow !== completedOscillations) {
+                completedOscillations = cycleNow;
+                updateStateText('statMove');
             }
 
-            renderPendulum();
-            requestAnimationFrame(animate);
+            if (virtualElapsed < totalOscillationTime) {
+                animationFrame = requestAnimationFrame(animate);
+            } else {
+                finishRun();
+            }
         }
-        requestAnimationFrame(animate);
+
+        animationFrame = requestAnimationFrame(animate);
     }
 
-    function renderPendulum() {
-        const lenPx = lengthM * PIXELS_PER_METER;
-        
-        // Calculate Ball Position relative to pivot
-        const x = lenPx * Math.sin(angle);
-        const y = lenPx * Math.cos(angle);
-        
-        // Pivot is fixed. Calculate absolute coords.
-        const absX = PIVOT_X + x;
-        const absY = PIVOT_Y + y;
-        
-        ui.ball.setAttribute('cx', absX);
-        ui.ball.setAttribute('cy', absY);
-        
-        // Bifilar threads
-        // Pivot points: (150, 20) and (250, 20)
-        // Ball point: (absX, absY)
-        ui.string1.setAttribute('x1', 150); ui.string1.setAttribute('y1', 20);
-        ui.string1.setAttribute('x2', absX); ui.string1.setAttribute('y2', absY);
-        
-        ui.string2.setAttribute('x1', 250); ui.string2.setAttribute('y1', 20);
-        ui.string2.setAttribute('x2', absX); ui.string2.setAttribute('y2', absY);
+    function finishRun() {
+        if (animationFrame) cancelAnimationFrame(animationFrame);
+        isRunning = false;
+        resultReady = true;
+        setControlsDisabled(false);
+        ui.btnStart.disabled = false;
+        ui.btnRecord.disabled = false;
+        renderPendulum(amplitudeDeg * Math.PI / 180);
+        completedOscillations = OSCILLATION_COUNT;
+        ui.dispTime.innerText = totalOscillationTime.toFixed(3);
+        updateStateText('statDone');
     }
 
     function resetSim() {
+        if (animationFrame) cancelAnimationFrame(animationFrame);
         isRunning = false;
-        angle = 0;
-        velocity = 0;
-        cycleCount = 0;
-        ui.dispT.innerText = "--.--";
-        ui.dispCount.innerText = "0";
-        ui.hint.style.opacity = 1;
-        renderPendulum();
+        setControlsDisabled(false);
+        ui.btnStart.disabled = false;
+        renderPendulum(amplitudeDeg * Math.PI / 180);
+        invalidateResult();
     }
 
-    // === DRAG & DROP ===
-    ui.ball.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        isRunning = false;
-        velocity = 0;
-        ui.dispT.innerText = "--.--";
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        
-        const pt = ui.svg.createSVGPoint();
-        pt.x = e.clientX; pt.y = e.clientY;
-        const svgP = pt.matrixTransform(ui.svg.getScreenCTM().inverse());
-        
-        const dx = svgP.x - PIVOT_X;
-        const dy = svgP.y - PIVOT_Y;
-        
-        angle = Math.atan2(dx, dy);
-        
-        // Limit angle
-        if (angle > 1.2) angle = 1.2;
-        if (angle < -1.2) angle = -1.2;
-
-        renderPendulum();
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (isDragging) {
-            isDragging = false;
-            startSim();
-        }
-    });
-
-    // === JOURNAL ===
     function recordData() {
-        if (cycleCount < 1) return;
-        
-        const T_theo = 2 * Math.PI * Math.sqrt(lengthM / G);
-        const massTxt = massType === 'large' ? 
-            (currentLang === 'ru' ? 'Большой' : 'Үлкен') : 
-            (currentLang === 'ru' ? 'Малый' : 'Кіші');
-        
-        const tbody = document.querySelector('#data-table tbody');
+        if (!resultReady) return;
+        ui.btnRecord.disabled = true;
         const row = document.createElement('tr');
-        const n = tbody.children.length + 1;
-        
+        row.dataset.mass = massGrams.toFixed(0);
+        row.dataset.count = String(OSCILLATION_COUNT);
+        row.dataset.time = totalOscillationTime.toFixed(3);
+        row.dataset.theory = theoryPeriod.toFixed(3);
         row.innerHTML = `
-            <td>${n}</td>
-            <td>${massTxt}</td>
-            <td>${(lengthM*100).toFixed(0)}</td>
-            <td>${measuredPeriod.toFixed(3)}</td>
-            <td>${T_theo.toFixed(3)}</td>
+            <td>${ui.tableBody.children.length + 1}</td>
+            <td>${massGrams.toFixed(0)}</td>
+            <td>${(lengthM * 100).toFixed(0)}</td>
+            <td>${OSCILLATION_COUNT}</td>
+            <td>${totalOscillationTime.toFixed(3)}</td>
+            <td><input class="period-input" type="number" min="0.1" max="10" step="0.001" inputmode="decimal"></td>
+            <td>${theoryPeriod.toFixed(3)}</td>
+            <td class="delta-result">—</td>
         `;
-        tbody.appendChild(row);
+        ui.tableBody.appendChild(row);
+        const input = row.querySelector('.period-input');
+        input.addEventListener('input', () => handleStudentPeriod(input));
+        refreshTableLanguage();
+
+        updateTheoryLine();
+        updateChartFromTable();
+        updateConclusion();
+        updateStateText('statRecorded');
+    }
+
+    function parseStudentValue(input) {
+        const value = Number(String(input.value).replace(',', '.'));
+        return Number.isFinite(value) && value > 0 ? value : null;
+    }
+
+    function updateRowDelta(row) {
+        const input = row.querySelector('.period-input');
+        const cell = row.querySelector('.delta-result');
+        if (!input || !cell) return;
+        const value = parseStudentValue(input);
+        if (value === null) {
+            cell.textContent = '—';
+            return;
+        }
+        const theoretical = Number(row.dataset.theory);
+        const delta = Math.abs(value - theoretical) / theoretical * 100;
+        cell.textContent = delta.toFixed(1);
+    }
+
+    function handleStudentPeriod(input) {
+        const row = input.closest('tr');
+        row.dataset.checkState = '';
+        input.classList.remove('correct', 'incorrect');
+        updateRowDelta(row);
+        updateChartFromTable();
+        updateConclusion();
+    }
+
+    function collectChartPoints() {
+        return Array.from(ui.tableBody.querySelectorAll('tr'))
+            .map(row => {
+                const value = parseStudentValue(row.querySelector('.period-input'));
+                return value === null ? null : { x: Number(row.dataset.mass), y: value };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.x - b.x);
+    }
+
+    function updateChartFromTable() {
+        if (!periodChart) return;
+        periodChart.data.datasets[0].data = collectChartPoints();
+        periodChart.update();
+    }
+
+    function checkCalculations() {
+        Array.from(ui.tableBody.querySelectorAll('tr')).forEach(row => {
+            const input = row.querySelector('.period-input');
+            const value = parseStudentValue(input);
+            const expected = Number(row.dataset.time) / Number(row.dataset.count);
+            input.classList.remove('correct', 'incorrect');
+
+            if (value === null) {
+                row.dataset.checkState = 'empty';
+                return;
+            }
+
+            const isCorrect = Math.abs(value - expected) <= 0.01;
+            const state = isCorrect ? 'correct' : 'incorrect';
+            row.dataset.checkState = state;
+            input.classList.add(state);
+            updateRowDelta(row);
+        });
+        updateChartFromTable();
+        updateConclusion();
+    }
+
+    function updateTheoryLine() {
+        if (!periodChart) return;
+        periodChart.data.datasets[1].data = [
+            { x: 10, y: theoryPeriod },
+            { x: 210, y: theoryPeriod }
+        ];
+        periodChart.update('none');
+    }
+
+    function updateConclusion() {
+        const rows = Array.from(ui.tableBody.querySelectorAll('tr'));
+        if (rows.length === 0) {
+            ui.conclusion.innerText = dict[currentLang].conclusionEmpty;
+            return;
+        }
+        const periods = rows
+            .map(row => parseStudentValue(row.querySelector('.period-input')))
+            .filter(value => value !== null);
+        if (periods.length < rows.length) {
+            ui.conclusion.innerText = dict[currentLang].conclusionAwait(periods.length, rows.length);
+            return;
+        }
+        const spread = (Math.max(...periods) - Math.min(...periods)) / theoryPeriod * 100;
+        ui.conclusion.innerText = dict[currentLang].conclusionReady(periods.length, spread.toFixed(1));
     }
 
     function clearTable() {
-        document.querySelector('#data-table tbody').innerHTML = '';
+        ui.tableBody.innerHTML = '';
+        updateChartFromTable();
+        updateConclusion();
     }
 
-    // === LOCALIZATION ===
-    let currentLang = 'ru';
-    const dict = {
-        ru: {
-            title: "Лабораторная работа: Зависимость периода колебания нитяного маятника от массы груза",
-            tab1: "Установка", tab2: "Теория", tab3: "Журнал",
-            lblM: "Выберите груз:", optL: "Большой шар (100 г)", optS: "Малый шар (20 г)",
-            lblL: "Длина нити L (см):",
-            lblInstr: "Инструкция:",
-            i1: "Установите длину нити L.",
-            i2: "Выберите 'Большой шар'.",
-            i3: "Отклоните и измерьте период.",
-            i4: "Выберите 'Малый шар' (не меняя длину!).",
-            i5: "Измерьте период и сравните результаты.",
-            btnRec: "ЗАПИСАТЬ РЕЗУЛЬТАТ", btnRes: "СБРОС / СТОП",
-            thGoal: "Цель работы", thGoalTx: "Экспериментально подтвердить независимость периода колебания нитяного маятника от массы груза.",
-            thForm: "Формула периода",
-            thDesc: "В формулу периода входит длина нити L и ускорение g. Масса груза m отсутствует. Период колебаний легкого и тяжелого шара должен быть одинаковым.",
-            thJ: "Результаты измерений", hint: "Отклоните шар и отпустите",
-            dispLbl: "ПЕРИОД (T):", sub: "Колебаний:", thMass: "Груз"
-        },
-        kz: {
-            title: "Зертханалық жұмыс №24. Жіпті маятник тербеліс периодының жүк массасына тәуелділігі",
-            tab1: "Қондырғы", tab2: "Теория", tab3: "Журнал",
-            lblM: "Жүкті таңдаңыз:", optL: "Үлкен шар (100 г)", optS: "Кіші шар (20 г)",
-            lblL: "Жіп ұзындығы L (см):",
-            lblInstr: "Нұсқаулық:",
-            i1: "Жіптің ұзындығын L орнатыңыз.",
-            i2: "'Үлкен шарды' таңдаңыз.",
-            i3: "Ауытқытып, периодты өлшеңіз.",
-            i4: "'Кіші шарды' таңдаңыз (ұзындықты өзгертпей!).",
-            i5: "Периодты өлшеп, нәтижелерді салыстырыңыз.",
-            btnRec: "НӘТИЖЕНІ ЖАЗУ", btnRes: "ҚАЙТАРУ / ТОҚТАТУ",
-            thGoal: "Жұмыс мақсаты", thGoalTx: "Жіпті маятниктің тербеліс периодының жүк массасына тәуелсіздігін растау.",
-            thForm: "Период формуласы",
-            thDesc: "Формулада тек жіптің ұзындығы L және g үдеуі бар. Жүк массасы m жоқ. Жеңіл және ауыр шарлардың периодтары бірдей болуы керек.",
-            thJ: "Өлшеу нәтижелері", hint: "Шарды ауытқытып, жіберіңіз",
-            dispLbl: "ПЕРИОД (T):", sub: "Циклдар:", thMass: "Жүк"
-        }
-    };
-
-    function toggleLang() {
-        currentLang = currentLang === 'ru' ? 'kz' : 'ru';
-        const t = dict[currentLang];
-        document.getElementById('lab-title').innerText = t.title;
-        document.getElementById('tab-setup').innerText = t.tab1;
-        document.getElementById('tab-theory').innerText = t.tab2;
-        document.getElementById('tab-journal').innerText = t.tab3;
-        document.getElementById('lbl-mass').innerText = t.lblM;
-        const sel = document.getElementById('mass-select');
-        sel.options[0].text = t.optL;
-        sel.options[1].text = t.optS;
-        document.getElementById('lbl-len').childNodes[0].nodeValue = t.lblL + " ";
-        document.getElementById('lbl-instr').innerText = t.lblInstr;
-        document.getElementById('instr-1').innerText = t.i1;
-        document.getElementById('instr-2').innerText = t.i2;
-        document.getElementById('instr-3').innerText = t.i3;
-        document.getElementById('instr-4').innerText = t.i4;
-        document.getElementById('instr-5').innerText = t.i5;
-        document.getElementById('btn-record').innerText = t.btnRec;
-        document.getElementById('btn-reset').innerText = t.btnRes;
-        document.getElementById('th-goal').innerText = t.thGoal;
-        document.getElementById('th-goal-text').innerText = t.thGoalTx;
-        document.getElementById('th-form').innerText = t.thForm;
-        document.getElementById('th-desc').innerText = t.thDesc;
-        document.getElementById('th-journal').innerText = t.thJ;
-        document.getElementById('th-mass').innerText = t.thMass;
-        document.getElementById('hint-text').innerText = t.hint;
-        document.getElementById('disp-lbl').innerText = t.dispLbl;
-        document.querySelector('.display-sub').childNodes[0].nodeValue = t.sub + " ";
+    function initChart() {
+        const context = document.getElementById('period-chart').getContext('2d');
+        periodChart = new Chart(context, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: dict.ru.chartExp,
+                        data: [],
+                        backgroundColor: '#e67e22',
+                        borderColor: '#ca6f1e',
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    },
+                    {
+                        label: dict.ru.chartTheory,
+                        type: 'line',
+                        data: [],
+                        borderColor: '#2980b9',
+                        borderWidth: 2,
+                        borderDash: [6, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: 10,
+                        max: 210,
+                        title: { display: true, text: dict.ru.chartX, font: { weight: 'bold' } },
+                        grid: { color: '#e2e8f0' }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        title: { display: true, text: dict.ru.chartY, font: { weight: 'bold' } },
+                        grid: { color: '#e2e8f0' }
+                    }
+                },
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
     }
 
-    init();
-
+    drawProtractor();
+    initChart();
+    setLang('ru');
+    updateSettings();
 </script>
 </body>
 </html>
