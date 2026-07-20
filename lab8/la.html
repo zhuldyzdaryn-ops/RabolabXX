@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Лабораторная работа: Закон Ома для участка цепи</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --bg: #f4f7f6;
+            --panel: #ffffff;
+            --text: #34495e;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --warning: #e67e22;
+            --danger: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- HEADER & LANG SWITCH --- */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 1.3rem; max-width: 80%; }
+
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .lang-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .lang-btn.active { background: var(--accent); }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .data-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* --- FRACTIONS (ФОРМУЛЫ) --- */
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 1em;
+            line-height: 1.2;
+            margin: 0 4px;
+        }
+        .frac span { display: block; padding: 2px 4px; }
+        .frac span.bottom { border-top: 1px solid var(--text); }
+
+        /* --- INTRO BOX --- */
+        .intro-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--accent);
+        }
+        .intro-box p { margin: 8px 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-box ul { margin: 5px 0 10px 20px; padding: 0; font-size: 0.95rem; line-height: 1.5; }
+        .intro-label { font-weight: bold; color: var(--primary); }
+
+        /* --- SIMULATION --- */
+        .sim-area {
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg {
+            width: 100%;
+            height: 350px;
+            display: block;
+        }
+
+        .circuit-line { stroke: #2c3e50; stroke-width: 3; fill: none; stroke-linecap: round; }
+        .text-label { font-family: sans-serif; font-size: 18px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; fill: #2c3e50; }
+        
+        .rheostat-slider { cursor: grab; fill: var(--accent); transition: fill 0.2s, r 0.2s; }
+        .rheostat-slider:hover { fill: #e74c3c; r: 12; }
+        .rheostat-slider:active { cursor: grabbing; }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
+        
+        input[type="range"] { width: 100%; cursor: pointer; padding: 5px; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1; padding: 10px 15px; border: none; border-radius: 5px;
+            font-weight: bold; color: white; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-record { background: var(--primary); }
+        .btn-record:hover:not(:disabled) { background: #1a252f; }
+        .btn-clear { background: var(--danger); width: auto; padding: 8px 15px; font-size: 0.85rem;}
+        .btn-clear:hover:not(:disabled) { background: #c0392b; }
+
+        /* --- DISPLAYS --- */
+        .display-board {
+            display: flex;
+            justify-content: space-between;
+            background: #34495e;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .display-item { text-align: center; flex: 1; }
+        .display-item span { display: block; font-size: 0.8rem; color: #bdc3c7; }
+        .display-item strong { font-size: 1.2rem; font-family: monospace; color: #f1c40f; }
+
+        /* --- TABLE --- */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 380px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th, td { padding: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--primary); font-weight: bold; position: sticky; top: 0; z-index: 2; }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) { background: #fafbfc; }
+
+        /* --- CHART --- */
+        .chart-box {
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-container {
+            position: relative;
+            height: 180px;
+            width: 100%;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 id="header-title">Лабораторная работа: Закон Ома для участка цепи</h1>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" onclick="setLang('kz')">KZ</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- TOP PANEL: Intro -->
+    <div class="intro-box">
+        <p><span class="intro-label" id="lbl-theme">Тема:</span> <span id="txt-theme">Закон Ома для участка цепи</span></p>
+        <p><span class="intro-label" id="lbl-goal">Цель работы:</span> <span id="txt-goal">Экспериментально установить зависимость силы тока (I) от напряжения (U) на участке цепи и от сопротивления (R) этого участка.</span></p>
+        <div style="display:flex; align-items: flex-start; flex-wrap: wrap;">
+            <span class="intro-label" id="lbl-theory-head" style="margin-right: 5px; margin-top: 8px;">Краткая теория:</span> 
+            <div id="txt-theory" style="margin-top: 8px; font-size: 0.95rem;"></div>
+        </div>
+        <p><span class="intro-label" id="lbl-procedure">Ход работы:</span></p>
+        <ul id="list-procedure">
+            <li>Изменяйте напряжение источника (U) с помощью ползунка и наблюдайте за изменением силы тока (I).</li>
+            <li>Изменяйте сопротивление реостата (R) и следите за показаниями амперметра.</li>
+            <li>Занесите полученные данные в таблицу (кнопка «Записать в таблицу»).</li>
+            <li>Проанализируйте построенные графики зависимости I(U) и I(R).</li>
+        </ul>
+    </div>
+
+    <!-- LEFT PANEL: Simulation -->
+    <div class="panel">
+        <h2 class="panel-title" id="lbl-sim">Симуляция эксперимента</h2>
+        
+        <div class="sim-area">
+            <svg viewBox="0 0 650 350" id="circuit-svg" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#bdc3c7" stroke-width="0.5" opacity="0.5"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <!-- Провода (Левая часть) -->
+                <path d="M 150,280 L 150,50" class="circuit-line" />
+                <path d="M 150,50 L 50,50 L 50,280 L 150,280" class="circuit-line" />
+                
+                <!-- Источник питания (Батарейка) -->
+                <g transform="translate(150, 165)">
+                    <!-- Положительный полюс (длинная линия) -->
+                    <line x1="-20" y1="-10" x2="20" y2="-10" stroke="#2c3e50" stroke-width="2" />
+                    <!-- Отрицательный полюс (толстая линия) -->
+                    <line x1="-10" y1="10" x2="10" y2="10" stroke="#2c3e50" stroke-width="6" />
+                </g>
+
+                <!-- Вольтметр -->
+                <g transform="translate(50, 165)">
+                    <circle cx="0" cy="0" r="24" fill="#fff" stroke="#2c3e50" stroke-width="3" />
+                    <text x="0" y="2" class="text-label">V</text>
+                </g>
+
+                <!-- Провода (Правая часть) -->
+                <line x1="150" y1="50" x2="600" y2="50" class="circuit-line" />
+                <line x1="150" y1="280" x2="600" y2="280" class="circuit-line" />
+                <line x1="600" y1="50" x2="600" y2="280" class="circuit-line" />
+
+                <!-- Амперметр -->
+                <g transform="translate(280, 50)">
+                    <circle cx="0" cy="0" r="24" fill="#fff" stroke="#2c3e50" stroke-width="3" />
+                    <text x="0" y="2" class="text-label">A</text>
+                </g>
+
+                <!-- Реостат -->
+                <g transform="translate(480, 50)">
+                    <rect x="-50" y="-15" width="100" height="30" fill="white" stroke="#2c3e50" stroke-width="3" rx="4"/>
+                    <text x="0" y="4" class="text-label" font-size="16">R</text>
+                    
+                    <g id="rheostat-wiper" style="cursor: pointer" transform="translate(-40.9, 0)">
+                        <line x1="0" y1="-15" x2="0" y2="-45" stroke="#2c3e50" stroke-width="3" />
+                        <polygon points="0,-15 -8,-25 8,-25" fill="#2c3e50" />
+                        <circle cx="0" cy="-45" r="10" class="rheostat-slider" />
+                    </g>
+                </g>
+
+                <!-- Лампа -->
+                <g transform="translate(600, 165)">
+                    <circle id="lamp-glow" cx="0" cy="0" r="23" fill="#f1c40f" style="opacity: 0.4;" />
+                    <circle cx="0" cy="0" r="25" fill="none" stroke="#2c3e50" stroke-width="3" />
+                    <line id="lamp-wire1" x1="-15" y1="-15" x2="15" y2="15" stroke="#2c3e50" stroke-width="2" />
+                    <line id="lamp-wire2" x1="-15" y1="15" x2="15" y2="-15" stroke="#2c3e50" stroke-width="2" />
+                </g>
+            </svg>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-u">Напряжение (U): <span id="val-u" style="color:var(--accent)">20 В</span></label>
+                <input type="range" id="u-input" min="0" max="100" value="20" step="1" oninput="syncInputs('u')">
+            </div>
+            <div class="control-group">
+                <label id="lbl-r">Сопротивление (R): <span id="val-r" style="color:var(--accent)">10 Ом</span></label>
+                <input type="range" id="r-input" min="1" max="100" value="10" step="1" oninput="syncInputs('r')">
+            </div>
+        </div>
+
+        <div class="display-board">
+            <div class="display-item">
+                <span id="disp-u">Напряжение U (В)</span>
+                <strong id="meas-u">20.0</strong>
+            </div>
+            <div class="display-item">
+                <span id="disp-r">Сопротивление R (Ом)</span>
+                <strong id="meas-r">10.0</strong>
+            </div>
+            <div class="display-item" style="flex: 2;">
+                <span id="disp-i">Сила тока I (А)</span>
+                <strong id="meas-i" style="color: #f1c40f; font-size: 1.4rem;">2.00</strong>
+            </div>
+        </div>
+
+        <div class="btn-group" style="justify-content: center;">
+            <button class="btn btn-record" id="btn-record" onclick="recordData()" style="max-width: 400px;">Записать измерения в таблицу</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM PANEL: Data & Theory -->
+    <div class="panel">
+        <div class="data-grid">
+            
+            <div class="table-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2 class="panel-title" id="lbl-journal" style="border:none; margin:0; padding:0;">Таблица измерений</h2>
+                    <button class="btn btn-clear" id="btn-clear" onclick="clearTable()">Очистить таблицу</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-no">№</th>
+                                <th id="th-u">U (В)</th>
+                                <th id="th-r">R (Ом)</th>
+                                <th id="th-i">I (А)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="data-table-body">
+                            <!-- Данные будут здесь -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="chart-section" style="display:flex; flex-direction:column; gap:20px;">
+                <div class="chart-box">
+                    <h3 id="lbl-chart1" style="margin:0 0 5px 0; font-size:1rem; text-align:center; color: var(--primary);">График зависимости I от R</h3>
+                    <p id="lbl-chart1-sub" style="font-size:0.75rem; text-align:center; color:#7f8c8d; margin:0 0 10px 0;">При постоянном напряжении (U = const)</p>
+                    <div class="chart-container">
+                        <canvas id="chartR"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-box">
+                    <h3 id="lbl-chart2" style="margin:0 0 5px 0; font-size:1rem; text-align:center; color: var(--primary);">График зависимости I от U</h3>
+                    <p id="lbl-chart2-sub" style="font-size:0.75rem; text-align:center; color:#7f8c8d; margin:0 0 10px 0;">При постоянном сопротивлении (R = const)</p>
+                    <div class="chart-container">
+                        <canvas id="chartU"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d;">
+            <strong id="lbl-theory-title">Формула для расчета:</strong><br>
+            <div id="lbl-theory-formulas" style="margin-top: 10px; font-size: 1rem; color: var(--primary);">
+                <b>I = </b> <div class="frac"><span>U</span><span class="bottom">R</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ЯЗЫКОВАЯ ЛОГИКА ---
+    let currentLang = 'ru';
+
+    const dict = {
+        ru: {
+            title: "Лабораторная работа: Закон Ома для участка цепи",
+            themeLbl: "Тема:",
+            themeTxt: "Закон Ома для участка цепи",
+            goalLbl: "Цель работы:",
+            goalTxt: "Экспериментально установить зависимость силы тока (I) от напряжения (U) на участке цепи и от сопротивления (R) этого участка.",
+            theoryLbl: "Краткая теория:",
+            theoryTxt: "Сила тока в участке цепи прямо пропорциональна напряжению на концах этого участка и обратно пропорциональна его сопротивлению.",
+            procLbl: "Ход работы:",
+            procList: [
+                "Изменяйте напряжение источника (U) с помощью ползунка и наблюдайте за изменением силы тока (I).",
+                "Изменяйте сопротивление реостата (R) путем перемещения ползунка или перетаскивания бегунка на схеме.",
+                "Занесите полученные данные в таблицу (кнопка «Записать в таблицу»).",
+                "Проанализируйте построенные графики зависимости I(U) и I(R)."
+            ],
+            sim: "Симуляция эксперимента",
+            lblU: "Напряжение (U):",
+            lblR: "Сопротивление реостата (R):",
+            dispU: "Напряжение U (В)",
+            dispR: "Сопротивление R (Ом)",
+            dispI: "Сила тока I (А)",
+            btnRecord: "Записать измерения в таблицу",
+            btnClear: "Очистить таблицу",
+            journal: "Таблица измерений",
+            thNo: "№", thU: "U (В)", thR: "R (Ом)", thI: "I (А)",
+            chart1Title: "График зависимости I от R",
+            chart1Sub: "При постоянном напряжении (U = const)",
+            chart2Title: "График зависимости I от U",
+            chart2Sub: "При постоянном сопротивлении (R = const)",
+            chartX_R: "R (Ом)",
+            chartX_U: "U (В)",
+            chartY_I: "I (А)",
+            theoryTitle: "Формула закона Ома:"
+        },
+        kz: {
+            title: "Зертханалық жұмыс: Тізбек бөлігі үшін Ом заңы",
+            themeLbl: "Тақырыбы:",
+            themeTxt: "Тізбек бөлігі үшін Ом заңы",
+            goalLbl: "Жұмыс мақсаты:",
+            goalTxt: "Тізбек бөлігіндегі ток күшінің (I) кернеуге (U) және кедергіге (R) тәуелділігін тәжірибе жүзінде анықтау.",
+            theoryLbl: "Қысқаша теория:",
+            theoryTxt: "Тізбек бөлігіндегі ток күші осы бөліктің ұштарындағы кернеуге тура пропорционал және оның кедергісіне кері пропорционал.",
+            procLbl: "Жұмыс барысы:",
+            procList: [
+                "Жүгіртпе көмегімен көздің кернеуін (U) өзгертіңіз және ток күшінің (I) өзгеруін бақылаңыз.",
+                "Реостаттың кедергісін (R) сырғытпаны жылжыту немесе схемадағы жүгіртпені тарту арқылы өзгертіңіз.",
+                "Алынған мәліметтерді кестеге енгізіңіз («Өлшеулерді жазу» түймесі).",
+                "I(U) және I(R) тәуелділік графиктерін талдаңыз."
+            ],
+            sim: "Эксперимент симуляциясы",
+            lblU: "Кернеу (U):",
+            lblR: "Реостат кедергісі (R):",
+            dispU: "Кернеу U (В)",
+            dispR: "Кедергі R (Ом)",
+            dispI: "Ток күші I (А)",
+            btnRecord: "Өлшеулерді кестеге жазу",
+            btnClear: "Кестені тазалау",
+            journal: "Өлшеулер кестесі",
+            thNo: "№", thU: "U (В)", thR: "R (Ом)", thI: "I (А)",
+            chart1Title: "I-дің R-ге тәуелділік графигі",
+            chart1Sub: "Тұрақты кернеуде (U = const)",
+            chart2Title: "I-дің U-ға тәуелділік графигі",
+            chart2Sub: "Тұрақты кедергіде (R = const)",
+            chartX_R: "R (Ом)",
+            chartX_U: "U (В)",
+            chartY_I: "I (А)",
+            theoryTitle: "Ом заңының формуласы:"
+        }
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        const t = dict[lang];
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.innerText.toLowerCase() === lang.toLowerCase()) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        
+        document.getElementById('header-title').innerText = t.title;
+        document.title = t.title;
+        
+        document.getElementById('lbl-theme').innerText = t.themeLbl;
+        document.getElementById('txt-theme').innerText = t.themeTxt;
+        document.getElementById('lbl-goal').innerText = t.goalLbl;
+        document.getElementById('txt-goal').innerText = t.goalTxt;
+        document.getElementById('lbl-theory-head').innerText = t.theoryLbl;
+        document.getElementById('txt-theory').innerText = t.theoryTxt;
+        document.getElementById('lbl-procedure').innerText = t.procLbl;
+        
+        const ul = document.getElementById('list-procedure');
+        ul.innerHTML = "";
+        t.procList.forEach(item => {
+            let li = document.createElement('li');
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        document.getElementById('lbl-sim').innerText = t.sim;
+        document.getElementById('lbl-u').childNodes[0].nodeValue = t.lblU + " ";
+        document.getElementById('lbl-r').childNodes[0].nodeValue = t.lblR + " ";
+        
+        document.getElementById('disp-u').innerText = t.dispU;
+        document.getElementById('disp-r').innerText = t.dispR;
+        document.getElementById('disp-i').innerText = t.dispI;
+        document.getElementById('btn-record').innerText = t.btnRecord;
+        document.getElementById('btn-clear').innerText = t.btnClear;
+        
+        document.getElementById('lbl-journal').innerText = t.journal;
+        document.getElementById('th-no').innerText = t.thNo;
+        document.getElementById('th-u').innerText = t.thU;
+        document.getElementById('th-r').innerText = t.thR;
+        document.getElementById('th-i').innerText = t.thI;
+        
+        document.getElementById('lbl-chart1').innerText = t.chart1Title;
+        document.getElementById('lbl-chart1-sub').innerText = t.chart1Sub;
+        document.getElementById('lbl-chart2').innerText = t.chart2Title;
+        document.getElementById('lbl-chart2-sub').innerText = t.chart2Sub;
+        document.getElementById('lbl-theory-title').innerText = t.theoryTitle;
+
+        if (chartR) {
+            chartR.options.scales.x.title.text = t.chartX_R;
+            chartR.options.scales.y.title.text = t.chartY_I;
+            chartR.update();
+        }
+        if (chartU) {
+            chartU.options.scales.x.title.text = t.chartX_U;
+            chartU.options.scales.y.title.text = t.chartY_I;
+            chartU.update();
+        }
+        syncInputs('lang');
+    }
+
+    // --- КОНСТАНТЫ И ПЕРЕМЕННЫЕ ---
+    const R_MIN = 1, R_MAX = 100;
+    const RHEOSTAT_X_CENTER = 480;
+    let measurementCount = 0; 
+    
+    // --- ИНТЕРАКТИВНОСТЬ РЕОСТАТА ---
+    let isDragging = false;
+    const svg = document.getElementById('circuit-svg');
+    const wiper = document.getElementById('rheostat-wiper');
+
+    // Для мыши
+    wiper.addEventListener('mousedown', () => { isDragging = true; });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    svg.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        handleDrag(e.clientX, e.clientY);
+    });
+
+    // Для мобильных устройств (touch)
+    wiper.addEventListener('touchstart', (e) => { isDragging = true; e.preventDefault(); }, {passive: false});
+    window.addEventListener('touchend', () => { isDragging = false; });
+    svg.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        handleDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+
+    function handleDrag(clientX, clientY) {
+        let pt = svg.createSVGPoint(); 
+        pt.x = clientX; pt.y = clientY;
+        let svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+        
+        let localX = Math.max(-50, Math.min(50, svgP.x - RHEOSTAT_X_CENTER));
+        let newR = Math.round(((localX + 50) / 100) * (R_MAX - R_MIN) + R_MIN);
+        
+        document.getElementById('r-input').value = newR;
+        syncInputs('r');
+    }
+
+    // --- ЛОГИКА И ГРАФИКИ ---
+    function syncInputs(source) {
+        let U = parseFloat(document.getElementById('u-input').value);
+        let R = parseFloat(document.getElementById('r-input').value);
+        if(R <= 0) R = 0.1;
+        let I = U / R;
+
+        const langU = currentLang === 'ru' ? 'В' : 'В';
+        const langR = currentLang === 'ru' ? 'Ом' : 'Ом';
+
+        document.getElementById('val-u').innerText = U + " " + langU;
+        document.getElementById('val-r').innerText = R + " " + langR;
+        
+        document.getElementById('meas-u').innerText = U.toFixed(1);
+        document.getElementById('meas-r').innerText = R.toFixed(1);
+        document.getElementById('meas-i').innerText = I.toFixed(2);
+
+        // Обновление ползунка на SVG схеме
+        if (source === 'r' || source === 'u' || source === 'init') {
+            let percent = (R - R_MIN) / (R_MAX - R_MIN);
+            let posX = (percent * 100) - 50; 
+            wiper.setAttribute('transform', `translate(${posX}, 0)`);
+        }
+
+        // Яркость лампы (при I=5А лампа горит максимально ярко)
+        const lampGlow = document.getElementById('lamp-glow');
+        const wire1 = document.getElementById('lamp-wire1');
+        const wire2 = document.getElementById('lamp-wire2');
+        
+        if(I > 0) {
+            lampGlow.style.opacity = Math.min(I / 5, 1);
+            wire1.setAttribute('stroke', '#d35400');
+            wire2.setAttribute('stroke', '#d35400');
+        } else {
+            lampGlow.style.opacity = 0;
+            wire1.setAttribute('stroke', '#2c3e50');
+            wire2.setAttribute('stroke', '#2c3e50');
+        }
+    }
+
+    let chartR, chartU;
+
+    function initCharts() {
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            elements: { point: { radius: 4, hoverRadius: 6 } },
+            plugins: { legend: { display: false } }
+        };
+
+        const ctxR = document.getElementById('chartR').getContext('2d');
+        chartR = new Chart(ctxR, {
+            type: 'scatter',
+            data: { datasets: [{ data: [], borderColor: '#e74c3c', borderWidth: 2, backgroundColor: 'rgba(231, 76, 60, 0.8)', showLine: true }] },
+            options: { 
+                ...commonOptions,
+                scales: { 
+                    x: { type: 'linear', grid: { color: '#ecf0f1' }, title: { display: true, text: 'R (Ом)' } }, 
+                    y: { type: 'linear', grid: { color: '#ecf0f1' }, min: 0, max: 20, title: { display: true, text: 'I (А)' } } 
+                }
+            }
+        });
+
+        const ctxU = document.getElementById('chartU').getContext('2d');
+        chartU = new Chart(ctxU, {
+            type: 'scatter',
+            data: { datasets: [{ data: [], borderColor: '#2980b9', borderWidth: 2, backgroundColor: 'rgba(41, 128, 185, 0.8)', showLine: true }] },
+            options: { 
+                ...commonOptions,
+                scales: { 
+                    x: { type: 'linear', grid: { color: '#ecf0f1' }, title: { display: true, text: 'U (В)' } }, 
+                    y: { type: 'linear', grid: { color: '#ecf0f1' }, min: 0, max: 20, title: { display: true, text: 'I (А)' } } 
+                }
+            }
+        });
+    }
+
+    // --- ФУНКЦИИ ТАБЛИЦЫ И ГРАФИКОВ ---
+    function recordData() {
+        let U = parseFloat(document.getElementById('u-input').value).toFixed(1);
+        let R = parseFloat(document.getElementById('r-input').value).toFixed(1);
+        let I = (parseFloat(U) / parseFloat(R)).toFixed(2);
+        
+        measurementCount++;
+
+        let row = `
+            <tr>
+                <td>${measurementCount}</td>
+                <td>${U}</td>
+                <td>${R}</td>
+                <td><strong style="color: var(--primary);">${I}</strong></td>
+            </tr>
+        `;
+
+        document.getElementById('data-table-body').insertAdjacentHTML('beforeend', row);
+        
+        const wrapper = document.querySelector('.table-wrap');
+        wrapper.scrollTop = wrapper.scrollHeight;
+
+        if (chartR && chartU) {
+            chartR.data.datasets[0].data.push({ x: parseFloat(R), y: parseFloat(I) });
+            chartR.data.datasets[0].data.sort((a, b) => a.x - b.x);
+            chartR.update();
+
+            chartU.data.datasets[0].data.push({ x: parseFloat(U), y: parseFloat(I) });
+            chartU.data.datasets[0].data.sort((a, b) => a.x - b.x);
+            chartU.update();
+        }
+    }
+
+    function clearTable() {
+        document.getElementById('data-table-body').innerHTML = '';
+        measurementCount = 0;
+
+        // Очистка графиков
+        if (chartR && chartU) {
+            chartR.data.datasets[0].data = [];
+            chartR.update();
+            chartU.data.datasets[0].data = [];
+            chartU.update();
+        }
+    }
+
+    // Инициализация при загрузке
+    window.onload = function() {
+        initCharts();
+        setLang('ru');
+        syncInputs('init');
+    };
+</script>
+</body>
+</html>
