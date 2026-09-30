@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сравнение количеств теплоты при смешивании воды</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .slider { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 4px; outline: none; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        
+        .slider.hot { background: #fca5a5; }
+        .slider.hot::-webkit-slider-thumb { background: #dc2626; }
+        .slider.hot::-moz-range-thumb { background: #dc2626; }
+        
+        .slider.cold { background: #93c5fd; }
+        .slider.cold::-webkit-slider-thumb { background: #2563eb; }
+        .slider.cold::-moz-range-thumb { background: #2563eb; }
+        
+        /* Custom scrollbar for table */
+        .table-container::-webkit-scrollbar { height: 8px; }
+        .table-container::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        
+        /* Скрытие стрелочек в input type number */
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="text-slate-800 p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <header class="text-center pb-4 border-b border-slate-200">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight">
+                Виртуальная лаборатория
+            </h1>
+            <h2 class="text-xl md:text-2xl font-medium text-slate-600 mt-2">
+                Сравнение количеств теплоты при смешивании воды разной температуры
+            </h2>
+        </header>
+
+        <!-- Theory & Procedure -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                <div class="border-l-4 border-blue-500 pl-4 mb-4">
+                    <h3 class="text-xl font-bold text-slate-800">Цель работы</h3>
+                    <p class="text-slate-600 mt-1">Определить количество теплоты, отданное горячей водой и полученное холодной при теплообмене, и объяснить причину их неравенства (потери тепла).</p>
+                </div>
+                <div class="border-l-4 border-purple-500 pl-4">
+                    <h3 class="text-xl font-bold text-slate-800">Формулы</h3>
+                    <p class="text-slate-600 mt-1">Количество теплоты вычисляется по формуле: <b>Q = c &middot; m &middot; &Delta;t</b>, где <b>c = 4200 Дж/(кг&middot;&deg;C)</b> — удельная теплоемкость воды. Из-за теплопередачи окружающим телам, Q<sub>отданное</sub> всегда немного больше, чем Q<sub>полученное</sub>.</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-xl font-bold text-slate-800 mb-2 border-l-4 border-emerald-500 pl-4">Ход работы</h3>
+                <ol class="list-decimal list-inside text-slate-600 space-y-1">
+                    <li>Установите параметры холодной воды (слева) и горячей воды (справа) с помощью ползунков. Объем воды в стаканах изменится автоматически.</li>
+                    <li>Нажмите кнопку <b>«Смешать»</b>. Наблюдайте за процессом теплообмена и изменением показаний термометров.</li>
+                    <li>Дождитесь окончания анимации.</li>
+                    <li>Нажмите <b>«Записать данные»</b> для внесения параметров в таблицу.</li>
+                    <li>Самостоятельно рассчитайте Q<sub>пол</sub> и Q<sub>отд</sub> и впишите их в таблицу для построения графика.</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Simulation Canvas -->
+            <div class="lg:col-span-8 bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                <div class="relative w-full h-[450px] bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
+                    <canvas id="simCanvas" width="800" height="450" class="w-full h-full object-contain"></canvas>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="lg:col-span-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-4">
+                
+                <!-- Cold Water (m1, t1) -->
+                <div class="p-4 bg-blue-50/80 rounded-xl border border-blue-100 shadow-inner">
+                    <h4 class="font-bold text-blue-900 mb-3">Холодная вода</h4>
+                    <div class="mb-3">
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm text-blue-800">Масса m<sub>1</sub>:</label>
+                            <span class="text-sm font-bold text-blue-700"><span id="val-m1">100</span> г</span>
+                        </div>
+                        <input type="range" id="m1" min="50" max="250" step="10" value="100" class="slider cold">
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm text-blue-800">Температура t<sub>1</sub>:</label>
+                            <span class="text-sm font-bold text-blue-700"><span id="val-t1">20</span> &deg;C</span>
+                        </div>
+                        <input type="range" id="t1" min="10" max="35" step="1" value="20" class="slider cold">
+                    </div>
+                </div>
+
+                <!-- Hot Water (m2, t2) -->
+                <div class="p-4 bg-red-50/80 rounded-xl border border-red-100 shadow-inner">
+                    <h4 class="font-bold text-red-900 mb-3">Горячая вода</h4>
+                    <div class="mb-3">
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm text-red-800">Масса m<sub>2</sub>:</label>
+                            <span class="text-sm font-bold text-red-700"><span id="val-m2">150</span> г</span>
+                        </div>
+                        <input type="range" id="m2" min="50" max="250" step="10" value="150" class="slider hot">
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-sm text-red-800">Температура t<sub>2</sub>:</label>
+                            <span class="text-sm font-bold text-red-700"><span id="val-t2">80</span> &deg;C</span>
+                        </div>
+                        <input type="range" id="t2" min="50" max="95" step="1" value="80" class="slider hot">
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="mt-auto flex flex-col gap-2 pt-2">
+                    <button id="btnMix" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md active:scale-95">
+                        Смешать
+                    </button>
+                    <div class="flex gap-2">
+                        <button id="btnRecord" disabled class="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold py-2 px-3 rounded-xl transition-all shadow-md active:scale-95 text-sm">
+                            Записать данные
+                        </button>
+                        <button id="btnReset" disabled class="flex-1 bg-rose-500 hover:bg-rose-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold py-2 px-3 rounded-xl transition-all shadow-md active:scale-95 text-sm">
+                            Сброс
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Data Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800">Таблица результатов</h3>
+                </div>
+                <div class="overflow-x-auto table-container flex-1 p-4">
+                    <table class="w-full text-sm text-left whitespace-nowrap">
+                        <thead class="text-xs text-slate-600 uppercase border-b border-slate-300">
+                            <tr>
+                                <th class="py-2 pr-4 text-center">№</th>
+                                <th class="py-2 px-2 text-center text-blue-700">m<sub>1</sub> (г)</th>
+                                <th class="py-2 px-2 text-center text-blue-700">t<sub>1</sub> (&deg;C)</th>
+                                <th class="py-2 px-2 text-center text-red-700">m<sub>2</sub> (г)</th>
+                                <th class="py-2 px-2 text-center text-red-700">t<sub>2</sub> (&deg;C)</th>
+                                <th class="py-2 px-2 text-center text-purple-700">T<sub>смес</sub> (&deg;C)</th>
+                                <th class="py-2 px-2 text-center text-blue-600 leading-tight">Q<sub>пол</sub> (Дж)<br><span class="text-[10px] font-normal text-slate-400">расчет</span></th>
+                                <th class="py-2 pl-2 text-center text-red-600 leading-tight">Q<sub>отд</sub> (Дж)<br><span class="text-[10px] font-normal text-slate-400">расчет</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTable" class="divide-y divide-slate-100 text-center">
+                            <tr id="emptyRow">
+                                <td colspan="8" class="py-6 text-slate-400 italic text-center">Нет данных. Проведите опыт.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-slate-800 mb-2">Сравнение Q<sub>полученное</sub> и Q<sub>отданное</sub></h3>
+                <div class="w-full h-64 relative">
+                    <canvas id="heatChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const c_water = 4200; 
+        const heat_loss_factor = 0.05; 
+        
+        const state = {
+            m1: 100, t1: 20, 
+            m2: 150, t2: 80, 
+            phase: 'setup',  
+            animProgress: 0, 
+            T_actual: 0,
+            expCount: 0
+        };
+
+        // DOM Elements
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const inputs = {
+            m1: document.getElementById('m1'), t1: document.getElementById('t1'),
+            m2: document.getElementById('m2'), t2: document.getElementById('t2')
+        };
+        const displays = {
+            m1: document.getElementById('val-m1'), t1: document.getElementById('val-t1'),
+            m2: document.getElementById('val-m2'), t2: document.getElementById('val-t2')
+        };
+        const buttons = {
+            mix: document.getElementById('btnMix'),
+            record: document.getElementById('btnRecord'),
+            reset: document.getElementById('btnReset')
+        };
+
+        // --- Chart Setup ---
+        const chartCtx = document.getElementById('heatChart').getContext('2d');
+        const heatChart = new Chart(chartCtx, {
+            type: 'bar',
+            data: { labels: [], datasets: [
+                { label: 'Q полученное (Ваш ввод)', data: [], backgroundColor: 'rgba(37, 99, 235, 0.8)', borderRadius: 2 },
+                { label: 'Q отданное (Ваш ввод)', data: [], backgroundColor: 'rgba(220, 38, 38, 0.8)', borderRadius: 2 }
+            ]},
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Энергия (Дж)' } },
+                    x: { title: { display: true, text: 'Опыт №' } }
+                }
+            }
+        });
+
+        // --- Event Listeners for UI ---
+        function handleInput() {
+            if (state.phase !== 'setup') return; 
+            
+            state.m1 = parseInt(inputs.m1.value);
+            state.t1 = parseInt(inputs.t1.value);
+            state.m2 = parseInt(inputs.m2.value);
+            state.t2 = parseInt(inputs.t2.value);
+            
+            displays.m1.innerText = state.m1;
+            displays.t1.innerText = state.t1;
+            displays.m2.innerText = state.m2;
+            displays.t2.innerText = state.t2;
+            
+            drawSimulation(); 
+        }
+
+        Object.values(inputs).forEach(inp => inp.addEventListener('input', handleInput));
+
+        // --- JavaScript Logic - Canvas Rendering ---
+        function drawBeaker(x, y, width, height, maxMass, currentMass, temp, colorRGB, label) {
+            const fillRatio = currentMass / (maxMass * 1.1); 
+            const waterHeight = height * fillRatio;
+            const waterY = y + height - waterHeight;
+            const bottomRadius = width / 8;
+            const topRadius = width / 8;
+
+            // 1. Draw back edge of the glass
+            ctx.beginPath();
+            ctx.ellipse(x + width/2, y, width/2, topRadius, 0, Math.PI, Math.PI*2);
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 2. Draw Water (Inside with clipping mask for perfect bottom curve)
+            if (currentMass > 1) { // Скрываем, если массы почти нет
+                ctx.save();
+                
+                // Создаем форму стакана для маски отсечения (Clipping Mask)
+                ctx.beginPath();
+                ctx.moveTo(x + 2, y);
+                ctx.lineTo(x + 2, y + height - bottomRadius);
+                ctx.quadraticCurveTo(x + width/2, y + height + bottomRadius - 2, x + width - 2, y + height - bottomRadius);
+                ctx.lineTo(x + width - 2, y);
+                ctx.closePath();
+                ctx.clip(); // Теперь вода не выйдет за пределы стакана даже на дне
+
+                // Рисуем объем воды (квадратом, маска сама обрежет дно)
+                ctx.fillStyle = `rgba(${colorRGB}, 0.5)`;
+                ctx.fillRect(x, waterY, width, height);
+
+                // Рисуем верхнюю поверхность (овал)
+                ctx.beginPath();
+                ctx.ellipse(x + width/2, waterY, width/2 - 2, topRadius - 1, 0, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(${colorRGB}, 0.7)`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(${colorRGB}, 1)`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // 3. Draw Thermometer
+            const thX = x + width/2 + 10; 
+            const thYTop = y - 40;
+            const thYBottom = y + height - bottomRadius; 
+            const thWidth = 8;
+            const bulbRadius = 8;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(thX - thWidth/2, thYTop, thWidth, thYBottom - thYTop, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(thX, thYBottom, bulbRadius, 0, Math.PI*2);
+            ctx.fillStyle = '#ef4444'; 
+            ctx.fill();
+            ctx.stroke();
+
+            const tempRatio = Math.max(0, Math.min(100, temp)) / 100;
+            const maxLiquidHeight = (thYBottom - bulbRadius) - (thYTop + 4);
+            const liquidHeight = maxLiquidHeight * tempRatio;
+            
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.fillRect(thX - 2, thYBottom - bulbRadius - liquidHeight, 4, liquidHeight + 4);
+
+            ctx.fillStyle = '#334155';
+            ctx.font = 'bold 12px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${temp.toFixed(1)}°C`, thX + 12, thYTop + 20);
+
+            // 4. Draw Front edge of the Glass
+            ctx.strokeStyle = 'rgba(203, 213, 225, 0.8)'; 
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + height - bottomRadius);
+            ctx.quadraticCurveTo(x + width/2, y + height + bottomRadius, x + width, y + height - bottomRadius);
+            ctx.lineTo(x + width, y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(x + width/2, y, width/2, topRadius, 0, 0, Math.PI);
+            ctx.stroke();
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y + 20);
+            ctx.lineTo(x + 10, y + height - 20);
+            ctx.stroke();
+
+            ctx.fillStyle = '#475569';
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x + width/2, y + height + 30);
+        }
+
+        function drawSimulation() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const blX = 150, blY = 100, blW = 100, blH = 150, maxM1 = 250;
+            const brX = 550, brY = 100, brW = 100, brH = 150, maxM2 = 250;
+            const fcX = 300, fcY = 220, fcW = 200, fcH = 200, maxTotal = 500;
+
+            let m1_current = state.m1;
+            let m2_current = state.m2;
+            let m_mix_current = 0;
+            let t_mix_display = 20; 
+
+            if (state.phase === 'animating' || state.phase === 'mixed') {
+                m1_current = state.m1 * (1 - state.animProgress);
+                m2_current = state.m2 * (1 - state.animProgress);
+                m_mix_current = (state.m1 + state.m2) * state.animProgress;
+                t_mix_display = 20 + (state.T_actual - 20) * state.animProgress;
+            }
+
+            drawBeaker(blX, blY, blW, blH, maxM1, m1_current, state.t1, '59, 130, 246', 'Холодная вода'); 
+            drawBeaker(brX, brY, brW, brH, maxM2, m2_current, state.t2, '239, 68, 68', 'Горячая вода'); 
+
+            const mixColor = '168, 85, 247'; 
+            drawBeaker(fcX, fcY, fcW, fcH, maxTotal, m_mix_current, t_mix_display, mixColor, 'Смесь');
+        }
+
+        // --- JavaScript Logic - Interactions and Physics ---
+        function calculatePhysics() {
+            const m1_kg = state.m1 / 1000;
+            const m2_kg = state.m2 / 1000;
+            
+            const T_ideal = (m1_kg * state.t1 + m2_kg * state.t2) / (m1_kg + m2_kg);
+            state.T_actual = T_ideal - (T_ideal - state.t1) * heat_loss_factor;
+        }
+
+        function animateMix() {
+            state.animProgress += 0.015; 
+            
+            if (state.animProgress >= 1) {
+                state.animProgress = 1;
+                state.phase = 'mixed';
+                buttons.record.disabled = false;
+                buttons.reset.disabled = false;
+            } else {
+                requestAnimationFrame(animateMix);
+            }
+            drawSimulation();
+        }
+
+        buttons.mix.addEventListener('click', () => {
+            if (state.phase !== 'setup') return;
+            
+            Object.values(inputs).forEach(inp => inp.disabled = true);
+            buttons.mix.disabled = true;
+            
+            calculatePhysics();
+            
+            state.phase = 'animating';
+            state.animProgress = 0;
+            animateMix();
+        });
+
+        buttons.reset.addEventListener('click', () => {
+            state.phase = 'setup';
+            state.animProgress = 0;
+            
+            Object.values(inputs).forEach(inp => inp.disabled = false);
+            buttons.mix.disabled = false;
+            buttons.record.disabled = true;
+            buttons.reset.disabled = true;
+            
+            drawSimulation();
+        });
+
+        // Запись в таблицу
+        buttons.record.addEventListener('click', () => {
+            if (state.phase !== 'mixed') return;
+            
+            state.expCount++;
+            
+            const emptyRow = document.getElementById('emptyRow');
+            if (emptyRow) emptyRow.remove();
+
+            const tbody = document.getElementById('dataTable');
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors";
+            tr.innerHTML = `
+                <td class="py-2 pr-4 text-center font-medium">${state.expCount}</td>
+                <td class="py-2 px-2 text-center bg-blue-50/50">${state.m1}</td>
+                <td class="py-2 px-2 text-center bg-blue-50/50">${state.t1}</td>
+                <td class="py-2 px-2 text-center bg-red-50/50">${state.m2}</td>
+                <td class="py-2 px-2 text-center bg-red-50/50">${state.t2}</td>
+                <td class="py-2 px-2 text-center font-bold bg-purple-50/50">${state.T_actual.toFixed(1)}</td>
+                <td class="py-1 px-1 text-center bg-blue-50/50"><input type="number" class="w-16 text-center border border-blue-300 rounded p-1 q-rec-input bg-white text-sm focus:outline-blue-500" placeholder="?"></td>
+                <td class="py-1 pl-1 pr-2 text-center bg-red-50/50"><input type="number" class="w-16 text-center border border-red-300 rounded p-1 q-giv-input bg-white text-sm focus:outline-red-500" placeholder="?"></td>
+            `;
+            tbody.appendChild(tr);
+
+            // Резервируем место в графике под этот опыт
+            heatChart.data.labels.push(`Опыт ${state.expCount}`);
+            heatChart.data.datasets[0].data.push(0);
+            heatChart.data.datasets[1].data.push(0);
+            heatChart.update();
+
+            buttons.record.disabled = true;
+        });
+
+        // Слушатель для обновления графика при вводе данных учеником
+        document.getElementById('dataTable').addEventListener('input', () => {
+            const rows = document.querySelectorAll('#dataTable tr:not(#emptyRow)');
+            const qRecData = [];
+            const qGivData = [];
+
+            rows.forEach(row => {
+                const recInput = row.querySelector('.q-rec-input');
+                const givInput = row.querySelector('.q-giv-input');
+                if(recInput && givInput) {
+                    qRecData.push(parseFloat(recInput.value) || 0);
+                    qGivData.push(parseFloat(givInput.value) || 0);
+                }
+            });
+
+            heatChart.data.datasets[0].data = qRecData;
+            heatChart.data.datasets[1].data = qGivData;
+            heatChart.update();
+        });
+
+        // Initial Draw
+        drawSimulation();
+
+    </script>
+</body>
+</html>
